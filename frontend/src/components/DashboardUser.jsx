@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function DashboardUser() {
+function DashboardUser({ darkMode, toggleDarkMode }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [showProfileModal, setShowProfileModal] = useState(false);
   
@@ -122,7 +122,12 @@ function DashboardUser() {
           </div>
         </div>
         <div className="profile" onClick={openProfileModal}>
-          <img src="https://i.pravatar.cc/40" alt="Usuário" className="profile-img" />
+          <div className="profile-img-container">
+            <img src="https://i.pravatar.cc/40" alt="Usuário" className="profile-img" />
+            <button className="profile-img-upload-btn" title="Alterar foto">
+              <i className="fas fa-camera"></i>
+            </button>
+          </div>
           <div className="profile-name">{profile.name}</div>
         </div>
       </div>
@@ -133,6 +138,13 @@ function DashboardUser() {
         <div className="header">
           <h2 className="page-title" id="page-title">{pageTitles[activeScreen]}</h2>
           <div className="user-actions">
+            <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar modo escuro">
+              {darkMode ? (
+                <i className="fas fa-sun"></i>
+              ) : (
+                <i className="fas fa-moon"></i>
+              )}
+            </button>
             <div className="notification-btn">
               <i className="fas fa-bell"></i>
             </div>
@@ -405,7 +417,12 @@ function DashboardUser() {
           <div className="profile-modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="close-modal" onClick={closeProfileModal}>&times;</button>
             <div className="profile-modal-header">
-              <img src="https://i.pravatar.cc/80" alt="Usuário" className="profile-modal-img" />
+              <div className="profile-modal-img-container">
+                <img src="https://i.pravatar.cc/80" alt="Usuário" className="profile-modal-img" />
+                <button className="profile-img-upload-btn" title="Alterar foto">
+                  <i className="fas fa-camera"></i>
+                </button>
+              </div>
               <div className="profile-modal-info">
                 <h3>{profile.name}</h3>
                 <p>{profile.role}</p>

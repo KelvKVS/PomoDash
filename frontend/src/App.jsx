@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import DashboardProfessor from './components/DashboardProfessor';
@@ -12,13 +12,13 @@ const setGlobalStyles = () => {
   const style = document.createElement('style');
   style.innerHTML = `
     :root {
-      --primary-color: #e55345; /* Tomato red */
-      --primary-light: #f88578;
-      --primary-dark: #d34739;
+      --primary-color: #d9534f; /* Red mais suave */
+      --primary-light: #e78c88;
+      --primary-dark: #c9302c;
       --secondary-color: #6c757d;
       --success-color: #28a745;
       --warning-color: #ffc107;
-      --danger-color: #dc3545;
+      --danger-color: #d9534f; /* Red mais suave */
       --background-color: #f8f9fa;
       --card-background: white;
       --text-color: #212529;
@@ -36,6 +36,33 @@ setGlobalStyles();
 
 function App() {
   const [userType, setUserType] = useState(null); // null = não escolheu, 'student' = aluno, 'professor' = professor, 'institution' = instituição, 'user' = usuário final
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Carregar preferência do modo escuro do localStorage
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(savedDarkMode);
+    
+    if (savedDarkMode) {
+      document.documentElement.classList.add('dark-theme');
+      document.body.classList.add('dark-theme');
+    }
+  }, []);
+
+  // Alternar modo escuro
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', newDarkMode);
+    
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark-theme');
+      document.body.classList.add('dark-theme');
+    } else {
+      document.documentElement.classList.remove('dark-theme');
+      document.body.classList.remove('dark-theme');
+    }
+  };
 
   // Função para selecionar o tipo de usuário (simulando login)
   const handleUserTypeSelection = (type) => {
@@ -50,6 +77,15 @@ function App() {
   // Componente de seleção de tipo de usuário
   const UserTypeSelection = () => (
     <div className="user-type-selection">
+      <div className="dark-mode-toggle">
+        <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar modo escuro">
+          {darkMode ? (
+            <i className="fas fa-sun"></i>
+          ) : (
+            <i className="fas fa-moon"></i>
+          )}
+        </button>
+      </div>
       <h2>Bem-vindo ao PomoDash!</h2>
       <p>Selecione o tipo de usuário:</p>
       <div className="user-type-buttons">
@@ -74,28 +110,64 @@ function App() {
   );
 
   return (
-    <div className="App">
+    <div className={`App ${darkMode ? 'dark-theme' : ''}`}>
       {userType === null ? (
         <UserTypeSelection />
       ) : userType === 'student' ? (
         <>
-          <Dashboard />
-          <button onClick={handleLogout} className="logout-button">Trocar Usuário</button>
+          <Dashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode}/>
+          <div className="app-footer">
+            <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar modo escuro">
+              {darkMode ? (
+                <i className="fas fa-sun"></i>
+              ) : (
+                <i className="fas fa-moon"></i>
+              )}
+            </button>
+            <button onClick={handleLogout} className="logout-button">Trocar Usuário</button>
+          </div>
         </>
       ) : userType === 'professor' ? (
         <>
-          <DashboardProfessor />
-          <button onClick={handleLogout} className="logout-button">Trocar Usuário</button>
+          <DashboardProfessor darkMode={darkMode} toggleDarkMode={toggleDarkMode}/>
+          <div className="app-footer">
+            <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar modo escuro">
+              {darkMode ? (
+                <i className="fas fa-sun"></i>
+              ) : (
+                <i className="fas fa-moon"></i>
+              )}
+            </button>
+            <button onClick={handleLogout} className="logout-button">Trocar Usuário</button>
+          </div>
         </>
       ) : userType === 'institution' ? (
         <>
-          <DashboardInstitution />
-          <button onClick={handleLogout} className="logout-button">Trocar Usuário</button>
+          <DashboardInstitution darkMode={darkMode} toggleDarkMode={toggleDarkMode}/>
+          <div className="app-footer">
+            <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar modo escuro">
+              {darkMode ? (
+                <i className="fas fa-sun"></i>
+              ) : (
+                <i className="fas fa-moon"></i>
+              )}
+            </button>
+            <button onClick={handleLogout} className="logout-button">Trocar Usuário</button>
+          </div>
         </>
       ) : (
         <>
-          <DashboardUser />
-          <button onClick={handleLogout} className="logout-button">Trocar Usuário</button>
+          <DashboardUser darkMode={darkMode} toggleDarkMode={toggleDarkMode}/>
+          <div className="app-footer">
+            <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar modo escuro">
+              {darkMode ? (
+                <i className="fas fa-sun"></i>
+              ) : (
+                <i className="fas fa-moon"></i>
+              )}
+            </button>
+            <button onClick={handleLogout} className="logout-button">Trocar Usuário</button>
+          </div>
         </>
       )}
     </div>

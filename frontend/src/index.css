@@ -1,18 +1,21 @@
 
 :root {
-  --primary-color: #3B82F6;
-  --primary-dark: #2563EB;
-  --primary-light: #D45D5D;
-  --secondary-color: #10B981;
-  --background-color: #F3F4F6;
-  --card-background: #FFFFFF;
-  --text-color: #1F2937;
-  --text-light-color: #6B7280;
-  --text-white: #FFFFFF;
-  --border-color: #D1D5DB;
+  --primary-color: #d9534f; /* Red mais suave */
+  --primary-light: #e78c88;
+  --primary-dark: #c9302c;
+  --secondary-color: #6c757d;
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --danger-color: #d9534f; /* Red mais suave */
+  --background-color: #f8f9fa;
+  --card-background: white;
+  --text-color: #212529;
+  --text-light-color: #6c757d;
+  --text-white: white;
+  --border-color: #dee2e6;
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light;
@@ -20,13 +23,151 @@
   background-color: var(--background-color);
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+:root.dark-theme {
+  --primary-color: #e76b64; /* Red claro para modo escuro */
+  --primary-light: #f0a59f;
+  --primary-dark: #d74d47;
+  --secondary-color: #adb5bd;
+  --success-color: #42ba6e;
+  --warning-color: #ffcc33;
+  --danger-color: #e76b64; /* Red claro para modo escuro */
+  --background-color: #121212;
+  --card-background: #1e1e1e;
+  --text-color: #f8f9fa;
+  --text-light-color: #adb5bd;
+  --text-white: white;
+  --border-color: #343a40;
+  --shadow: 0 4px 6px -1px rgb(255 255 255 / 0.1), 0 2px 4px -2px rgb(255 255 255 / 0.1);
+}
+
+body.dark-theme {
+  background: var(--background-color) !important;
+  color: var(--text-color);
+}
+
+body.dark-theme::before {
+  display: none;
 }
 
 #root {
   width: 100%;
   height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+.dark-theme #root {
+  background: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Regras gerais para modo escuro */
+.dark-theme .container,
+.dark-theme .main-content,
+.dark-theme .sidebar,
+.dark-theme .card,
+.dark-theme .user-type-selection,
+.dark-theme .login-container,
+.dark-theme .login-form,
+.dark-theme .profile-modal,
+.dark-theme .profile-modal-content {
+  background: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  min-width: 320px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Modern scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #e55345 0%, #d34739 100%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #d34739 0%, #c23c2f 100%);
+}
+
+/* Focus styles for accessibility */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #e55345;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.slide-up {
+  animation: slideUp 0.6s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Input & Form Elements */
+input, textarea, select {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Card hover effect */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+/* Button hover effect */
+button {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }

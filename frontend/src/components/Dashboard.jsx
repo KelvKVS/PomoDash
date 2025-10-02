@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function Dashboard() {
+function Dashboard({ darkMode, toggleDarkMode }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [tasks, setTasks] = useState([
     { id: 1, title: 'Resolver exercícios de matemática - página 145', subject: 'Matemática', deadline: 'Amanhã', priority: 'Alta', completed: false },
@@ -185,8 +185,13 @@ function Dashboard() {
           </div>
         </div>
         <div className="profile" onClick={openProfileModal}>
-          <img src="https://i.pravatar.cc/40" alt="User" className="profile-img" />
-          <div className="profile-name">Kelvin K</div>
+          <div className="profile-img-container">
+            <img src="https://i.pravatar.cc/40" alt="User" className="profile-img" />
+            <button className="profile-img-upload-btn" title="Alterar foto">
+              <i className="fas fa-camera"></i>
+            </button>
+          </div>
+          <div className="profile-name">Aluno</div>
         </div>
       </div>
 
@@ -196,6 +201,13 @@ function Dashboard() {
         <div className="header">
           <h2 className="page-title" id="page-title">{pageTitles[activeScreen]}</h2>
           <div className="user-actions">
+            <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar modo escuro">
+              {darkMode ? (
+                <i className="fas fa-sun"></i>
+              ) : (
+                <i className="fas fa-moon"></i>
+              )}
+            </button>
             <div className="notification-btn">
               <i className="fas fa-bell"></i>
             </div>
@@ -342,21 +354,26 @@ function Dashboard() {
           <div className="profile-modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="close-modal" onClick={closeProfileModal}>&times;</button>
             <div className="profile-modal-header">
-              <img src="https://i.pravatar.cc/80" alt="User" className="profile-modal-img" />
+              <div className="profile-modal-img-container">
+                <img src="https://i.pravatar.cc/80" alt="User" className="profile-modal-img" />
+                <button className="profile-img-upload-btn" title="Alterar foto">
+                  <i className="fas fa-camera"></i>
+                </button>
+              </div>
               <div className="profile-modal-info">
-                <h3>Kelvin K</h3>
+                <h3>Aluno</h3>
                 <p>Estudante</p>
-                <p>kelvin@exemplo.com</p>
+                <p>aluno@exemplo.com</p>
               </div>
             </div>
             <div className="profile-modal-details">
               <div>
                 <label>Nome Completo</label>
-                <span>Kelvin K</span>
+                <span>Aluno</span>
               </div>
               <div>
                 <label>Email</label>
-                <span>kelvin@exemplo.com</span>
+                <span>aluno@exemplo.com</span>
               </div>
               <div>
                 <label>Tipo de Usuário</label>
