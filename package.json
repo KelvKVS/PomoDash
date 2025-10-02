@@ -1,0 +1,39 @@
+{
+  "name": "pomodash",
+  "version": "1.0.0",
+  "description": "Plataforma de gerenciamento educacional multi-tenant com métodos de produtividade",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && npm run dev",
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start"
+  },
+  "keywords": [
+    "education",
+    "productivity",
+    "pomodoro",
+    "dashboard",
+    "multi-tenant",
+    "react",
+    "nodejs"
+  ],
+  "author": "Dennys",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-usuario/pomodash.git"
+  },
+  "bugs": {
+    "url": "https://github.com/seu-usuario/pomodash/issues"
+  },
+  "homepage": "https://github.com/seu-usuario/pomodash#readme"
+}
