@@ -37,11 +37,11 @@ const auth = async (req, res, next) => {
         });
       }
 
-      // Verificar se a escola está ativa (multi-tenant)
+      // Garantir que o usuário está associado a uma escola ativa
       if (!user.school_id || user.school_id.status !== 'active') {
         return res.status(403).json({
           status: 'error',
-          message: 'Escola inativa ou não encontrada'
+          message: 'Instituição inativa ou não encontrada'
         });
       }
 

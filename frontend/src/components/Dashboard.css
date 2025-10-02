@@ -1410,3 +1410,94 @@
     background: #e76b64 !important; /* Red claro para modo escuro */
     border-color: #e76b64 !important; /* Red claro para modo escuro */
 }
+
+/* Sidebar actions container */
+.sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+    padding: 0 10px;
+}
+
+/* Theme toggle button in sidebar */
+.sidebar-theme-toggle-btn {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar-theme-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-theme-toggle-btn i {
+    font-size: 1.2rem;
+}
+
+/* Logout button in sidebar */
+.sidebar-logout-btn {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar-logout-btn:hover {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+    border-color: #ff6b6b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
+}
+
+.sidebar-logout-btn i {
+    font-size: 1.2rem;
+}
+
+/* Modo escuro para os botões da sidebar */
+.dark-theme .sidebar-theme-toggle-btn {
+    background: #343a40;
+    border-color: #495057;
+    color: #f8f9fa;
+}
+
+.dark-theme .sidebar-theme-toggle-btn:hover {
+    background: #495057;
+    border-color: #6c757d;
+}
+
+.dark-theme .sidebar-logout-btn {
+    background: #343a40;
+    border-color: #d9534f;
+    color: #f8f9fa;
+}
+
+.dark-theme .sidebar-logout-btn:hover {
+    background: linear-gradient(135deg, #c9302c 0%, #ac2925 100%);
+    border-color: #c9302c;
+}

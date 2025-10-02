@@ -1,0 +1,7 @@
+/* Estilo básico para o wrapper de registro */
+.register-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

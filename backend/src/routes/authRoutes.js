@@ -32,8 +32,7 @@ const registerValidation = [
   body('name').notEmpty().withMessage('Nome é obrigatório').trim(),
   body('email').isEmail().withMessage('Email inválido').normalizeEmail(),
   body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
-  body('role').isIn(['school_admin', 'teacher', 'student']).withMessage('Role inválido'),
-  body('school_id').notEmpty().withMessage('ID da escola é obrigatório').isMongoId().withMessage('ID da escola inválido')
+  body('role').isIn(['school_admin', 'teacher', 'student']).withMessage('Role inválido')
 ];
 
 const loginValidation = [
@@ -55,16 +54,7 @@ router.post('/register', registerValidation, async (req, res) => {
       });
     }
 
-    const { name, email, password, role, school_id } = req.body;
-
-    // Verificar se a escola existe e está ativa
-    const school = await School.findById(school_id);
-    if (!school || school.status !== 'active') {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Escola não encontrada ou inativa'
-      });
-    }
+    const { name, email, password, role } = req.body;
 
     // Verificar se email já existe
     const existingUser = await User.findOne({ email });
@@ -75,22 +65,29 @@ router.post('/register', registerValidation, async (req, res) => {
       });
     }
 
-    // Verificar limites da escola
-    const userCount = await User.countDocuments({ school_id, status: { $ne: 'inactive' } });
-    if (userCount >= school.limits.maxUsers) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Limite de usuários da escola atingido'
-      });
+    // Procurar pela instituição AESA como padrão - garantir que ela existe
+    const aesaSchool = await School.findOne({ slug: 'aesa', status: 'active' });
+    if (!aesaSchool) {
+      // Se AESA não existir, usar uma escola ativa qualquer como fallback
+      const fallbackSchool = await School.findOne({ status: 'active' });
+      if (!fallbackSchool) {
+        return res.status(500).json({
+          status: 'error',
+          message: 'Nenhuma instituição disponível para registro'
+        });
+      }
+      var targetSchool = fallbackSchool;
+    } else {
+      var targetSchool = aesaSchool;
     }
 
-    // Criar usuário
+    // Criar usuário com instituição AESA
     const user = new User({
       name,
       email,
       password,
       role,
-      school_id,
+      school_id: targetSchool._id,
       status: 'active', // Direto ativo por enquanto, depois implementar aprovação
       emailVerified: false
     });
@@ -130,6 +127,54 @@ router.post('/register', registerValidation, async (req, res) => {
     });
   }
 });
+
+// Função para determinar as áreas de acesso com base na role
+const getAccessAreas = (role) => {
+  const areas = {
+    dashboard: true,
+    profile: true,
+    settings: true
+  };
+
+  switch (role) {
+    case 'global_admin':
+      areas.dashboard = 'admin';
+      areas.adminPanel = true;
+      areas.userManagement = true;
+      areas.schoolManagement = true;
+      areas.reports = true;
+      break;
+    
+    case 'school_admin':
+      areas.dashboard = 'school';
+      areas.userManagement = true;
+      areas.classManagement = true;
+      areas.subjectManagement = true;
+      areas.reports = true;
+      break;
+    
+    case 'teacher':
+      areas.dashboard = 'teacher';
+      areas.classManagement = true;
+      areas.subjectManagement = true;
+      areas.studentTracking = true;
+      areas.pomodoro = true;
+      areas.flashcards = true;
+      areas.tasks = true;
+      break;
+    
+    case 'student':
+      areas.dashboard = 'student';
+      areas.pomodoro = true;
+      areas.flashcards = true;
+      areas.tasks = true;
+      areas.myProgress = true;
+      areas.myClasses = true;
+      break;
+  }
+
+  return areas;
+};
 
 // @route   POST /api/auth/login
 // @desc    Login de usuário
@@ -178,14 +223,6 @@ router.post('/login', loginValidation, async (req, res) => {
       });
     }
 
-    // Verificar se escola está ativa
-    if (!user.school_id || user.school_id.status !== 'active') {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Escola inativa'
-      });
-    }
-
     // Reset tentativas de login
     await user.resetLoginAttempts();
 
@@ -200,6 +237,9 @@ router.post('/login', loginValidation, async (req, res) => {
     user.addRefreshToken(refreshToken);
     await user.save();
 
+    // Determinar áreas de acesso
+    const accessAreas = getAccessAreas(user.role);
+
     res.json({
       status: 'success',
       message: 'Login realizado com sucesso',
@@ -209,10 +249,16 @@ router.post('/login', loginValidation, async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
+          roleDescription: getRoleDescription(user.role),
           school: {
             id: user.school_id._id,
             name: user.school_id.name
           }
+        },
+        access: {
+          dashboard: accessAreas.dashboard,
+          allowedAreas: getAccessibleAreas(user.role),
+          permissions: getPermissionsByRole(user.role)
         },
         tokens: {
           access_token: accessToken,
@@ -229,6 +275,61 @@ router.post('/login', loginValidation, async (req, res) => {
     });
   }
 });
+
+// Função para obter descrição da role
+function getRoleDescription(role) {
+  const descriptions = {
+    global_admin: 'Administrador Global',
+    school_admin: 'Administrador Escolar',
+    teacher: 'Professor',
+    student: 'Aluno'
+  };
+  return descriptions[role] || 'Função desconhecida';
+}
+
+// Função para obter áreas acessíveis por role
+function getAccessibleAreas(role) {
+  const areas = {
+    global_admin: ['dashboard', 'admin-panel', 'user-management', 'school-management', 'reports', 'settings', 'profile'],
+    school_admin: ['dashboard', 'user-management', 'class-management', 'subject-management', 'reports', 'settings', 'profile'],
+    teacher: ['dashboard', 'class-management', 'subject-management', 'student-tracking', 'pomodoro', 'flashcards', 'tasks', 'settings', 'profile'],
+    student: ['dashboard', 'pomodoro', 'flashcards', 'tasks', 'my-progress', 'my-classes', 'settings', 'profile']
+  };
+  
+  return areas[role] || areas.student;
+}
+
+// Função para obter permissões por role
+function getPermissionsByRole(role) {
+  const permissions = {
+    global_admin: {
+      read: ['users', 'schools', 'classes', 'students', 'teachers'],
+      write: ['users', 'schools', 'classes', 'students', 'teachers'],
+      delete: ['users', 'schools', 'classes', 'students', 'teachers'],
+      admin: true
+    },
+    school_admin: {
+      read: ['users', 'classes', 'students', 'teachers'],
+      write: ['users', 'classes', 'students', 'teachers'],
+      delete: ['users', 'classes', 'students', 'teachers'],
+      admin: true
+    },
+    teacher: {
+      read: ['classes', 'students', 'tasks', 'flashcards'],
+      write: ['tasks', 'flashcards', 'student-grades'],
+      delete: ['tasks', 'flashcards'],
+      admin: false
+    },
+    student: {
+      read: ['tasks', 'flashcards', 'own-grades'],
+      write: ['task-completions', 'flashcard-reviews'],
+      delete: [],
+      admin: false
+    }
+  };
+  
+  return permissions[role] || permissions.student;
+}
 
 // @route   POST /api/auth/refresh
 // @desc    Renovar access token usando refresh token
@@ -490,6 +591,44 @@ router.put('/change-password', [
 
   } catch (error) {
     console.error('Erro ao alterar senha:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+// @route   GET /api/auth/access-info
+// @desc    Obter informações de acesso e permissões do usuário logado
+// @access  Private
+router.get('/access-info', auth, (req, res) => {
+  try {
+    const accessAreas = getAccessAreas(req.user.role);
+    
+    res.json({
+      status: 'success',
+      message: 'Informações de acesso obtidas com sucesso',
+      data: {
+        user: {
+          id: req.user._id,
+          name: req.user.name,
+          email: req.user.email,
+          role: req.user.role,
+          roleDescription: getRoleDescription(req.user.role),
+          school: {
+            id: req.user.school_id._id,
+            name: req.user.school_id.name
+          }
+        },
+        access: {
+          dashboard: accessAreas.dashboard,
+          allowedAreas: getAccessibleAreas(req.user.role),
+          permissions: getPermissionsByRole(req.user.role)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao buscar informações de acesso:', error);
     res.status(500).json({
       status: 'error',
       message: 'Erro interno do servidor'

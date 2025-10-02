@@ -162,6 +162,7 @@ function DashboardInstitution({ darkMode, toggleDarkMode }) {
             <i className="fas fa-chart-bar"></i><span>Relatórios</span>
           </div>
         </div>
+        
         <div className="profile" onClick={openProfileModal}>
           <div className="profile-img-container">
             <img src="https://i.pravatar.cc/40" alt="Instituição" className="profile-img" />

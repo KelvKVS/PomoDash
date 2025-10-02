@@ -1,4 +1,4 @@
-.login-container {
+.register-container {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -11,25 +11,31 @@
   transition: background 0.3s ease;
 }
 
-/* Estilos para modo escuro no login */
-.dark-theme .login-container,
+/* Estilos para modo escuro no registro */
+.dark-theme .register-container,
 .dark-theme .auth-container {
   background: linear-gradient(135deg, #121212 0%, #1a1a1a 100%) !important;
 }
 
-.dark-theme .login-form {
+/* Garantir que o conteúdo interno também seja ajustado para o modo escuro */
+.dark-theme .register-form {
   background: var(--card-background);
   color: var(--text-color);
 }
 
-.dark-theme .login-title {
+.dark-theme .register-form {
+  background: var(--card-background);
+  color: var(--text-color);
+}
+
+.dark-theme .register-title {
   background: linear-gradient(135deg, #e76b64 0%, #d74d47 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.dark-theme .login-subtitle {
+.dark-theme .register-subtitle {
   color: var(--text-light-color);
 }
 
@@ -37,7 +43,8 @@
   color: var(--text-color);
 }
 
-.dark-theme .input-group input {
+.dark-theme .input-group input,
+.dark-theme .input-group select {
   background: var(--card-background);
   border: 2px solid var(--border-color);
   color: var(--text-color);
@@ -48,7 +55,8 @@
 }
 
 /* Estilo adicional para garantir consistência */
-.dark-theme .input-group input:focus {
+.dark-theme .input-group input:focus,
+.dark-theme .input-group select:focus {
   background: var(--card-background);
   border-color: #e76b64; /* Red claro para modo escuro */
   box-shadow: 
@@ -56,15 +64,15 @@
     inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.dark-theme .login-footer {
+.dark-theme .register-footer {
   color: var(--text-light-color);
 }
 
-.dark-theme .login-footer a {
+.dark-theme .register-footer a {
   color: #e76b64; /* Red claro para modo escuro */
 }
 
-.login-container::before {
+.register-container::before {
   content: '';
   position: absolute;
   top: -50%;
@@ -81,12 +89,12 @@
   to { transform: rotate(360deg); }
 }
 
-.login-container > * {
+.register-container > * {
   position: relative;
   z-index: 1;
 }
 
-.login-form {
+.register-form {
   padding: 3rem;
   background: white;
   border-radius: 20px;
@@ -100,12 +108,12 @@
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.login-form:hover {
+.register-form:hover {
   transform: translateY(-5px);
   box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.15);
 }
 
-.login-form::before {
+.register-form::before {
   content: '';
   position: absolute;
   top: 0;
@@ -115,7 +123,7 @@
   background: linear-gradient(90deg, #e55345 0%, #d34739 100%);
 }
 
-.login-title {
+.register-title {
   margin-bottom: 0.75rem;
   color: var(--text-color);
   font-size: 2rem;
@@ -126,7 +134,7 @@
   background-clip: text;
 }
 
-.login-subtitle {
+.register-subtitle {
   margin-bottom: 2.5rem;
   color: var(--text-light-color);
   font-size: 1.1rem;
@@ -149,7 +157,8 @@
   letter-spacing: 0.5px;
 }
 
-.input-group input {
+.input-group input,
+.input-group select {
   width: 100%;
   padding: 1rem 1.25rem;
   border: 2px solid #e9ecef;
@@ -162,7 +171,6 @@
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 1;
-  box-sizing: border-box; /* Garantir alinhamento consistente */
 }
 
 .input-group input::placeholder {
@@ -170,7 +178,8 @@
   font-weight: 400;
 }
 
-.input-group input:focus {
+.input-group input:focus,
+.input-group select:focus {
   outline: none;
   border-color: #d9534f; /* Red mais suave */
   background-color: white;
@@ -185,7 +194,7 @@
   border-color: #c9302c; /* Red mais suave */
 }
 
-.login-button {
+.register-button {
   width: 100%;
   padding: 1rem;
   border: none;
@@ -199,10 +208,9 @@
   box-shadow: 0 4px 6px rgba(217, 83, 79, 0.3); /* Red mais suave */
   position: relative;
   overflow: hidden;
-  margin-bottom: 1rem; /* Espaçamento consistente */
 }
 
-.login-button::before {
+.register-button::before {
   content: '';
   position: absolute;
   top: 0;
@@ -213,25 +221,31 @@
   transition: left 0.5s;
 }
 
-.login-button:hover::before {
+.register-button:hover::before {
   left: 100%;
 }
 
-.login-button:hover {
+.register-button:hover {
   background: linear-gradient(135deg, #c9302c 0%, #b52a27 100%); /* Red mais suave */
   transform: translateY(-3px);
   box-shadow: 0 6px 12px rgba(217, 83, 79, 0.4); /* Red mais suave */
 }
 
-.login-footer {
-  margin-top: 1.5rem;
+.register-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 6px rgba(217, 83, 79, 0.3);
+}
+
+.register-footer {
+  margin-top: 2rem;
   font-size: 0.95rem;
   color: var(--text-light-color);
   line-height: 1.6;
-  text-align: center; /* Centralizar o texto do rodapé */
 }
 
-.register-link {
+.login-link {
   background: none;
   border: none;
   color: #d9534f; /* Red mais suave */
@@ -243,7 +257,7 @@
   font-size: inherit;
 }
 
-.register-link::after {
+.login-link::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -254,16 +268,16 @@
   transition: width 0.3s ease;
 }
 
-.register-link:hover::after {
+.login-link:hover::after {
   width: 100%;
 }
 
-.register-link:hover {
+.login-link:hover {
   text-decoration: none;
   color: #c9302c; /* Tom mais escuro no hover */
 }
 
-.login-footer a {
+.register-footer a {
   color: #d9534f; /* Red mais suave */
   text-decoration: none;
   font-weight: 600;
@@ -271,7 +285,7 @@
   padding-bottom: 2px;
 }
 
-.login-footer a::after {
+.register-footer a::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -282,11 +296,11 @@
   transition: width 0.3s ease;
 }
 
-.login-footer a:hover::after {
+.register-footer a:hover::after {
   width: 100%;
 }
 
-.login-footer a:hover {
+.register-footer a:hover {
   text-decoration: none;
 }
 
@@ -311,211 +325,30 @@
   font-weight: 500;
 }
 
-.auth-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  width: 100%;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  position: relative;
-  overflow: hidden;
-  transition: background 0.3s ease;
+/* Mensagem de erro de senha */
+.password-mismatch-error {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  display: block;
 }
 
-.auth-container > * {
-  position: relative;
-  z-index: 1;
-}
-
-.auth-switch {
-  margin-top: 1.5rem;
-  text-align: center;
-  width: 100%;
-  max-width: 450px;
-  color: var(--text-light-color);
-  font-size: 0.95rem;
-}
-
-.auth-switch button {
-  background: none;
-  border: none;
-  color: #d9534f; /* Red mais suave */
-  text-decoration: none;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  margin: 0 0.25rem;
-}
-
-.auth-switch button:hover {
-  text-decoration: underline;
-}
-
-/* Estilos para forgot password */
-.forgot-password-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  padding: 0 1rem;
-}
-
-.forgot-password-form {
-  padding: 3rem;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 450px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  transform: translateY(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.forgot-password-form:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.15);
-}
-
-.forgot-password-form::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 6px;
-  background: linear-gradient(90deg, #e55345 0%, #d34739 100%);
-}
-
-.forgot-password-title {
-  margin-bottom: 0.75rem;
-  color: var(--text-color);
-  font-size: 2rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%); /* Red mais suave */
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.forgot-password-subtitle {
-  margin-bottom: 2.5rem;
-  color: var(--text-light-color);
-  font-size: 1.1rem;
-  font-weight: 500;
-}
-
-.forgot-password-button {
-  width: 100%;
-  padding: 1rem;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%); /* Red mais suave */
-  color: white;
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(217, 83, 79, 0.3); /* Red mais suave */
-  position: relative;
-  overflow: hidden;
-}
-
-.forgot-password-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.forgot-password-button:hover::before {
-  left: 100%;
-}
-
-.forgot-password-button:hover {
-  background: linear-gradient(135deg, #c9302c 0%, #b52a27 100%); /* Red mais suave */
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(217, 83, 79, 0.4); /* Red mais suave */
-}
-
-/* Estilos para modo escuro no forgot password */
-.dark-theme .forgot-password-form {
-  background: var(--card-background);
-  color: var(--text-color);
-}
-
-.dark-theme .forgot-password-title {
-  background: linear-gradient(135deg, #e76b64 0%, #d74d47 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.dark-theme .forgot-password-subtitle {
-  color: var(--text-light-color);
-}
-
-.dark-theme .input-group label {
-  color: var(--text-color);
-}
-
-.dark-theme .input-group input {
-  background: var(--card-background);
-  border: 2px solid var(--border-color);
-  color: var(--text-color);
-}
-
-.dark-theme .input-group input::placeholder {
-  color: var(--text-light-color);
-}
-
-.dark-theme .auth-switch {
-  color: var(--text-light-color);
-}
-
-.dark-theme .auth-switch button {
-  color: #e76b64; /* Red claro para modo escuro */
+.input-group input:invalid[focused="true"] {
+  border-color: #dc3545;
 }
 
 /* Responsive Design */
 @media (max-width: 480px) {
-  .login-form {
-    padding: 2rem;
-    margin: 0 1rem;
-  }
-  
   .register-form {
     padding: 2rem;
     margin: 0 1rem;
-  }
-  
-  .forgot-password-form {
-    padding: 2rem;
-    margin: 0 1rem;
-  }
-  
-  .login-title {
-    font-size: 1.75rem;
   }
   
   .register-title {
     font-size: 1.75rem;
   }
   
-  .forgot-password-title {
-    font-size: 1.75rem;
-  }
-  
-  .login-subtitle, .register-subtitle, .forgot-password-subtitle {
+  .register-subtitle {
     font-size: 1rem;
   }
 }

@@ -4,65 +4,135 @@ function DashboardUser({ darkMode, toggleDarkMode }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [showProfileModal, setShowProfileModal] = useState(false);
   
-  // Informações do Perfil do Usuário
-  const [profile, setProfile] = useState({
-    name: 'Kelvin K',
-    email: 'kelvin@exemplo.com',
-    role: 'Criador',
-    institution: 'PomoDash',
-    joinDate: '01/09/2023',
-    lastLogin: 'Hoje'
-  });
-  
-  // Minhas Estatísticas
-  const [stats, setStats] = useState({
-    totalLogins: 156,
-    totalTime: '120h 30m',
-    completedTasks: 245,
-    averagePerformance: 92
-  });
-  
-  // Minhas Atividades Recentes
-  const [recentActivities, setRecentActivities] = useState([
-    { id: 1, action: 'Atualizou configurações da instituição', time: '2 min atrás', type: 'config' },
-    { id: 2, action: 'Adicionou novo professor à escola', time: '1 hora atrás', type: 'admin' },
-    { id: 3, action: 'Visualizou relatórios mensais', time: '3 horas atrás', type: 'view' },
-    { id: 4, action: 'Enviou notificação para professores', time: '1 dia atrás', type: 'notification' },
+  // Dados genéricos para usuário
+  const [tasks, setTasks] = useState([
+    { id: 1, title: 'Projetar nova funcionalidade', subject: 'TI', deadline: 'Amanhã', priority: 'Alta', completed: false },
+    { id: 2, title: 'Reunião com equipe', subject: 'Gestão', deadline: 'Sexta-feira', priority: 'Média', completed: false },
+    { id: 3, title: 'Relatório mensal', subject: 'Administração', deadline: '25/09', priority: 'Alta', completed: false },
+    { id: 4, title: 'Leitura de artigos técnicos', subject: 'Pesquisa', deadline: '30/09', priority: 'Baixa', completed: true },
   ]);
   
-  // Configurações do Sistema
-  const [systemSettings, setSystemSettings] = useState({
-    notifications: true,
-    darkMode: false,
-    autoBackup: true,
-    privacyMode: false
-  });
+  const [newTask, setNewTask] = useState('');
   
-  // Segurança e Acesso
-  const [security, setSecurity] = useState({
-    twoFactorAuth: true,
-    lastPasswordChange: '15/08/2024',
-    loginAttempts: 0,
-    trustedDevices: 3
-  });
+  // Pomodoro State
+  const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
+  const [isActive, setIsActive] = useState(false);
+  const [sessionType, setSessionType] = useState('Pomodoro'); // Pomodoro, Short Break, Long Break
   
-  // Gerenciamento Multi-tenant
-  const [tenants, setTenants] = useState([
-    { id: 1, name: 'Escola Estadual São Paulo', status: 'Ativo', users: 320, lastAccess: 'Hoje' },
-    { id: 2, name: 'Colégio Municipal Rio de Janeiro', status: 'Ativo', users: 215, lastAccess: 'Ontem' },
-    { id: 3, name: 'Centro Educacional Belo Horizonte', status: 'Inativo', users: 142, lastAccess: '3 dias atrás' },
+  // Flashcards State
+  const [decks, setDecks] = useState([
+    { id: 1, name: 'Liderança e Gestão', cards: [
+      { id: 1, front: 'O que é liderança transformacional?', back: 'Tipo de liderança que inspira mudanças positivas nos seguidores', flipped: false },
+      { id: 2, front: 'Princípios da liderança eficaz', back: 'Comunicação, confiança, visão, integridade e desenvolvimento de pessoas', flipped: false },
+    ]},
+    { id: 2, name: 'Técnicas de Produtividade', cards: [
+      { id: 1, front: 'Técnica Pomodoro', back: 'Técnica de gerenciamento de tempo com ciclos de 25 minutos', flipped: false },
+      { id: 2, front: 'Matriz de Eisenhower', back: 'Método para priorização de tarefas baseado em urgência e importância', flipped: false },
+    ]},
   ]);
+  
+  const [selectedDeck, setSelectedDeck] = useState(null);
 
   const showScreen = (screenId) => {
     setActiveScreen(screenId);
   };
 
-  // Atualizar configurações do sistema
-  const updateSetting = (setting, value) => {
-    setSystemSettings({
-      ...systemSettings,
-      [setting]: value
+  const handleAddTask = (e) => {
+    e.preventDefault();
+    if (newTask.trim() === '') return;
+    const newTaskObj = {
+      id: tasks.length + 1,
+      title: newTask,
+      subject: 'Nova Área',
+      deadline: 'Sem prazo',
+      priority: 'Média',
+      completed: false,
+    };
+    setTasks([...tasks, newTaskObj]);
+    setNewTask('');
+  };
+
+  const toggleTaskCompletion = (taskId) => {
+    setTasks(tasks.map(task => 
+      task.id === taskId ? { ...task, completed: !task.completed } : task
+    ));
+  };
+
+  const handleDeleteTask = (taskId) => {
+    setTasks(tasks.filter(task => task.id !== taskId));
+  };
+
+  // Pomodoro Timer Logic
+  useEffect(() => {
+    let interval = null;
+    if (isActive && time > 0) {
+      interval = setInterval(() => {
+        setTime(time => time - 1);
+      }, 1000);
+    } else if (time === 0) {
+      // Handle session end
+      setIsActive(false);
+      // You can add notifications or auto-start the next session here
+    }
+    return () => clearInterval(interval);
+  }, [isActive, time]);
+
+  const toggleTimer = () => {
+    setIsActive(!isActive);
+  };
+
+  const resetTimer = () => {
+    setIsActive(false);
+    // Reset time based on session type
+    if (sessionType === 'Pomodoro') {
+      setTime(25 * 60);
+    } else if (sessionType === 'Short Break') {
+      setTime(5 * 60);
+    } else {
+      setTime(15 * 60);
+    }
+  };
+
+  const selectSession = (type) => {
+    setSessionType(type);
+    setIsActive(false);
+    if (type === 'Pomodoro') {
+      setTime(25 * 60);
+    } else if (type === 'Short Break') {
+      setTime(5 * 60);
+    } else {
+      setTime(15 * 60);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
+  // Flashcard Logic
+  const handleSelectDeck = (deck) => {
+    setSelectedDeck(deck);
+  };
+
+  const flipCard = (cardId) => {
+    const updatedDecks = decks.map(deck => {
+      if (deck.id === selectedDeck.id) {
+        return {
+          ...deck,
+          cards: deck.cards.map(card => 
+            card.id === cardId ? { ...card, flipped: !card.flipped } : card
+          )
+        };
+      }
+      return deck;
     });
+    setDecks(updatedDecks);
+
+    // Also update the selectedDeck state to reflect the change immediately
+    const updatedSelectedDeck = updatedDecks.find(deck => deck.id === selectedDeck.id);
+    setSelectedDeck(updatedSelectedDeck);
   };
 
   const openProfileModal = () => {
@@ -86,12 +156,12 @@ function DashboardUser({ darkMode, toggleDarkMode }) {
   }, []);
 
   const pageTitles = {
-    'dashboard': 'Minha Área',
-    'profile': 'Meu Perfil',
-    'activities': 'Atividades Recentes',
+    'dashboard': 'Dashboard Geral',
+    'tasks': 'Minhas Tarefas',
+    'pomodoro': 'Pomodoro',
+    'flashcards': 'Meus Flashcards',
+    'reports': 'Relatórios',
     'settings': 'Configurações',
-    'security': 'Segurança',
-    'tenants': 'Instituições'
   };
 
   return (
@@ -103,22 +173,19 @@ function DashboardUser({ darkMode, toggleDarkMode }) {
         </div>
         <div className="menu">
           <div className={`menu-item ${activeScreen === 'dashboard' ? 'active' : ''}`} onClick={() => showScreen('dashboard')}>
-            <i className="fas fa-home"></i><span>Minha Área</span>
+            <i className="fas fa-tachometer-alt"></i><span>Dashboard</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'tenants' ? 'active' : ''}`} onClick={() => showScreen('tenants')}>
-            <i className="fas fa-building"></i><span>Instituições</span>
+          <div className={`menu-item ${activeScreen === 'tasks' ? 'active' : ''}`} onClick={() => showScreen('tasks')}>
+            <i className="fas fa-tasks"></i><span>Tarefas</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'profile' ? 'active' : ''}`} onClick={() => showScreen('profile')}>
-            <i className="fas fa-user"></i><span>Meu Perfil</span>
+          <div className={`menu-item ${activeScreen === 'pomodoro' ? 'active' : ''}`} onClick={() => showScreen('pomodoro')}>
+            <i className="fas fa-clock"></i><span>Pomodoro</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'activities' ? 'active' : ''}`} onClick={() => showScreen('activities')}>
-            <i className="fas fa-history"></i><span>Atividades</span>
+          <div className={`menu-item ${activeScreen === 'flashcards' ? 'active' : ''}`} onClick={() => showScreen('flashcards')}>
+            <i className="fas fa-layer-group"></i><span>Flashcards</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'settings' ? 'active' : ''}`} onClick={() => showScreen('settings')}>
-            <i className="fas fa-cog"></i><span>Configurações</span>
-          </div>
-          <div className={`menu-item ${activeScreen === 'security' ? 'active' : ''}`} onClick={() => showScreen('security')}>
-            <i className="fas fa-shield-alt"></i><span>Segurança</span>
+          <div className={`menu-item ${activeScreen === 'reports' ? 'active' : ''}`} onClick={() => showScreen('reports')}>
+            <i className="fas fa-chart-bar"></i><span>Relatórios</span>
           </div>
         </div>
         <div className="profile" onClick={openProfileModal}>
@@ -128,7 +195,7 @@ function DashboardUser({ darkMode, toggleDarkMode }) {
               <i className="fas fa-camera"></i>
             </button>
           </div>
-          <div className="profile-name">{profile.name}</div>
+          <div className="profile-name">Usuário</div>
         </div>
       </div>
 
@@ -154,259 +221,134 @@ function DashboardUser({ darkMode, toggleDarkMode }) {
           </div>
         </div>
 
-        {/* Dashboard Screen - Minha Área */}
+        {/* Dashboard Screen */}
         <div className={`screen ${activeScreen === 'dashboard' ? 'active' : ''}`} id="dashboard-user">
           <div className="stats-container">
             <div className="stat-card card">
-                <i className="fas fa-building fa-2x" style={{ color: '#e55345' }}></i>
-                <div className="stat-value">{tenants.length}</div>
-                <div className="stat-label">Instituições</div>
+                <i className="fas fa-clock fa-2x" style={{ color: '#e55345' }}></i>
+                <div className="stat-value">4h 32m</div>
+                <div className="stat-label">Tempo de foco hoje</div>
             </div>
             <div className="stat-card card">
-                <i className="fas fa-users fa-2x" style={{ color: '#e55345' }}></i>
-                <div className="stat-value">{tenants.reduce((sum, tenant) => sum + tenant.users, 0)}</div>
-                <div className="stat-label">Usuários Totais</div>
+                <i className="fas fa-check-circle fa-2x" style={{ color: 'var(--secondary-color)' }}></i>
+                <div className="stat-value">5/8</div>
+                <div className="stat-label">Tarefas concluídas</div>
             </div>
             <div className="stat-card card">
-                <i className="fas fa-sign-in-alt fa-2x" style={{ color: '#e55345' }}></i>
-                <div className="stat-value">{stats.totalLogins}</div>
-                <div className="stat-label">Acessos</div>
-            </div>
-            <div className="stat-card card">
-                <i className="fas fa-chart-line fa-2x" style={{ color: '#e55345' }}></i>
-                <div className="stat-value">{stats.averagePerformance}%</div>
-                <div className="stat-label">Performance</div>
+                <i className="fas fa-brain fa-2x" style={{ color: '#FFC107' }}></i>
+                <div className="stat-value">82%</div>
+                <div className="stat-label">Flashcards memorizados</div>
             </div>
           </div>
-          
           <div className="card">
-            <h3 className="card-title">Visão Geral do Sistema</h3>
-            <p>Seja bem-vindo à sua área como criador do sistema. Aqui você pode gerenciar todas as instituições e supervisar todo o sistema.</p>
-          </div>
-          
-          <div className="card">
-            <h3 className="card-title">Atividades Recentes</h3>
-            <div className="activity-list">
-              {recentActivities.map(activity => (
-                <div key={activity.id} className="activity-item">
-                  <div className="activity-icon">
-                    {activity.type === 'config' && <i className="fas fa-cog"></i>}
-                    {activity.type === 'admin' && <i className="fas fa-user-shield"></i>}
-                    {activity.type === 'view' && <i className="fas fa-eye"></i>}
-                    {activity.type === 'notification' && <i className="fas fa-bell"></i>}
-                  </div>
-                  <div className="activity-content">
-                    <div className="activity-action">{activity.action}</div>
-                    <div className="activity-time">{activity.time}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h3 className="card-title">Visão Geral</h3>
+            <p>Seja bem-vindo ao seu dashboard pessoal. Aqui você pode gerenciar suas tarefas, usar o temporizador Pomodoro para aumentar sua produtividade e estudar com flashcards.</p>
           </div>
         </div>
 
-        {/* Tenants Screen - Gerenciamento Multi-tenant */}
-        <div className={`screen ${activeScreen === 'tenants' ? 'active' : ''}`} id="tenants">
-          <div className="card">
-            <h3 className="card-title">Gerenciamento de Instituições</h3>
-            <div className="tenant-list">
-              {tenants.map(tenant => (
-                <div key={tenant.id} className="tenant-item">
-                  <div className="tenant-content">
-                    <div className="tenant-name">{tenant.name}</div>
-                    <div className="tenant-details">
-                      Status: <span className={tenant.status === 'Ativo' ? 'status-active' : 'status-inactive'}>{tenant.status}</span> • 
-                      Usuários: {tenant.users} • 
-                      Último Acesso: {tenant.lastAccess}
+        {/* Tasks Screen */}
+        <div className={`screen ${activeScreen === 'tasks' ? 'active' : ''}`} id="tasks">
+            <div className="card">
+                <h3 className="card-title">Gerenciar Tarefas</h3>
+                <form onSubmit={handleAddTask} className="add-task-form">
+                  <input 
+                    type="text" 
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                    placeholder="Adicionar nova tarefa..." 
+                    className="add-task-input"
+                  />
+                  <button type="submit" className="btn btn-primary">Adicionar</button>
+                </form>
+                <div className="task-list">
+                  {tasks.map(task => (
+                    <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
+                      <input 
+                        type="checkbox" 
+                        className="task-checkbox" 
+                        checked={task.completed}
+                        onChange={() => toggleTaskCompletion(task.id)}
+                      />
+                      <div className="task-content">
+                        <div className="task-title">{task.title}</div>
+                        <div className="task-details">
+                          Área: {task.subject} • Prazo: {task.deadline} • Prioridade: {task.priority}
+                        </div>
+                      </div>
+                      <button onClick={() => handleDeleteTask(task.id)} className="btn-delete-task">
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+            </div>
+        </div>
+
+        {/* Pomodoro Screen */}
+        <div className={`screen ${activeScreen === 'pomodoro' ? 'active' : ''}`} id="pomodoro">
+            <div className="card">
+                <div className="session-types">
+                  <button onClick={() => selectSession('Pomodoro')} className={`btn-session ${sessionType === 'Pomodoro' ? 'active' : ''}`}>Pomodoro</button>
+                  <button onClick={() => selectSession('Short Break')} className={`btn-session ${sessionType === 'Short Break' ? 'active' : ''}`}>Pausa Curta</button>
+                  <button onClick={() => selectSession('Long Break')} className={`btn-session ${sessionType === 'Long Break' ? 'active' : ''}`}>Pausa Longa</button>
+                </div>
+                <div className="timer">
+                  <div className="timer-time">{formatTime(time)}</div>
+                  <div className="timer-label">{sessionType}</div>
+                </div>
+                <div className="timer-controls">
+                  <button onClick={toggleTimer} className="btn btn-primary">
+                    {isActive ? 'Pausar' : 'Iniciar'}
+                  </button>
+                  <button onClick={resetTimer} className="btn btn-secondary">
+                    Resetar
+                  </button>
+                </div>
+            </div>
+        </div>
+
+        {/* Flashcards Screen */}
+        <div className={`screen ${activeScreen === 'flashcards' ? 'active' : ''}`} id="flashcards">
+          {selectedDeck ? (
+            <div className="card">
+              <button onClick={() => setSelectedDeck(null)} className="btn btn-secondary">Voltar aos Decks</button>
+              <h3 className="card-title" style={{ marginTop: '20px' }}>{selectedDeck.name}</h3>
+              <div className="flashcard-grid">
+                {selectedDeck.cards.map(card => (
+                  <div key={card.id} className={`flashcard ${card.flipped ? 'flipped' : ''}`} onClick={() => flipCard(card.id)}>
+                    <div className="flashcard-inner">
+                      <div className="flashcard-front">
+                        {card.front}
+                      </div>
+                      <div className="flashcard-back">
+                        {card.back}
+                      </div>
                     </div>
                   </div>
-                  <div className="tenant-actions">
-                    <button className="btn-view-tenant">
-                      <i className="fas fa-eye"></i>
-                    </button>
-                    <button className="btn-edit-tenant">
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button className="btn-delete-tenant">
-                      <i className="fas fa-trash"></i>
-                    </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="card">
+              <h3 className="card-title">Meus Decks de Flashcards</h3>
+              <div className="deck-list">
+                {decks.map(deck => (
+                  <div key={deck.id} className="deck-item" onClick={() => handleSelectDeck(deck)}>
+                    <h4>{deck.name}</h4>
+                    <p>{deck.cards.length} cards</p>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-            <button className="btn btn-primary">Adicionar Nova Instituição</button>
-          </div>
+          )}
         </div>
 
-        {/* Profile Screen */}
-        <div className={`screen ${activeScreen === 'profile' ? 'active' : ''}`} id="profile">
-          <div className="card">
-            <h3 className="card-title">Informações do Perfil</h3>
-            <div className="profile-info">
-              <div className="profile-picture">
-                <img src="https://i.pravatar.cc/150" alt="Foto do Perfil" className="profile-img-large" />
-                <button className="btn-change-photo">Alterar Foto</button>
-              </div>
-              <div className="profile-details">
-                <div className="detail-row">
-                  <label>Nome:</label>
-                  <span>{profile.name}</span>
-                </div>
-                <div className="detail-row">
-                  <label>Email:</label>
-                  <span>{profile.email}</span>
-                </div>
-                <div className="detail-row">
-                  <label>Cargo:</label>
-                  <span>{profile.role}</span>
-                </div>
-                <div className="detail-row">
-                  <label>Instituição:</label>
-                  <span>{profile.institution}</span>
-                </div>
-                <div className="detail-row">
-                  <label>Data de Cadastro:</label>
-                  <span>{profile.joinDate}</span>
-                </div>
-                <div className="detail-row">
-                  <label>Último Acesso:</label>
-                  <span>{profile.lastLogin}</span>
-                </div>
-              </div>
+        {/* Reports Screen */}
+        <div className={`screen ${activeScreen === 'reports' ? 'active' : ''}`} id="reports">
+            <div className="card">
+                <h3 className="card-title">Meus Relatórios</h3>
+                <p>Aqui você pode visualizar seus relatórios de produtividade, tempo de foco e progresso nos estudos.</p>
             </div>
-            <button className="btn btn-primary">Editar Perfil</button>
-          </div>
-        </div>
-
-        {/* Activities Screen */}
-        <div className={`screen ${activeScreen === 'activities' ? 'active' : ''}`} id="activities">
-          <div className="card">
-            <h3 className="card-title">Histórico de Atividades</h3>
-            <div className="activity-list-full">
-              {recentActivities.map(activity => (
-                <div key={activity.id} className="activity-item-full">
-                  <div className="activity-icon-full">
-                    {activity.type === 'config' && <i className="fas fa-cog fa-lg"></i>}
-                    {activity.type === 'admin' && <i className="fas fa-user-shield fa-lg"></i>}
-                    {activity.type === 'view' && <i className="fas fa-eye fa-lg"></i>}
-                    {activity.type === 'notification' && <i className="fas fa-bell fa-lg"></i>}
-                  </div>
-                  <div className="activity-content-full">
-                    <div className="activity-action-full">{activity.action}</div>
-                    <div className="activity-time-full">{activity.time}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Settings Screen */}
-        <div className={`screen ${activeScreen === 'settings' ? 'active' : ''}`} id="settings">
-          <div className="card">
-            <h3 className="card-title">Configurações do Sistema</h3>
-            <div className="settings-list">
-              <div className="setting-item">
-                <div className="setting-label">
-                  <i className="fas fa-bell"></i>
-                  <span>Notificações</span>
-                </div>
-                <div className="setting-control">
-                  <label className="switch">
-                    <input 
-                      type="checkbox" 
-                      checked={systemSettings.notifications}
-                      onChange={(e) => updateSetting('notifications', e.target.checked)}
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="setting-item">
-                <div className="setting-label">
-                  <i className="fas fa-moon"></i>
-                  <span>Modo Escuro</span>
-                </div>
-                <div className="setting-control">
-                  <label className="switch">
-                    <input 
-                      type="checkbox" 
-                      checked={systemSettings.darkMode}
-                      onChange={(e) => updateSetting('darkMode', e.target.checked)}
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="setting-item">
-                <div className="setting-label">
-                  <i className="fas fa-database"></i>
-                  <span>Backup Automático</span>
-                </div>
-                <div className="setting-control">
-                  <label className="switch">
-                    <input 
-                      type="checkbox" 
-                      checked={systemSettings.autoBackup}
-                      onChange={(e) => updateSetting('autoBackup', e.target.checked)}
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                </div>
-              </div>
-              
-              <div className="setting-item">
-                <div className="setting-label">
-                  <i className="fas fa-user-secret"></i>
-                  <span>Modo Privacidade</span>
-                </div>
-                <div className="setting-control">
-                  <label className="switch">
-                    <input 
-                      type="checkbox" 
-                      checked={systemSettings.privacyMode}
-                      onChange={(e) => updateSetting('privacyMode', e.target.checked)}
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Security Screen */}
-        <div className={`screen ${activeScreen === 'security' ? 'active' : ''}`} id="security">
-          <div className="card">
-            <h3 className="card-title">Segurança da Conta</h3>
-            <div className="security-info">
-              <div className="security-detail">
-                <label>Autenticação de Dois Fatores:</label>
-                <span className={security.twoFactorAuth ? 'security-enabled' : 'security-disabled'}>
-                  {security.twoFactorAuth ? 'Ativada' : 'Desativada'}
-                </span>
-              </div>
-              <div className="security-detail">
-                <label>Última Alteração de Senha:</label>
-                <span>{security.lastPasswordChange}</span>
-              </div>
-              <div className="security-detail">
-                <label>Tentativas de Login Recentes:</label>
-                <span>{security.loginAttempts}</span>
-              </div>
-              <div className="security-detail">
-                <label>Dispositivos Confiáveis:</label>
-                <span>{security.trustedDevices}</span>
-              </div>
-            </div>
-            <div className="security-actions">
-              <button className="btn btn-primary">Alterar Senha</button>
-              <button className="btn btn-secondary">Gerenciar Dispositivos</button>
-              <button className="btn btn-secondary">Gerar Backup</button>
-            </div>
-          </div>
         </div>
 
       </div>
@@ -424,31 +366,27 @@ function DashboardUser({ darkMode, toggleDarkMode }) {
                 </button>
               </div>
               <div className="profile-modal-info">
-                <h3>{profile.name}</h3>
-                <p>{profile.role}</p>
-                <p>{profile.email}</p>
+                <h3>Usuário</h3>
+                <p>Usuário Geral</p>
+                <p>usuario@exemplo.com</p>
               </div>
             </div>
             <div className="profile-modal-details">
               <div>
                 <label>Nome Completo</label>
-                <span>{profile.name}</span>
+                <span>Usuário</span>
               </div>
               <div>
                 <label>Email</label>
-                <span>{profile.email}</span>
+                <span>usuario@exemplo.com</span>
               </div>
               <div>
-                <label>Cargo</label>
-                <span>{profile.role}</span>
+                <label>Tipo de Usuário</label>
+                <span>Usuário Geral</span>
               </div>
               <div>
-                <label>Instituição</label>
-                <span>{profile.institution}</span>
-              </div>
-              <div>
-                <label>Data de Cadastro</label>
-                <span>{profile.joinDate}</span>
+                <label>Data de Registro</label>
+                <span>01/09/2023</span>
               </div>
             </div>
             <div className="profile-modal-actions">

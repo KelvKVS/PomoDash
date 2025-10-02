@@ -149,6 +149,7 @@ function DashboardProfessor({ darkMode, toggleDarkMode }) {
             <i className="fas fa-chart-bar"></i><span>Desempenho</span>
           </div>
         </div>
+        
         <div className="profile" onClick={openProfileModal}>
           <div className="profile-img-container">
             <img src="https://i.pravatar.cc/40" alt="Professor" className="profile-img" />
