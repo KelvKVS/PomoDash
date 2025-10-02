@@ -10,8 +10,76 @@
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  z-index: 1000;
 }
 
 .logout-button:hover {
   background-color: #c82333;
+}
+
+/* User Type Selection */
+.user-type-selection {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  background-color: var(--background-color);
+  padding: 2rem;
+}
+
+.user-type-selection h2 {
+  margin-bottom: 1rem;
+  color: var(--text-color);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.user-type-selection p {
+  margin-bottom: 2rem;
+  color: var(--text-light-color);
+  font-size: 1.1rem;
+}
+
+.user-type-buttons {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.user-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  width: 200px;
+  height: 200px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--card-background);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.user-type-btn:hover {
+  border-color: #e55345; /* Tomato red */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+}
+
+.user-type-btn i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #e55345; /* Tomato red */
+}
+
+.user-type-btn span {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 1rem;
 }

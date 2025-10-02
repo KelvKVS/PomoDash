@@ -9,6 +9,7 @@ function Dashboard() {
     { id: 4, title: 'Fichamento do capítulo 5', subject: 'Literatura', deadline: '30/09', priority: 'Baixa', completed: true },
   ]);
   const [newTask, setNewTask] = useState('');
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Pomodoro State
   const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
@@ -130,6 +131,14 @@ function Dashboard() {
     setSelectedDeck(updatedSelectedDeck);
   };
 
+  const openProfileModal = () => {
+    setShowProfileModal(true);
+  };
+
+  const closeProfileModal = () => {
+    setShowProfileModal(false);
+  };
+
   useEffect(() => {
     // Font Awesome for icons
     const script = document.createElement('script');
@@ -175,7 +184,7 @@ function Dashboard() {
             <i className="fas fa-chart-bar"></i><span>Estatísticas</span>
           </div>
         </div>
-        <div className="profile">
+        <div className="profile" onClick={openProfileModal}>
           <img src="https://i.pravatar.cc/40" alt="User" className="profile-img" />
           <div className="profile-name">Kelvin K</div>
         </div>
@@ -200,7 +209,7 @@ function Dashboard() {
         <div className={`screen ${activeScreen === 'dashboard' ? 'active' : ''}`} id="dashboard">
           <div className="stats-container">
             <div className="stat-card card">
-                <i className="fas fa-clock fa-2x" style={{ color: 'var(--primary-color)' }}></i>
+                <i className="fas fa-clock fa-2x" style={{ color: '#e55345' }}></i>
                 <div className="stat-value">4h 32m</div>
                 <div className="stat-label">Tempo de foco hoje</div>
             </div>
@@ -326,6 +335,45 @@ function Dashboard() {
         </div>
 
       </div>
+
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <div className="profile-modal" onClick={closeProfileModal}>
+          <div className="profile-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal" onClick={closeProfileModal}>&times;</button>
+            <div className="profile-modal-header">
+              <img src="https://i.pravatar.cc/80" alt="User" className="profile-modal-img" />
+              <div className="profile-modal-info">
+                <h3>Kelvin K</h3>
+                <p>Estudante</p>
+                <p>kelvin@exemplo.com</p>
+              </div>
+            </div>
+            <div className="profile-modal-details">
+              <div>
+                <label>Nome Completo</label>
+                <span>Kelvin K</span>
+              </div>
+              <div>
+                <label>Email</label>
+                <span>kelvin@exemplo.com</span>
+              </div>
+              <div>
+                <label>Tipo de Usuário</label>
+                <span>Aluno</span>
+              </div>
+              <div>
+                <label>Data de Registro</label>
+                <span>01/09/2023</span>
+              </div>
+            </div>
+            <div className="profile-modal-actions">
+              <button className="btn btn-secondary" onClick={closeProfileModal}>Cancelar</button>
+              <button className="btn btn-primary">Editar Perfil</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
