@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { authAPI } from '../lib/api';
 
-function Register({ onRegister, onLogin }) {
+function Register({ onRegister, onLogin, darkMode, toggleDarkMode }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',

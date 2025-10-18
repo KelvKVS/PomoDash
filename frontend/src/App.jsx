@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Login from './components/Login';
-import Register from './components/Register';
-import RegisterWrapper from './components/RegisterWrapper';
-import Dashboard from './components/Dashboard';
-import DashboardProfessor from './components/DashboardProfessor';
-import DashboardInstitution from './components/DashboardInstitution';
-import DashboardUser from './components/DashboardUser';
+import { BrowserRouter as Router } from 'react-router-dom';
+import RouteHandler from './components/RouteHandler';
 import './components/Login.css';
 import './components/Register.css';
 import './components/RegisterWrapper.css';
@@ -13,7 +8,7 @@ import './components/Dashboard.css';
 import './components/AuthChecker.css';
 
 // Importa as funções de API
-import { initializeApp } from './lib/api';
+import { initializeApp, authAPI } from './lib/api';
 
 // Define variáveis CSS globais para cores
 const setGlobalStyles = () => {
@@ -55,7 +50,6 @@ initializeApp();
 
 function App() {
   const [user, setUser] = useState(null); // Informações do usuário logado
-  const [currentView, setCurrentView] = useState('login'); // 'login', 'register'
   const [darkMode, setDarkMode] = useState(false);
 
   // Carregar preferência do modo escuro do localStorage
@@ -68,14 +62,22 @@ function App() {
       document.body.classList.add('dark-theme');
     }
     
-    // Verificar se já há um usuário logado
+    // SEMPRE forçar o usuário a ir para a tela de login
+    // Isso garante que mesmo com dados de sessão antigos, 
+    // o usuário precise autenticar-se novamente no início
+    // Verificar se o usuário já está logado (apenas para manter a sessão ativa)
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('token');
+    
+    if (storedUser && token) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
       } catch (error) {
         console.error('Erro ao parsear usuário do localStorage:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
       }
     }
   }, []);
@@ -95,103 +97,41 @@ function App() {
     }
   };
 
-  // Função de login - chamada pelo componente de login
+  // Função de login
   const handleLogin = (userData, accessData) => {
     setUser({ 
       ...userData,
       access: accessData 
     });
-    // O redirecionamento será feito automaticamente com base no role
   };
 
   // Função de logout
-  const handleLogout = () => {
-    // Limpar dados do usuário
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    setUser(null);
-    setCurrentView('login');
-  };
-
-  // Função para trocar para tela de registro
-  const switchToRegister = () => {
-    setCurrentView('register');
-  };
-
-  // Função para voltar para login
-  const switchToLogin = () => {
-    setCurrentView('login');
-  };
-
-  // Componente de login
-  const LoginScreen = () => (
-    <div className="auth-container">
-      <Login onLogin={handleLogin} onRegister={switchToRegister} />
-    </div>
-  );
-
-  // Componente de registro
-  const RegisterScreen = () => (
-    <div className="auth-container">
-      <RegisterWrapper onRegister={() => setCurrentView('login')} onLogin={switchToLogin} />
-    </div>
-  );
-
-
-
-  // Renderizar o dashboard apropriado com base no role do usuário
-  const renderDashboard = () => {
-    if (!user) return null;
-
-    const { role } = user;
-    
-    switch (role) {
-      case 'global_admin':
-      case 'school_admin':
-        return <DashboardInstitution darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={handleLogout} />;
-      case 'teacher':
-        return <DashboardProfessor darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={handleLogout} />;
-      case 'student':
-        return <Dashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={handleLogout} />;
-      default:
-        return <Dashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={handleLogout} />;
+  const handleLogout = async () => {
+    try {
+      // Chamar endpoint de logout no backend
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    } finally {
+      // Limpar dados do usuário
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      setUser(null);
     }
   };
 
   return (
     <div className={`App ${darkMode ? 'dark-theme' : ''}`}>
-      {!user ? (
-        // Tela de autenticação (login ou registro)
-        <div className="auth-wrapper">
-          {currentView === 'login' && <LoginScreen />}
-          {currentView === 'register' && <RegisterScreen />}
-        </div>
-      ) : (
-        // Dashboard do usuário
-        <>
-          {renderDashboard()}
-          <div className="app-footer">
-            <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar tema">
-              {darkMode ? (
-                <>
-                  <i className="fas fa-sun"></i>
-                  <span className="tooltip">Tema Claro</span>
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-moon"></i>
-                  <span className="tooltip">Tema Escuro</span>
-                </>
-              )}
-            </button>
-            <button onClick={handleLogout} className="logout-button">
-              <i className="fas fa-sign-out-alt"></i>
-              Sair
-            </button>
-          </div>
-        </>
-      )}
+      <Router>
+        <RouteHandler 
+          user={user} 
+          darkMode={darkMode} 
+          toggleDarkMode={toggleDarkMode}
+          onLogout={handleLogout}
+          onLogin={handleLogin}
+        />
+      </Router>
     </div>
   );
 }

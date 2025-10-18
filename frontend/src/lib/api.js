@@ -69,6 +69,48 @@ export const authAPI = {
     return request('/auth/access-info');
   },
 
+  // Atualizar perfil do usuário
+  updateProfile: async (profileData) => {
+    // Verifica se os dados incluem um arquivo para upload
+    if (profileData instanceof FormData) {
+      // Para upload de arquivos, precisamos construir a configuração manualmente
+      // sem definir Content-Type para que o navegador defina automaticamente com o boundary
+      const config = {
+        method: 'PUT',
+        body: profileData,
+      };
+
+      // Adiciona o token de autenticação
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`
+        };
+      }
+
+      try {
+        const url = `${API_BASE_URL}/auth/profile`;
+        const response = await fetch(url, config);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || `Erro ${response.status}: ${response.statusText}`);
+        }
+
+        return data;
+      } catch (error) {
+        console.error('Erro na requisição:', error.message);
+        throw error;
+      }
+    } else {
+      // Para dados normais em JSON
+      return request('/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify(profileData),
+      });
+    }
+  },
+
   // Logout
   logout: async () => {
     const refreshToken = localStorage.getItem('refreshToken');
@@ -127,6 +169,238 @@ export const authAPI = {
     // Atualizar o token
     localStorage.setItem('token', result.data.access_token);
     return result.data.access_token;
+  },
+};
+
+// Funções para relatórios
+export const reportAPI = {
+  // Obter todos os relatórios
+  getReports: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return request(`/reports?${queryParams}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter relatório específico
+  getReportById: async (reportId) => {
+    return request(`/reports/${reportId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Gerar relatório de desempenho de aluno
+  generateStudentReport: async (studentId, period) => {
+    return request(`/reports/generate/student/${studentId}`, {
+      method: 'POST',
+      body: JSON.stringify(period),
+    });
+  },
+
+  // Obter relatórios de um aluno específico
+  getStudentReports: async (studentId) => {
+    return request(`/reports/student/${studentId}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Funções para gerenciamento de usuários
+export const userAPI = {
+  // Criar novo usuário
+  createUser: async (userData) => {
+    return request('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  },
+
+  // Obter todos os usuários da escola
+  getUsers: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return request(`/users?${queryParams}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter usuário específico
+  getUserById: async (userId) => {
+    return request(`/users/${userId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Atualizar usuário
+  updateUser: async (userId, userData) => {
+    return request(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  },
+
+  // Inativar usuário
+  deleteUser: async (userId) => {
+    return request(`/users/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Funções para Pomodoro
+export const pomodoroAPI = {
+  // Iniciar nova sessão de pomodoro
+  startSession: async (sessionData) => {
+    return request('/pomodoro/sessions', {
+      method: 'POST',
+      body: JSON.stringify(sessionData),
+    });
+  },
+
+  // Obter sessões de pomodoro
+  getSessions: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return request(`/pomodoro/sessions?${queryParams}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter sessão ativa
+  getActiveSession: async () => {
+    return request('/pomodoro/sessions/active', {
+      method: 'GET',
+    });
+  },
+
+  // Obter sessão específica
+  getSessionById: async (sessionId) => {
+    return request(`/pomodoro/sessions/${sessionId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Pausar sessão
+  pauseSession: async (sessionId) => {
+    return request(`/pomodoro/sessions/${sessionId}/pause`, {
+      method: 'PUT',
+    });
+  },
+
+  // Retomar sessão
+  resumeSession: async (sessionId) => {
+    return request(`/pomodoro/sessions/${sessionId}/resume`, {
+      method: 'PUT',
+    });
+  },
+
+  // Completar sessão
+  completeSession: async (sessionId, feedback = {}) => {
+    return request(`/pomodoro/sessions/${sessionId}/complete`, {
+      method: 'PUT',
+      body: JSON.stringify({ feedback }),
+    });
+  },
+
+  // Abandonar sessão
+  abandonSession: async (sessionId) => {
+    return request(`/pomodoro/sessions/${sessionId}/abandon`, {
+      method: 'PUT',
+    });
+  },
+
+  // Obter estatísticas de pomodoro
+  getStats: async () => {
+    return request('/pomodoro/stats', {
+      method: 'GET',
+    });
+  },
+};
+
+// Funções para Tarefas
+export const taskAPI = {
+  // Obter tarefas
+  getTasks: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return request(`/tasks?${queryParams}`, {
+      method: 'GET',
+    });
+  },
+
+  // Criar tarefa
+  createTask: async (taskData) => {
+    return request('/tasks', {
+      method: 'POST',
+      body: JSON.stringify(taskData),
+    });
+  },
+
+  // Obter tarefa específica
+  getTaskById: async (taskId) => {
+    return request(`/tasks/${taskId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Atualizar tarefa
+  updateTask: async (taskId, taskData) => {
+    return request(`/tasks/${taskId}`, {
+      method: 'PUT',
+      body: JSON.stringify(taskData),
+    });
+  },
+
+  // Atualizar status de tarefa
+  updateTaskStatus: async (taskId, status) => {
+    return request(`/tasks/${taskId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  // Arquivar tarefa
+  archiveTask: async (taskId) => {
+    return request(`/tasks/${taskId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Funções para Flashcards
+export const flashcardAPI = {
+  // Obter todos os flashcards
+  getFlashcards: async () => {
+    return request('/flashcards', {
+      method: 'GET',
+    });
+  },
+
+  // Criar novo flashcard
+  createFlashcard: async (flashcardData) => {
+    return request('/flashcards', {
+      method: 'POST',
+      body: JSON.stringify(flashcardData),
+    });
+  },
+
+  // Obter flashcard por ID
+  getFlashcardById: async (flashcardId) => {
+    return request(`/flashcards/${flashcardId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Atualizar flashcard
+  updateFlashcard: async (flashcardId, flashcardData) => {
+    return request(`/flashcards/${flashcardId}`, {
+      method: 'PUT',
+      body: JSON.stringify(flashcardData),
+    });
+  },
+
+  // Deletar flashcard
+  deleteFlashcard: async (flashcardId) => {
+    return request(`/flashcards/${flashcardId}`, {
+      method: 'DELETE',
+    });
   },
 };
 

@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
-function DashboardProfessor({ darkMode, toggleDarkMode }) {
+function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editProfile, setEditProfile] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: user?.name || '',
+  });
+  const [profileImage, setProfileImage] = useState('https://i.pravatar.cc/40');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Gerenciamento de Turmas
   const [classes, setClasses] = useState([
@@ -102,6 +108,63 @@ function DashboardProfessor({ darkMode, toggleDarkMode }) {
 
   const closeProfileModal = () => {
     setShowProfileModal(false);
+    setEditProfile(false);
+  };
+
+  const handleEditProfile = () => {
+    setEditProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      // Chama a API para atualizar o perfil
+      const response = await authAPI.updateProfile({
+        name: profileData.name
+      });
+      
+      // Atualiza o localStorage com os novos dados do usuário
+      const updatedUser = { ...user, name: response.data.user.name };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Atualiza o estado do usuário no componente pai
+      // Aqui você pode chamar uma função passada como prop para atualizar o usuário globalmente
+      
+      setEditProfile(false);
+    } catch (error) {
+      console.error('Erro ao atualizar perfil:', error);
+      alert('Erro ao atualizar perfil: ' + error.message);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    // Reverter para os dados originais
+    setProfileData({
+      name: user?.name || '',
+    });
+    setEditProfile(false);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerImageUpload = () => {
+    document.getElementById('profile-image-upload').click();
   };
 
   useEffect(() => {
@@ -128,58 +191,51 @@ function DashboardProfessor({ darkMode, toggleDarkMode }) {
   return (
     <div className="container">
       {/* Sidebar */}
-      <div className="sidebar">
+      <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="logo">
           <h1>Pomo<span>dash</span></h1>
         </div>
         <div className="menu">
-          <div className={`menu-item ${activeScreen === 'dashboard' ? 'active' : ''}`} onClick={() => showScreen('dashboard')}>
+          <div className={`menu-item ${activeScreen === 'dashboard' ? 'active' : ''}`} onClick={() => {showScreen('dashboard'); setSidebarOpen(false);}}>
             <i className="fas fa-tachometer-alt"></i><span>Dashboard</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'classes' ? 'active' : ''}`} onClick={() => showScreen('classes')}>
+          <div className={`menu-item ${activeScreen === 'classes' ? 'active' : ''}`} onClick={() => {showScreen('classes'); setSidebarOpen(false);}}>
             <i className="fas fa-users"></i><span>Turmas</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'assignments' ? 'active' : ''}`} onClick={() => showScreen('assignments')}>
+          <div className={`menu-item ${activeScreen === 'assignments' ? 'active' : ''}`} onClick={() => {showScreen('assignments'); setSidebarOpen(false);}}>
             <i className="fas fa-tasks"></i><span>Tarefas</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'flashcards' ? 'active' : ''}`} onClick={() => showScreen('flashcards')}>
+          <div className={`menu-item ${activeScreen === 'flashcards' ? 'active' : ''}`} onClick={() => {showScreen('flashcards'); setSidebarOpen(false);}}>
             <i className="fas fa-layer-group"></i><span>Flashcards</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'performance' ? 'active' : ''}`} onClick={() => showScreen('performance')}>
+          <div className={`menu-item ${activeScreen === 'performance' ? 'active' : ''}`} onClick={() => {showScreen('performance'); setSidebarOpen(false);}}>
             <i className="fas fa-chart-bar"></i><span>Desempenho</span>
           </div>
         </div>
         
-        <div className="profile" onClick={openProfileModal}>
+        <div className="profile" onClick={() => {openProfileModal(); setSidebarOpen(false);}}>
           <div className="profile-img-container">
             <img src="https://i.pravatar.cc/40" alt="Professor" className="profile-img" />
             <button className="profile-img-upload-btn" title="Alterar foto">
               <i className="fas fa-camera"></i>
             </button>
           </div>
-          <div className="profile-name">Professor</div>
+          <div className="profile-name">{user?.name || 'Professor'}</div>
         </div>
       </div>
+
+      {/* Overlay para fechar sidebar em dispositivos móveis */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
 
       {/* Main Content */}
       <div className="main-content">
         {/* Header */}
         <div className="header">
-          <h2 className="page-title" id="page-title">{pageTitles[activeScreen]}</h2>
-          <div className="user-actions">
-            <button onClick={toggleDarkMode} className="theme-toggle-btn" aria-label="Alternar modo escuro">
-              {darkMode ? (
-                <i className="fas fa-sun"></i>
-              ) : (
-                <i className="fas fa-moon"></i>
-              )}
+          <div className="header-left">
+            <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <i className="fas fa-bars"></i>
             </button>
-            <div className="notification-btn">
-              <i className="fas fa-bell"></i>
-            </div>
-            <div className="user-menu">
-              <i className="fas fa-user-circle"></i>
-            </div>
+            <h2 className="page-title" id="page-title">{pageTitles[activeScreen]}</h2>
           </div>
         </div>
 
@@ -396,38 +452,90 @@ function DashboardProfessor({ darkMode, toggleDarkMode }) {
             <button className="close-modal" onClick={closeProfileModal}>&times;</button>
             <div className="profile-modal-header">
               <div className="profile-modal-img-container">
-                <img src="https://i.pravatar.cc/80" alt="Professor" className="profile-modal-img" />
-                <button className="profile-img-upload-btn" title="Alterar foto">
+                <img src={profileImage} alt="Professor" className="profile-modal-img" />
+                <button 
+                  className="profile-img-upload-btn" 
+                  title="Alterar foto"
+                  onClick={triggerImageUpload}
+                  style={{ display: editProfile ? 'block' : 'none' }}
+                >
                   <i className="fas fa-camera"></i>
                 </button>
+                <input 
+                  id="profile-image-upload"
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageChange} 
+                  style={{ display: 'none' }} 
+                />
               </div>
               <div className="profile-modal-info">
-                <h3>Professor</h3>
-                <p>Professor</p>
-                <p>professor@exemplo.com</p>
+                {editProfile ? (
+                  <input
+                    type="text"
+                    name="name"
+                    value={profileData.name}
+                    onChange={handleInputChange}
+                    className="profile-name-input"
+                  />
+                ) : (
+                  <h3>{user?.name || 'Professor'}</h3>
+                )}
+                <p>{user?.roleDescription || 'Professor'}</p>
+                <p>{user?.email || 'email@exemplo.com'}</p>
               </div>
             </div>
             <div className="profile-modal-details">
               <div>
                 <label>Nome Completo</label>
-                <span>Professor</span>
+                {editProfile ? (
+                  <input
+                    type="text"
+                    name="name"
+                    value={profileData.name}
+                    onChange={handleInputChange}
+                    className="profile-input"
+                  />
+                ) : (
+                  <span>{user?.name || 'Professor'}</span>
+                )}
               </div>
               <div>
                 <label>Email</label>
-                <span>professor@exemplo.com</span>
+                <span>{user?.email || 'email@exemplo.com'}</span>
               </div>
               <div>
                 <label>Tipo de Usuário</label>
-                <span>Professor</span>
+                <span>{user?.roleDescription || 'Professor'}</span>
               </div>
               <div>
-                <label>Data de Registro</label>
-                <span>01/09/2023</span>
+                <label>Instituição</label>
+                <span>{user?.school?.name || 'Não informada'}</span>
               </div>
             </div>
             <div className="profile-modal-actions">
-              <button className="btn btn-secondary" onClick={closeProfileModal}>Cancelar</button>
-              <button className="btn btn-primary">Editar Perfil</button>
+              <button 
+                onClick={toggleDarkMode} 
+                className="theme-toggle-btn" 
+                aria-label={darkMode ? "Alternar para modo claro" : "Alternar para modo escuro"}
+              >
+                {darkMode ? (
+                  <><i className="fas fa-sun"></i> Modo Claro</>
+                ) : (
+                  <><i className="fas fa-moon"></i> Modo Escuro</>
+                )}
+              </button>
+              {editProfile ? (
+                <>
+                  <button className="btn btn-secondary" onClick={handleCancelEdit}>Cancelar</button>
+                  <button className="btn btn-primary" onClick={handleSaveProfile}>Salvar</button>
+                </>
+              ) : (
+                <>
+                  <button className="btn btn-secondary" onClick={handleEditProfile}>Editar Perfil</button>
+                  <button className="btn btn-primary" onClick={onLogout}>Sair</button>
+                </>
+              )}
             </div>
           </div>
         </div>

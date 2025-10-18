@@ -636,4 +636,73 @@ router.get('/access-info', auth, (req, res) => {
   }
 });
 
+// @route   PUT /api/auth/profile
+// @desc    Atualizar perfil do usuário logado
+// @access  Private
+router.put('/profile', auth, [
+  body('name').optional().trim().isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres'),
+  body('profile.avatar').optional().isURL().withMessage('URL de avatar inválida'),
+  body('profile.phone').optional().matches(/^(\(\d{2}\)\s\d{4,5}-\d{4})?$/).withMessage('Telefone deve estar no formato (XX) XXXXX-XXXX'),
+  body('profile.dateOfBirth').optional().isISO8601().withMessage('Data de nascimento inválida'),
+  body('profile.bio').optional().isLength({ max: 500 }).withMessage('Bio não pode exceder 500 caracteres')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Dados de entrada inválidos',
+        details: errors.array()
+      });
+    }
+
+    const { name, profile } = req.body;
+
+    // Buscar usuário autenticado
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Usuário não encontrado'
+      });
+    }
+
+    // Atualizar campos editáveis
+    if (name) {
+      user.name = name;
+    }
+    
+    if (profile) {
+      // Atualizar campos específicos do profile, mantendo os existentes
+      user.profile.avatar = profile.avatar || user.profile.avatar;
+      user.profile.phone = profile.phone || user.profile.phone;
+      user.profile.dateOfBirth = profile.dateOfBirth || user.profile.dateOfBirth;
+      user.profile.bio = profile.bio || user.profile.bio;
+    }
+
+    await user.save();
+
+    res.json({
+      status: 'success',
+      message: 'Perfil atualizado com sucesso',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          school_id: user.school_id
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao atualizar perfil:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
 module.exports = router;

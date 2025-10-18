@@ -132,8 +132,35 @@
 
 .profile-modal-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 1.5rem;
+}
+
+.profile-modal-header input[type="text"] {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    padding: 8px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-background);
+    color: var(--text-color);
+    width: 100%;
+    max-width: 300px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    margin-left: 1rem;
+}
+
+.profile-modal-header input[type="text"]:focus {
+    outline: none;
+    border-color: #d9534f;
+    box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.2);
+}
+
+.profile-name-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
 }
 
 .profile-modal-img {
@@ -1500,4 +1527,146 @@
 .dark-theme .sidebar-logout-btn:hover {
     background: linear-gradient(135deg, #c9302c 0%, #ac2925 100%);
     border-color: #c9302c;
+}
+
+/* Estilos para edição de perfil */
+.profile-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-background);
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Estilos para o menu hambúrguer */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 16px 0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.menu-toggle {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-color);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: none; /* Ocultar em telas grandes, mostrar em mobile */
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.menu-toggle:hover {
+    background-color: #f8f9fa;
+}
+
+/* Overlay do sidebar mobile */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    display: none; /* Mostrar apenas quando sidebar estiver aberto em mobile */
+}
+
+/* Estilos para sidebar em modo mobile */
+.sidebar {
+    transition: transform 0.3s ease;
+    z-index: 999;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
+    .menu-toggle {
+        display: flex;
+    }
+    
+    .sidebar-overlay {
+        display: block;
+    }
+    
+    .header {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
+
+.profile-input:focus {
+    outline: none;
+    border-color: #d9534f;
+    box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.2);
+}
+
+.profile-name-input {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    padding: 8px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-background);
+    color: var(--text-color);
+    width: 100%;
+    max-width: 300px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-name-input:focus {
+    outline: none;
+    border-color: #d9534f;
+    box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.2);
+}
+
+/* Estilo para o botão de upload de imagem no modal de perfil */
+.profile-modal-img-upload-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #d9534f;
+    border: 2px solid white;
+    color: white;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.profile-modal-img-upload-btn:hover {
+    background: #c9302c;
+    transform: scale(1.1);
 }
