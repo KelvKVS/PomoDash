@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { authAPI, taskAPI, flashcardAPI, classAPI, userAPI } from '../lib/api';
+import { authAPI, pomodoroAPI, taskAPI, flashcardAPI, classAPI, userAPI } from '../lib/api';
 import CustomAlert from './CustomAlert';
+import useFlashcardStats from '../hooks/useFlashcardStats';
 
 function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -42,6 +43,26 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   
   // Alert state
   const [alert, setAlert] = useState(null);
+  
+  // Confirmation Modal State
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmCallback, setConfirmCallback] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  
+  // Pomodoro State
+  const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
+  const [isActive, setIsActive] = useState(false);
+  const [sessionType, setSessionType] = useState('work'); // work, short_break, long_break
+  const [activeSession, setActiveSession] = useState(null);
+  const [recentSessions, setRecentSessions] = useState([]);
+  
+  // Flashcard Stats
+  const { 
+    updateFlashcardStats, 
+    getOverallAccuracy, 
+    getFlashcardStats,
+    stats: flashcardStats 
+  } = useFlashcardStats();
   
   // Novos estados para criar tarefas e flashcards
   const [newAssignment, setNewAssignment] = useState({
@@ -207,6 +228,286 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
+  const showConfirmation = (message, callback, type = 'warning') => {
+    setConfirmMessage(message);
+    setConfirmCallback(() => callback);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    if (confirmCallback) {
+      confirmCallback();
+    }
+    setShowConfirmModal(false);
+  };
+
+  const handleCancel = () => {
+    setShowConfirmModal(false);
+  };
+
+  // Pomodoro Timer Logic
+  useEffect(() => {
+    let interval = null;
+    if (isActive && time > 0) {
+      interval = setInterval(() => {
+        setTime(time => time - 1);
+      }, 1000);
+    } else if (time === 0 && activeSession) {
+      // Handle session end - complete the session
+      handleCompleteSession();
+    }
+    return () => clearInterval(interval);
+  }, [isActive, time, activeSession]);
+
+  // Função para iniciar uma nova sessão de pomodoro
+  const startNewSession = async (type = 'work', plannedDuration = 25) => {
+    try {
+      const sessionData = {
+        type,
+        planned_duration: plannedDuration,
+      };
+      
+      const response = await pomodoroAPI.startSession(sessionData);
+      setActiveSession(response.data);
+      setIsActive(true);
+    } catch (error) {
+      console.error('Erro ao iniciar sessão:', error);
+      setAlert({ message: 'Erro ao iniciar sessão de Pomodoro: ' + error.message, type: 'error' });
+    }
+  };
+
+  // Função para pausar a sessão ativa
+  const pauseSession = async () => {
+    if (activeSession) {
+      try {
+        await pomodoroAPI.pauseSession(activeSession._id);
+        setIsActive(false);
+      } catch (error) {
+        console.error('Erro ao pausar sessão:', error);
+        setAlert({ message: 'Erro ao pausar sessão: ' + error.message, type: 'error' });
+      }
+    }
+  };
+
+  // Função para retomar a sessão
+  const resumeSession = async () => {
+    if (activeSession) {
+      try {
+        await pomodoroAPI.resumeSession(activeSession._id);
+        setIsActive(true);
+      } catch (error) {
+        console.error('Erro ao retomar sessão:', error);
+        setAlert({ message: 'Erro ao retomar sessão: ' + error.message, type: 'error' });
+      }
+    }
+  };
+
+  // Função para completar a sessão
+  const handleCompleteSession = async () => {
+    if (activeSession) {
+      try {
+        const response = await pomodoroAPI.completeSession(activeSession._id);
+        setActiveSession(null);
+        setIsActive(false);
+        loadRecentSessions(); // Atualizar lista de sessões recentes
+        
+        // Play completion sound
+        playCompletionSound();
+      } catch (error) {
+        console.error('Erro ao completar sessão:', error);
+        setAlert({ message: 'Erro ao completar sessão: ' + error.message, type: 'error' });
+      }
+    }
+  };
+
+  // Função para abandonar a sessão
+  const abandonSession = async () => {
+    if (activeSession) {
+      try {
+        await pomodoroAPI.abandonSession(activeSession._id);
+        setActiveSession(null);
+        setIsActive(false);
+        loadRecentSessions(); // Atualizar lista de sessões recentes
+      } catch (error) {
+        console.error('Erro ao abandonar sessão:', error);
+        setAlert({ message: 'Erro ao abandonar sessão: ' + error.message, type: 'error' });
+      }
+    }
+  };
+
+  const toggleTimer = async () => {
+    if (!activeSession) {
+      // Iniciar nova sessão se não houver uma ativa
+      let type, duration;
+      switch (sessionType) {
+        case 'Pomodoro':
+          type = 'work';
+          duration = 25;
+          break;
+        case 'Short Break':
+          type = 'short_break';
+          duration = 5;
+          break;
+        case 'Long Break':
+          type = 'long_break';
+          duration = 15;
+          break;
+        default:
+          type = 'work';
+          duration = 25;
+      }
+      await startNewSession(type, duration);
+    } else if (isActive) {
+      await pauseSession();
+    } else {
+      await resumeSession();
+    }
+  };
+
+  const resetTimer = async () => {
+    if (activeSession) {
+      await abandonSession();
+    }
+    setIsActive(false);
+    // Reset time based on session type
+    if (sessionType === 'Pomodoro' || sessionType === 'work') {
+      setTime(25 * 60);
+    } else if (sessionType === 'Short Break' || sessionType === 'short_break') {
+      setTime(5 * 60);
+    } else {
+      setTime(15 * 60);
+    }
+  };
+
+  const selectSession = async (type) => {
+    // Se houver uma sessão ativa, perguntar se deseja abandoná-la
+    if (activeSession) {
+      showConfirmation(
+        'Você tem uma sessão em andamento. Deseja abandoná-la e começar uma nova?',
+        async () => {
+          await abandonSession();
+          setSessionType(type);
+          setIsActive(false);
+          if (type === 'Pomodoro' || type === 'work') {
+            setTime(25 * 60);
+          } else if (type === 'Short Break' || type === 'short_break') {
+            setTime(5 * 60);
+          } else {
+            setTime(15 * 60);
+          }
+        },
+        'warning'
+      );
+    } else {
+      setSessionType(type);
+      setIsActive(false);
+      if (type === 'Pomodoro' || type === 'work') {
+        setTime(25 * 60);
+      } else if (type === 'Short Break' || type === 'short_break') {
+        setTime(5 * 60);
+      } else {
+        setTime(15 * 60);
+      }
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
+  // Função para carregar sessões recentes
+  const loadRecentSessions = async () => {
+    try {
+      const response = await pomodoroAPI.getSessions({ limit: 5 });
+      setRecentSessions(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar sessões recentes:', error);
+      setAlert({ message: 'Erro ao carregar sessões recentes: ' + error.message, type: 'error' });
+    }
+  };
+
+  // Função para carregar sessão ativa
+  const loadActiveSession = async () => {
+    try {
+      const response = await pomodoroAPI.getActiveSession();
+      if (response.data) {
+        setActiveSession(response.data);
+        // Atualizar o tempo restante com base na sessão ativa
+        const now = new Date();
+        const startedAt = new Date(response.data.timing.started_at);
+        const elapsed = Math.floor((now - startedAt) / 1000); // tempo decorrido em segundos
+        const plannedDurationSec = response.data.settings.planned_duration * 60; // duração planejada em segundos
+        const remaining = Math.max(0, plannedDurationSec - elapsed);
+        setTime(remaining);
+        setIsActive(true);
+      }
+    } catch (error) {
+      // Se não houver sessão ativa, é normal - não faz nada
+      if (!error.message.includes('Nenhuma sessão ativa')) {
+        console.error('Erro ao carregar sessão ativa:', error);
+        setAlert({ message: 'Erro ao carregar sessão ativa: ' + error.message, type: 'error' });
+      }
+    }
+  };
+
+  // Função para tocar som de conclusão
+  const playCompletionSound = () => {
+    // Criar um elemento de áudio com um som de bip ou som de conclusão
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 800;
+    gainNode.gain.value = 0.3;
+    
+    oscillator.start();
+    
+    // Adicionar efeito de fade out para soar melhor
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+    
+    setTimeout(() => {
+      oscillator.stop();
+    }, 500);
+  };
+
+  // Função para atualizar o título do documento com o tempo restante
+  const updateDocumentTitle = (seconds, isActiveSession) => {
+    if (isActiveSession) {
+      const formattedTime = formatTime(seconds);
+      document.title = `${formattedTime} - Pomodoro Timer`;
+    } else {
+      document.title = "PomoDash";
+    }
+  };
+
+  // Pomodoro Timer effect
+  useEffect(() => {
+    // Update document title when timer state changes
+    updateDocumentTitle(time, isActive);
+    
+    let interval = null;
+    if (isActive && time > 0) {
+      interval = setInterval(() => {
+        setTime(prevTime => {
+          const newTime = prevTime - 1;
+          updateDocumentTitle(newTime, true);
+          return newTime;
+        });
+      }, 1000);
+    } else if (time === 0 && activeSession) {
+      // Handle session end - complete the session
+      handleCompleteSession();
+    }
+    
+    return () => clearInterval(interval);
+  }, [isActive, time, activeSession]);
+
   const openProfileModal = () => {
     setShowProfileModal(true);
   };
@@ -303,16 +604,21 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     loadAssignments();
     loadFlashcards();
     loadPerformanceData();
+    loadActiveSession();
+    loadRecentSessions();
 
     return () => {
       document.body.removeChild(script);
+      // Reset document title when component unmounts
+      document.title = "PomoDash";
     };
-  }, []);
+  }, [flashcardStats]);
 
   const pageTitles = {
     'dashboard': 'Dashboard Professor',
     'classes': 'Minhas Turmas',
     'assignments': 'Tarefas',
+    'pomodoro': 'Pomodoro',
     'flashcards': 'Flashcards',
     'performance': 'Desempenho',
     'settings': 'Configurações',
@@ -334,6 +640,9 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
           </div>
           <div className={`menu-item ${activeScreen === 'assignments' ? 'active' : ''}`} onClick={() => {showScreen('assignments'); setSidebarOpen(false);}}>
             <i className="fas fa-tasks"></i><span>Tarefas</span>
+          </div>
+          <div className={`menu-item ${activeScreen === 'pomodoro' ? 'active' : ''}`} onClick={() => {showScreen('pomodoro'); setSidebarOpen(false);}}>
+            <i className="fas fa-clock"></i><span>Pomodoro</span>
           </div>
           <div className={`menu-item ${activeScreen === 'flashcards' ? 'active' : ''}`} onClick={() => {showScreen('flashcards'); setSidebarOpen(false);}}>
             <i className="fas fa-layer-group"></i><span>Flashcards</span>
