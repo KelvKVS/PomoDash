@@ -119,7 +119,10 @@ reportSchema.statics.generateStudentPerformanceReport = async function(studentId
   const averageFocus = pomodoroSessions.reduce((sum, session) => sum + (session.feedback.focus_rating || 0), 0) / (pomodoroSessions.length || 1);
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(task => task.getStatusForUser(studentId) === 'completed').length;
+  const completedTasks = tasks.filter(task => {
+    const assignment = task.assigned_to.find(a => a.user.toString() === studentId.toString());
+    return assignment && assignment.status === 'completed';
+  }).length;
   const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const reportData = {

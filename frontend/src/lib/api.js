@@ -325,6 +325,20 @@ export const taskAPI = {
     });
   },
 
+  // Obter tarefas por turma
+  getTasksByClass: async (classId) => {
+    return request(`/tasks/class/${classId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter tarefas por professor
+  getTasksByTeacher: async (teacherId) => {
+    return request(`/tasks/teacher/${teacherId}`, {
+      method: 'GET',
+    });
+  },
+
   // Criar tarefa
   createTask: async (taskData) => {
     return request('/tasks', {
@@ -373,6 +387,28 @@ export const flashcardAPI = {
     });
   },
 
+  // Obter estatísticas de flashcards por usuário
+  getFlashcardStatsByUser: async (userId) => {
+    return request(`/flashcards/stats/user/${userId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter estatísticas de flashcards por turma
+  getFlashcardStatsByClass: async (classId) => {
+    return request(`/flashcards/stats/class/${classId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter estatísticas agregadas de flashcards
+  getAggregateFlashcardStats: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return request(`/flashcards/stats/aggregate?${queryParams}`, {
+      method: 'GET',
+    });
+  },
+
   // Criar novo flashcard
   createFlashcard: async (flashcardData) => {
     return request('/flashcards', {
@@ -399,6 +435,139 @@ export const flashcardAPI = {
   // Deletar flashcard
   deleteFlashcard: async (flashcardId) => {
     return request(`/flashcards/${flashcardId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Obter flashcards por professor
+  getFlashcardsByTeacher: async (teacherId) => {
+    return request(`/flashcards/teacher/${teacherId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter flashcards por turma
+  getFlashcardsByClass: async (classId) => {
+    return request(`/flashcards/class/${classId}`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Funções para Turmas
+export const classAPI = {
+  // Obter todas as turmas
+  getClasses: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return request(`/classes?${queryParams}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter turmas por professor
+  getClassesByTeacher: async (teacherId) => {
+    return request(`/classes/teacher/${teacherId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter turma específica
+  getClassById: async (classId) => {
+    return request(`/classes/${classId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Criar nova turma
+  createClass: async (classData) => {
+    return request('/classes', {
+      method: 'POST',
+      body: JSON.stringify(classData),
+    });
+  },
+
+  // Atualizar turma
+  updateClass: async (classId, classData) => {
+    return request(`/classes/${classId}`, {
+      method: 'PUT',
+      body: JSON.stringify(classData),
+    });
+  },
+
+  // Arquivar turma
+  archiveClass: async (classId) => {
+    return request(`/classes/${classId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Adicionar aluno à turma
+  addStudentToClass: async (classId, studentData) => {
+    return request(`/classes/${classId}/students`, {
+      method: 'POST',
+      body: JSON.stringify(studentData),
+    });
+  },
+
+  // Remover aluno da turma
+  removeStudentFromClass: async (classId, studentId) => {
+    return request(`/classes/${classId}/students/${studentId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Obter alunos de uma turma
+  getClassStudents: async (classId) => {
+    return request(`/classes/${classId}/students`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Funções para Escolas
+export const schoolAPI = {
+  // Obter todas as escolas
+  getSchools: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return request(`/schools?${queryParams}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter escola específica
+  getSchoolById: async (schoolId) => {
+    return request(`/schools/${schoolId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter estatísticas da escola
+  getSchoolStats: async (schoolId) => {
+    return request(`/schools/${schoolId}/stats`, {
+      method: 'GET',
+    });
+  },
+
+  // Criar nova escola
+  createSchool: async (schoolData) => {
+    return request('/schools', {
+      method: 'POST',
+      body: JSON.stringify(schoolData),
+    });
+  },
+
+  // Atualizar escola
+  updateSchool: async (schoolId, schoolData) => {
+    return request(`/schools/${schoolId}`, {
+      method: 'PUT',
+      body: JSON.stringify(schoolData),
+    });
+  },
+
+  // Inativar/deletar escola
+  deleteSchool: async (schoolId, permanent = false) => {
+    const url = permanent ? `/schools/${schoolId}?permanent=true` : `/schools/${schoolId}`;
+    return request(url, {
       method: 'DELETE',
     });
   },

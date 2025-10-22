@@ -101,7 +101,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       loadStats(); // Atualiza as estatísticas e tarefas
       setAlert({ message: 'Tarefa criada com sucesso!', type: 'success' });
     } catch (error) {
-      console.error('Erro ao criar tarefa:', error);
       setAlert({ message: 'Erro ao criar tarefa: ' + error.message, type: 'error' });
     }
   };
@@ -113,7 +112,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       // Recarregar as tarefas
       loadStats(); // Atualiza as estatísticas e tarefas
     } catch (error) {
-      console.error('Erro ao atualizar status da tarefa:', error);
       setAlert({ message: 'Erro ao atualizar status da tarefa: ' + error.message, type: 'error' });
     }
   };
@@ -126,7 +124,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         loadStats(); // Atualiza as estatísticas e tarefas
         setAlert({ message: 'Tarefa arquivada com sucesso!', type: 'success' });
       } catch (error) {
-        console.error('Erro ao arquivar tarefa:', error);
         setAlert({ message: 'Erro ao arquivar tarefa: ' + error.message, type: 'error' });
       }
     }
@@ -166,7 +163,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       setActiveSession(response.data);
       setIsActive(true);
     } catch (error) {
-      console.error('Erro ao iniciar sessão:', error);
       setAlert({ message: 'Erro ao iniciar sessão de Pomodoro: ' + error.message, type: 'error' });
     }
   };
@@ -178,7 +174,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         await pomodoroAPI.pauseSession(activeSession._id);
         setIsActive(false);
       } catch (error) {
-        console.error('Erro ao pausar sessão:', error);
         setAlert({ message: 'Erro ao pausar sessão: ' + error.message, type: 'error' });
       }
     }
@@ -191,7 +186,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         await pomodoroAPI.resumeSession(activeSession._id);
         setIsActive(true);
       } catch (error) {
-        console.error('Erro ao retomar sessão:', error);
         setAlert({ message: 'Erro ao retomar sessão: ' + error.message, type: 'error' });
       }
     }
@@ -207,7 +201,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         loadRecentSessions(); // Atualizar lista de sessões recentes
         setAlert({ message: 'Sessão completada com sucesso!', type: 'success' });
       } catch (error) {
-        console.error('Erro ao completar sessão:', error);
         setAlert({ message: 'Erro ao completar sessão: ' + error.message, type: 'error' });
       }
     }
@@ -223,7 +216,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         loadRecentSessions(); // Atualizar lista de sessões recentes
         setAlert({ message: 'Sessão abandonada com sucesso!', type: 'info' });
       } catch (error) {
-        console.error('Erro ao abandonar sessão:', error);
         setAlert({ message: 'Erro ao abandonar sessão: ' + error.message, type: 'error' });
       }
     }
@@ -321,7 +313,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       }));
       setFlashcards(flashcardsWithStats || []);
     } catch (error) {
-      console.error('Erro ao carregar flashcards:', error);
+      setAlert({ message: 'Erro ao carregar flashcards: ' + error.message, type: 'error' });
     }
   };
 
@@ -340,7 +332,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       setShowFlashcardForm(false); // Fechar o formulário após criar o flashcard
       setAlert({ message: 'Flashcard criado com sucesso!', type: 'success' });
     } catch (error) {
-      console.error('Erro ao criar flashcard:', error);
       setAlert({ message: 'Erro ao criar flashcard: ' + error.message, type: 'error' });
     }
   };
@@ -355,7 +346,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         setFlashcards(flashcards.filter(card => card._id !== id));
         setAlert({ message: 'Flashcard deletado com sucesso!', type: 'success' });
       } catch (error) {
-        console.error('Erro ao deletar flashcard:', error);
         setAlert({ message: 'Erro ao deletar flashcard: ' + error.message, type: 'error' });
       }
     }
@@ -417,7 +407,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       setProfileImageFile(null);
       setAlert({ message: 'Perfil atualizado com sucesso!', type: 'success' });
     } catch (error) {
-      console.error('Erro ao atualizar perfil:', error);
       setAlert({ message: 'Erro ao atualizar perfil: ' + error.message, type: 'error' });
     }
   };
@@ -464,7 +453,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       const response = await pomodoroAPI.getSessions({ limit: 5 });
       setRecentSessions(response.data || []);
     } catch (error) {
-      console.error('Erro ao carregar sessões recentes:', error);
+      setAlert({ message: 'Erro ao carregar sessões recentes: ' + error.message, type: 'error' });
     }
   };
 
@@ -486,7 +475,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     } catch (error) {
       // Se não houver sessão ativa, é normal - não faz nada
       if (!error.message.includes('Nenhuma sessão ativa')) {
-        console.error('Erro ao carregar sessão ativa:', error);
+        setAlert({ message: 'Erro ao carregar sessão ativa: ' + error.message, type: 'error' });
       }
     }
   };
@@ -539,7 +528,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       
       setTasks(tasksResponse.data || []);
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      setAlert({ message: 'Erro ao carregar estatísticas: ' + error.message, type: 'error' });
     }
   };
 
@@ -1114,11 +1103,14 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 className="theme-toggle-btn" 
                 aria-label={darkMode ? "Alternar para modo claro" : "Alternar para modo escuro"}
               >
-                {darkMode ? (
-                  <><i className="fas fa-sun"></i> Modo Claro</>
-                ) : (
-                  <><i className="fas fa-moon"></i> Modo Escuro</>
-                )}
+                <div className="theme-toggle-switch">
+                  <div className={`theme-toggle-slider ${darkMode ? 'dark' : 'light'}`}>
+                    <i className={`theme-toggle-icon ${darkMode ? 'fas fa-sun' : 'fas fa-moon'}`}></i>
+                  </div>
+                </div>
+                <span className="theme-toggle-label">
+                  {darkMode ? "Modo Claro" : "Modo Escuro"}
+                </span>
               </button>
               {editProfile ? (
                 <>
@@ -1389,7 +1381,83 @@ styles.innerHTML = `
   }
 
   .attempts-badge {
-    background: linear-gradient(45deg, #6366f1, #8b5cf6);
+    background: linear-gradient(45deg, #d9534f, #c9302c);
+  }
+
+  /* Modern Theme Toggle Button */
+  .theme-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    background: var(--card-background);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    min-width: 180px;
+    justify-content: center;
+  }
+
+  .theme-toggle-btn:hover {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #c9302c 100%);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(217, 83, 79, 0.3);
+  }
+
+  .theme-toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background: var(--border-color);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .theme-toggle-slider.light {
+    left: 2px;
+    background: linear-gradient(135deg, #FFC107, #FF9800);
+  }
+
+  .theme-toggle-slider.dark {
+    left: 22px;
+    background: linear-gradient(135deg, #d9534f, #c9302c);
+  }
+
+  .theme-toggle-icon {
+    font-size: 8px;
+    color: white;
+  }
+
+  .theme-toggle-label {
+    font-size: 0.95rem;
+  }
+
+  .theme-toggle-btn:hover .theme-toggle-slider.light {
+    transform: scale(1.1);
+  }
+
+  .theme-toggle-btn:hover .theme-toggle-slider.dark {
+    transform: scale(1.1) rotate(15deg);
   }
 
   @media (max-width: 768px) {

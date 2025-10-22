@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { authAPI, taskAPI, flashcardAPI, classAPI, userAPI } from '../lib/api';
+import CustomAlert from './CustomAlert';
 
 function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -7,36 +9,39 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
   });
-  const [profileImage, setProfileImage] = useState('https://i.pravatar.cc/40');
+  const [profileImage, setProfileImage] = useState(user?.profilePicture || 'https://i.pravatar.cc/40');
+  const [profileImageFile, setProfileImageFile] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Gerenciamento de Turmas
-  const [classes, setClasses] = useState([
-    { id: 1, name: 'Turma A - 8° ano', subject: 'Matemática', students: 25 },
-    { id: 2, name: 'Turma B - 7° ano', subject: 'História', students: 22 },
-    { id: 3, name: 'Turma C - 9° ano', subject: 'Ciências', students: 20 },
-  ]);
+  const [classes, setClasses] = useState([]);
   
   // Tarefas para os alunos
-  const [assignments, setAssignments] = useState([
-    { id: 1, title: 'Trabalho de matemática - Capítulo 5', class: 'Turma A - 8° ano', deadline: '15/10', studentsCompleted: 18 },
-    { id: 2, title: 'Resumo de história - Revolução Industrial', class: 'Turma B - 7° ano', deadline: '20/10', studentsCompleted: 15 },
-    { id: 3, title: 'Experimento de ciências', class: 'Turma C - 9° ano', deadline: '25/10', studentsCompleted: 12 },
-  ]);
+  const [assignments, setAssignments] = useState([]);
   
   // Flashcards criados pelo professor
-  const [flashcardDecks, setFlashcardDecks] = useState([
-    { id: 1, name: 'Formulas Matemáticas', subject: 'Matemática', cards: 25, usedBy: 45 },
-    { id: 2, name: 'Datas Históricas Importantes', subject: 'História', cards: 30, usedBy: 37 },
-    { id: 3, name: 'Elementos Químicos', subject: 'Ciências', cards: 15, usedBy: 28 },
-  ]);
+  const [flashcardDecks, setFlashcardDecks] = useState([]);
   
   // Estatísticas de Desempenho
-  const [performanceData, setPerformanceData] = useState([
-    { id: 1, student: 'João Silva', class: 'Turma A', subject: 'Matemática', avg: 8.5 },
-    { id: 2, student: 'Maria Santos', class: 'Turma A', subject: 'Matemática', avg: 9.2 },
-    { id: 3, student: 'Pedro Oliveira', class: 'Turma B', subject: 'História', avg: 7.8 },
-  ]);
+  const [performanceData, setPerformanceData] = useState([]);
+  
+  // Estados de carregamento e erro
+  const [loading, setLoading] = useState({
+    classes: false,
+    assignments: false,
+    flashcards: false,
+    performance: false
+  });
+  
+  const [errors, setErrors] = useState({
+    classes: null,
+    assignments: null,
+    flashcards: null,
+    performance: null
+  });
+  
+  // Alert state
+  const [alert, setAlert] = useState(null);
   
   // Novos estados para criar tarefas e flashcards
   const [newAssignment, setNewAssignment] = useState({
@@ -56,50 +61,150 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     setActiveScreen(screenId);
   };
 
+  // Funções para carregar dados
+  const loadClasses = async () => {
+    setLoading(prev => ({ ...prev, classes: true }));
+    setErrors(prev => ({ ...prev, classes: null }));
+    
+    try {
+      const response = await classAPI.getClassesByTeacher(user._id);
+      setClasses(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar turmas:', error);
+      setErrors(prev => ({ ...prev, classes: error.message }));
+      setAlert({ message: 'Erro ao carregar turmas: ' + error.message, type: 'error' });
+    } finally {
+      setLoading(prev => ({ ...prev, classes: false }));
+    }
+  };
+
+  const loadAssignments = async () => {
+    setLoading(prev => ({ ...prev, assignments: true }));
+    setErrors(prev => ({ ...prev, assignments: null }));
+    
+    try {
+      const response = await taskAPI.getTasksByTeacher(user._id);
+      setAssignments(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar tarefas:', error);
+      setErrors(prev => ({ ...prev, assignments: error.message }));
+      setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
+    } finally {
+      setLoading(prev => ({ ...prev, assignments: false }));
+    }
+  };
+
+  const loadFlashcards = async () => {
+    setLoading(prev => ({ ...prev, flashcards: true }));
+    setErrors(prev => ({ ...prev, flashcards: null }));
+    
+    try {
+      // Carregar flashcards criados pelo professor (associados ao usuário)
+      const response = await flashcardAPI.getFlashcards();
+      setFlashcardDecks(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar flashcards:', error);
+      setErrors(prev => ({ ...prev, flashcards: error.message }));
+      setAlert({ message: 'Erro ao carregar flashcards: ' + error.message, type: 'error' });
+    } finally {
+      setLoading(prev => ({ ...prev, flashcards: false }));
+    }
+  };
+
+  const loadPerformanceData = async () => {
+    setLoading(prev => ({ ...prev, performance: true }));
+    setErrors(prev => ({ ...prev, performance: null }));
+    
+    try {
+      // Por enquanto, carregar dados de relatórios ou tarefas que contenham informações de desempenho
+      // Isso pode ser expandido para usar o reportAPI no futuro
+      const response = await reportAPI.getReports({ type: 'student-performance' });
+      setPerformanceData(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar dados de desempenho:', error);
+      // Não definir erro específico pois pode ser normal não ter dados de desempenho
+      setPerformanceData([]);
+    } finally {
+      setLoading(prev => ({ ...prev, performance: false }));
+    }
+  };
+
   // Funções para gerenciar turmas
-  const handleCreateClass = (e) => {
+  const handleCreateClass = async (e) => {
     e.preventDefault();
-    const newClass = {
-      id: classes.length + 1,
-      name: e.target.name.value,
-      subject: e.target.subject.value,
-      students: 0
-    };
-    setClasses([...classes, newClass]);
-    e.target.reset();
+    
+    try {
+      const classData = {
+        name: e.target.name.value,
+        subject: e.target.subject.value,
+        teacher_id: user._id,
+        school_id: user.school_id,
+        academic_year: new Date().getFullYear().toString()
+      };
+      
+      const response = await classAPI.createClass(classData);
+      setClasses(prev => [...prev, response.data]);
+      e.target.reset();
+      setAlert({ message: 'Turma criada com sucesso!', type: 'success' });
+    } catch (error) {
+      console.error('Erro ao criar turma:', error);
+      setAlert({ message: 'Erro ao criar turma: ' + error.message, type: 'error' });
+    }
   };
 
   // Funções para gerenciar tarefas
-  const handleCreateAssignment = (e) => {
+  const handleCreateAssignment = async (e) => {
     e.preventDefault();
     
-    const newAssignmentObj = {
-      id: assignments.length + 1,
-      title: newAssignment.title,
-      class: newAssignment.class,
-      deadline: newAssignment.deadline,
-      description: newAssignment.description,
-      studentsCompleted: 0
-    };
-    
-    setAssignments([...assignments, newAssignmentObj]);
-    setNewAssignment({ title: '', class: '', deadline: '', description: '' });
+    try {
+      const taskData = {
+        title: newAssignment.title,
+        subject: newAssignment.subject,
+        due_date: newAssignment.deadline,
+        description: newAssignment.description,
+        created_by: user._id,
+        school_id: user.school_id,
+        assigned_to: [] // Será atribuído aos alunos posteriormente
+      };
+      
+      const response = await taskAPI.createTask(taskData);
+      setAssignments(prev => [...prev, response.data]);
+      setNewAssignment({ title: '', class: '', deadline: '', description: '' });
+      setAlert({ message: 'Tarefa criada com sucesso!', type: 'success' });
+    } catch (error) {
+      console.error('Erro ao criar tarefa:', error);
+      setAlert({ message: 'Erro ao criar tarefa: ' + error.message, type: 'error' });
+    }
   };
 
   // Funções para gerenciar flashcards
-  const handleCreateFlashcardDeck = (e) => {
+  const handleCreateFlashcardDeck = async (e) => {
     e.preventDefault();
     
-    const newDeck = {
-      id: flashcardDecks.length + 1,
-      name: newFlashcardDeck.name,
-      subject: newFlashcardDeck.subject,
-      cards: newFlashcardDeck.cards,
-      usedBy: 0
-    };
+    if (!newFlashcardDeck.name.trim() || !newFlashcardDeck.subject.trim()) {
+      setAlert({ message: 'Por favor, preencha todos os campos obrigatórios', type: 'warning' });
+      return;
+    }
     
-    setFlashcardDecks([...flashcardDecks, newDeck]);
-    setNewFlashcardDeck({ name: '', subject: '', cards: [] });
+    try {
+      // Criar um flashcard com dados do formulário
+      const flashcardData = {
+        question: newFlashcardDeck.name,
+        answer: newFlashcardDeck.subject,
+        subject: newFlashcardDeck.subject,
+        user_id: user._id,
+        school_id: user.school_id,
+        tags: [newFlashcardDeck.subject]
+      };
+      
+      const response = await flashcardAPI.createFlashcard(flashcardData);
+      setFlashcardDecks(prev => [...prev, response.data]);
+      setNewFlashcardDeck({ name: '', subject: '', cards: [] });
+      setAlert({ message: 'Flashcard criado com sucesso!', type: 'success' });
+    } catch (error) {
+      console.error('Erro ao criar flashcard:', error);
+      setAlert({ message: 'Erro ao criar flashcard: ' + error.message, type: 'error' });
+    }
   };
 
   const openProfileModal = () => {
@@ -117,22 +222,38 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
   const handleSaveProfile = async () => {
     try {
-      // Chama a API para atualizar o perfil
-      const response = await authAPI.updateProfile({
-        name: profileData.name
-      });
+      // Verifica se temos um arquivo de imagem para upload
+      const file = profileImageFile;
+      
+      let response;
+      if (file) {
+        // Se houver um arquivo de imagem, usamos FormData para upload
+        const formData = new FormData();
+        formData.append('name', profileData.name);
+        formData.append('profilePicture', file);
+        
+        response = await authAPI.updateProfile(formData);
+      } else {
+        // Caso contrário, envia apenas os dados textuais
+        response = await authAPI.updateProfile({
+          name: profileData.name
+        });
+      }
       
       // Atualiza o localStorage com os novos dados do usuário
-      const updatedUser = { ...user, name: response.data.user.name };
+      const updatedUser = { ...user, name: response.data.user.name, profilePicture: response.data.user.profilePicture || response.data.user.profile?.avatar || user?.profilePicture };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       // Atualiza o estado do usuário no componente pai
       // Aqui você pode chamar uma função passada como prop para atualizar o usuário globalmente
       
       setEditProfile(false);
+      // Limpa o arquivo de imagem após salvar
+      setProfileImageFile(null);
+      setAlert({ message: 'Perfil atualizado com sucesso!', type: 'success' });
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
-      alert('Erro ao atualizar perfil: ' + error.message);
+      setAlert({ message: 'Erro ao atualizar perfil: ' + error.message, type: 'error' });
     }
   };
 
@@ -160,6 +281,9 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
         setProfileImage(reader.result);
       };
       reader.readAsDataURL(file);
+      
+      // Armazena o arquivo original para uso durante o salvamento
+      setProfileImageFile(file);
     }
   };
 
@@ -173,6 +297,12 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     script.src = 'https://kit.fontawesome.com/a076d05399.js';
     script.crossOrigin = 'anonymous';
     document.body.appendChild(script);
+
+    // Carregar dados iniciais
+    loadClasses();
+    loadAssignments();
+    loadFlashcards();
+    loadPerformanceData();
 
     return () => {
       document.body.removeChild(script);
@@ -215,8 +345,13 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
         
         <div className="profile" onClick={() => {openProfileModal(); setSidebarOpen(false);}}>
           <div className="profile-img-container">
-            <img src="https://i.pravatar.cc/40" alt="Professor" className="profile-img" />
-            <button className="profile-img-upload-btn" title="Alterar foto">
+            <img src={profileImage} alt="Professor" className="profile-img" />
+            <button 
+              className="profile-img-upload-btn" 
+              title="Alterar foto"
+              onClick={triggerImageUpload}
+              style={{ display: 'none' }}
+            >
               <i className="fas fa-camera"></i>
             </button>
           </div>
@@ -254,7 +389,7 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
             </div>
             <div className="stat-card card">
                 <i className="fas fa-layer-group fa-2x" style={{ color: '#e55345' }}></i>
-                <div className="stat-value">{flashcardDecks.reduce((sum, deck) => sum + deck.cards.length, 0)}</div>
+                <div className="stat-value">{flashcardDecks.length}</div>
                 <div className="stat-label">Flashcards</div>
             </div>
             <div className="stat-card card">
@@ -293,21 +428,27 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
               <button type="submit" className="btn btn-primary">Criar Turma</button>
             </form>
             
-            <div className="class-list">
-              {classes.map(cls => (
-                <div key={cls.id} className="class-item">
-                  <div className="class-content">
-                    <div className="class-title">{cls.name}</div>
-                    <div className="class-details">
-                      Disciplina: {cls.subject} • Alunos: {cls.students}
+            {loading.classes ? (
+              <div className="loading">Carregando turmas...</div>
+            ) : errors.classes ? (
+              <div className="error">Erro: {errors.classes}</div>
+            ) : (
+              <div className="class-list">
+                {classes.map(cls => (
+                  <div key={cls._id || cls.id} className="class-item">
+                    <div className="class-content">
+                      <div className="class-title">{cls.name}</div>
+                      <div className="class-details">
+                        Disciplina: {cls.subject} • Alunos: {cls.studentCount || 0}
+                      </div>
                     </div>
+                    <button className="btn-view-class">
+                      <i className="fas fa-eye"></i>
+                    </button>
                   </div>
-                  <button className="btn-view-class">
-                    <i className="fas fa-eye"></i>
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -352,21 +493,27 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
               <button type="submit" className="btn btn-primary">Criar Tarefa</button>
             </form>
             
-            <div className="assignment-list">
-              {assignments.map(assignment => (
-                <div key={assignment.id} className="assignment-item">
-                  <div className="assignment-content">
-                    <div className="assignment-title">{assignment.title}</div>
-                    <div className="assignment-details">
-                      Turma: {assignment.class} • Prazo: {assignment.deadline} • Concluída por: {assignment.studentsCompleted}/{classes.find(c => c.name === assignment.class)?.students || 0}
+            {loading.assignments ? (
+              <div className="loading">Carregando tarefas...</div>
+            ) : errors.assignments ? (
+              <div className="error">Erro: {errors.assignments}</div>
+            ) : (
+              <div className="assignment-list">
+                {assignments.map(assignment => (
+                  <div key={assignment._id || assignment.id} className="assignment-item">
+                    <div className="assignment-content">
+                      <div className="assignment-title">{assignment.title}</div>
+                      <div className="assignment-details">
+                        Disciplina: {assignment.subject || 'N/A'} • Prazo: {assignment.due_date ? new Date(assignment.due_date).toLocaleDateString('pt-BR') : 'N/A'}
+                      </div>
                     </div>
+                    <button className="btn-view-assignment">
+                      <i className="fas fa-eye"></i>
+                    </button>
                   </div>
-                  <button className="btn-view-assignment">
-                    <i className="fas fa-eye"></i>
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -396,21 +543,27 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
               <button type="submit" className="btn btn-primary">Criar Deck</button>
             </form>
             
-            <div className="flashcard-deck-list">
-              {flashcardDecks.map(deck => (
-                <div key={deck.id} className="flashcard-deck-item">
-                  <div className="flashcard-deck-content">
-                    <div className="flashcard-deck-title">{deck.name}</div>
-                    <div className="flashcard-deck-details">
-                      Disciplina: {deck.subject} • Cards: {deck.cards.length} • Usado por: {deck.usedBy} alunos
+            {loading.flashcards ? (
+              <div className="loading">Carregando flashcards...</div>
+            ) : errors.flashcards ? (
+              <div className="error">Erro: {errors.flashcards}</div>
+            ) : (
+              <div className="flashcard-deck-list">
+                {flashcardDecks.map(deck => (
+                  <div key={deck._id || deck.id} className="flashcard-deck-item">
+                    <div className="flashcard-deck-content">
+                      <div className="flashcard-deck-title">{deck.question || deck.name}</div>
+                      <div className="flashcard-deck-details">
+                        Disciplina: {deck.subject || deck.tags?.[0] || 'N/A'} • Cards: 1
+                      </div>
                     </div>
+                    <button className="btn-view-flashcard">
+                      <i className="fas fa-eye"></i>
+                    </button>
                   </div>
-                  <button className="btn-view-flashcard">
-                    <i className="fas fa-eye"></i>
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -418,28 +571,40 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
         <div className={`screen ${activeScreen === 'performance' ? 'active' : ''}`} id="performance">
           <div className="card">
             <h3 className="card-title">Desempenho dos Alunos</h3>
-            <div className="performance-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Aluno</th>
-                    <th>Turma</th>
-                    <th>Disciplina</th>
-                    <th>Média</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {performanceData.map(student => (
-                    <tr key={student.id}>
-                      <td>{student.student}</td>
-                      <td>{student.class}</td>
-                      <td>{student.subject}</td>
-                      <td>{student.avg.toFixed(1)}</td>
+            {loading.performance ? (
+              <div className="loading">Carregando desempenho...</div>
+            ) : errors.performance ? (
+              <div className="error">Erro: {errors.performance}</div>
+            ) : (
+              <div className="performance-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Aluno</th>
+                      <th>Turma</th>
+                      <th>Disciplina</th>
+                      <th>Média</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {performanceData.length > 0 ? (
+                      performanceData.map(student => (
+                        <tr key={student._id || student.id}>
+                          <td>{student.student || student.name}</td>
+                          <td>{student.class || 'N/A'}</td>
+                          <td>{student.subject || 'N/A'}</td>
+                          <td>{student.avg ? student.avg.toFixed(1) : 'N/A'}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4">Nenhum dado de desempenho disponível.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
@@ -540,6 +705,9 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
           </div>
         </div>
       )}
+      
+      {/* Alert Component */}
+      {alert && <CustomAlert message={alert.message} type={alert.type} onClose={() => setAlert(null)} />}
     </div>
   );
 }

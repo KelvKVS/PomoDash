@@ -15,8 +15,17 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // Stats
+  const [stats, setStats] = useState({
+    focusTime: '0h 0m',
+    completedTasks: 0,
+    totalTasks: 0,
+    flashcardAccuracy: 0
+  });
+  
   // Dados para tarefas vindos da API
   const [tasks, setTasks] = useState([]);
+  const [professorTasks, setProfessorTasks] = useState([]); // Tarefas do professor
   const [newTask, setNewTask] = useState({
     title: '',
     subject: '',
@@ -33,6 +42,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   
   // Flashcards State
   const [flashcards, setFlashcards] = useState([]);
+  const [professorFlashcards, setProfessorFlashcards] = useState([]); // Flashcards do professor
   const [newFlashcard, setNewFlashcard] = useState({ question: '', answer: '', tags: [] });
   const [selectedCard, setSelectedCard] = useState(null);
   
@@ -131,15 +141,23 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
 
   // Pomodoro Timer Logic
   useEffect(() => {
+    // Update document title when timer state changes
+    updateDocumentTitle(time, isActive);
+    
     let interval = null;
     if (isActive && time > 0) {
       interval = setInterval(() => {
-        setTime(time => time - 1);
+        setTime(prevTime => {
+          const newTime = prevTime - 1;
+          updateDocumentTitle(newTime, true);
+          return newTime;
+        });
       }, 1000);
     } else if (time === 0 && activeSession) {
       // Handle session end - complete the session
       handleCompleteSession();
     }
+    
     return () => clearInterval(interval);
   }, [isActive, time, activeSession]);
 
@@ -194,6 +212,9 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
         setActiveSession(null);
         setIsActive(false);
         loadRecentSessions(); // Atualizar lista de sessões recentes
+        
+        // Play completion sound
+        playCompletionSound();
       } catch (error) {
         console.error('Erro ao completar sessão:', error);
         alert('Erro ao completar sessão: ' + error.message);
@@ -296,6 +317,40 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
+  // Função para tocar som de conclusão
+  const playCompletionSound = () => {
+    // Criar um elemento de áudio com um som de bip ou som de conclusão
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 800;
+    gainNode.gain.value = 0.3;
+    
+    oscillator.start();
+    
+    // Adicionar efeito de fade out para soar melhor
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+    
+    setTimeout(() => {
+      oscillator.stop();
+    }, 500);
+  };
+
+  // Função para atualizar o título do documento com o tempo restante
+  const updateDocumentTitle = (seconds, isActiveSession) => {
+    if (isActiveSession) {
+      const formattedTime = formatTime(seconds);
+      document.title = `${formattedTime} - Pomodoro Timer`;
+    } else {
+      document.title = "PomoDash";
+    }
   };
 
   // Função para carregar flashcards
@@ -492,6 +547,55 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       console.error('Erro ao carregar tarefas:', error);
     }
   };
+  
+  // Função para carregar as estatísticas do aluno
+  const loadStats = async () => {
+    try {
+      // Carregar estatísticas de Pomodoro
+      const pomodoroStats = await pomodoroAPI.getStats();
+      
+      // Carregar tarefas
+      const tasksResponse = await taskAPI.getTasks({ status: 'pending' });
+      const allTasksResponse = await taskAPI.getTasks();
+      
+      // Calcular estatísticas
+      const completedTasks = allTasksResponse.data.filter(task => 
+        task.assigned_to?.find(assignment => 
+          assignment.user.toString() === user._id.toString() && assignment.status === 'completed'
+        )
+      ).length;
+      
+      const totalTasks = allTasksResponse.data.filter(task => 
+        task.assigned_to?.find(assignment => 
+          assignment.user.toString() === user._id.toString()
+        )
+      ).length;
+      
+      // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
+      let focusTime = 0;
+      if (pomodoroStats.data && pomodoroStats.data.totalMinutes) {
+        focusTime = Math.floor(pomodoroStats.data.totalMinutes);
+      }
+      
+      // Formatar tempo de foco
+      const hours = Math.floor(focusTime / 60);
+      const minutes = focusTime % 60;
+      const focusTimeFormatted = `${hours}h ${minutes}m`;
+      
+      // Carregar e calcular aproveitamento de flashcards
+      const flashcardAcc = getOverallAccuracy();
+      
+      setStats({
+        focusTime: focusTimeFormatted,
+        completedTasks,
+        totalTasks,
+        flashcardAccuracy: flashcardAcc
+      });
+      
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+    }
+  };
 
   useEffect(() => {
     // Font Awesome for icons
@@ -505,11 +609,23 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     loadRecentSessions();
     loadTasks();
     loadFlashcards();
+    loadStats(); // Carregar estatísticas
 
     return () => {
       document.body.removeChild(script);
+      // Reset document title when component unmounts
+      document.title = "PomoDash";
     };
   }, [flashcardStats]); // Adicionando flashcardStats como dependência para atualizar quando mudar
+
+  // useEffect para carregar dados do professor quando as telas forem acessadas
+  useEffect(() => {
+    if (activeScreen === 'professor-tasks') {
+      loadProfessorTasks();
+    } else if (activeScreen === 'professor-flashcards') {
+      loadProfessorFlashcards();
+    }
+  }, [activeScreen]);
 
   const pageTitles = {
     'dashboard': 'Dashboard Geral',
@@ -518,10 +634,45 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     'flashcards': 'Meus Flashcards',
     'reports': 'Relatórios',
     'settings': 'Configurações',
+    'professor-tasks': 'Tarefas do Professor',
+    'professor-flashcards': 'Flashcards do Professor',
+  };
+
+  // Função para carregar tarefas do professor
+  const loadProfessorTasks = async () => {
+    try {
+      // Obter tarefas criadas pelos professores da escola do aluno
+      const response = await taskAPI.getTasks({ 
+        school_id: user.school_id,
+        created_by_role: 'teacher'
+      });
+      setProfessorTasks(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar tarefas do professor:', error);
+      setAlert({ message: 'Erro ao carregar tarefas do professor: ' + (error.message || 'Não foi possível conectar ao servidor'), type: 'error' });
+      setProfessorTasks([]);
+    }
+  };
+
+  // Função para carregar flashcards do professor
+  const loadProfessorFlashcards = async () => {
+    try {
+      // Obter flashcards criados pelos professores da escola do aluno
+      const response = await flashcardAPI.getFlashcards({ 
+        school_id: user.school_id,
+        created_by_role: 'teacher'
+      });
+      setProfessorFlashcards(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar flashcards do professor:', error);
+      setAlert({ message: 'Erro ao carregar flashcards do professor: ' + (error.message || 'Não foi possível conectar ao servidor'), type: 'error' });
+      setProfessorFlashcards([]);
+    }
   };
 
   // Função para formatar data
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -541,16 +692,13 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
             <i className="fas fa-tachometer-alt"></i><span>Dashboard</span>
           </div>
           <div className={`menu-item ${activeScreen === 'tasks' ? 'active' : ''}`} onClick={() => {showScreen('tasks'); setSidebarOpen(false);}}>
-            <i className="fas fa-tasks"></i><span>Tarefas</span>
+            <i className="fas fa-tasks"></i><span>Minhas Tarefas</span>
           </div>
           <div className={`menu-item ${activeScreen === 'pomodoro' ? 'active' : ''}`} onClick={() => {showScreen('pomodoro'); setSidebarOpen(false);}}>
             <i className="fas fa-clock"></i><span>Pomodoro</span>
           </div>
           <div className={`menu-item ${activeScreen === 'flashcards' ? 'active' : ''}`} onClick={() => {showScreen('flashcards'); setSidebarOpen(false);}}>
-            <i className="fas fa-layer-group"></i><span>Flashcards</span>
-          </div>
-          <div className={`menu-item ${activeScreen === 'reports' ? 'active' : ''}`} onClick={() => {showScreen('reports'); setSidebarOpen(false);}}>
-            <i className="fas fa-chart-bar"></i><span>Relatórios</span>
+            <i className="fas fa-layer-group"></i><span>Meus Flashcards</span>
           </div>
         </div>
         <div className="profile" onClick={() => {openProfileModal(); setSidebarOpen(false);}}>
@@ -589,18 +737,18 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
           <div className="stats-container">
             <div className="stat-card card">
                 <i className="fas fa-clock fa-2x" style={{ color: '#e55345' }}></i>
-                <div className="stat-value">4h 32m</div>
-                <div className="stat-label">Tempo de foco hoje</div>
+                <div className="stat-value">{stats.focusTime}</div>
+                <div className="stat-label">Tempo de foco</div>
             </div>
             <div className="stat-card card">
                 <i className="fas fa-check-circle fa-2x" style={{ color: 'var(--secondary-color)' }}></i>
-                <div className="stat-value">5/8</div>
+                <div className="stat-value">{stats.completedTasks}/{stats.totalTasks}</div>
                 <div className="stat-label">Tarefas concluídas</div>
             </div>
             <div className="stat-card card">
                 <i className="fas fa-brain fa-2x" style={{ color: '#FFC107' }}></i>
-                <div className="stat-value">82%</div>
-                <div className="stat-label">Flashcards memorizados</div>
+                <div className="stat-value">{stats.flashcardAccuracy}%</div>
+                <div className="stat-label">Aproveitamento de Flashcards</div>
             </div>
           </div>
           <div className="card">
@@ -825,6 +973,63 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
             </div>
         </div>
 
+        {/* Professor Tasks Screen */}
+        <div className={`screen ${activeScreen === 'professor-tasks' ? 'active' : ''}`} id="professor-tasks">
+          <div className="card">
+            <h3 className="card-title">Tarefas do Professor</h3>
+            <div className="task-list">
+              {professorTasks && professorTasks.length > 0 ? (
+                professorTasks.map(task => (
+                  <div key={task._id} className="task-item">
+                    <div className="task-content">
+                      <div className="task-title">{task.title}</div>
+                      <div className="task-details">
+                        Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'N/A'} • Prioridade: {task.priority}
+                      </div>
+                    </div>
+                    <div className="task-meta">
+                      <span className={`task-status ${task.status || 'pending'}`}>
+                        {task.status === 'completed' ? 'Concluída' : 
+                         task.status === 'in_progress' ? 'Em Progresso' : 
+                         'Pendente'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p>Nenhuma tarefa do professor disponível no momento.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Professor Flashcards Screen */}
+        <div className={`screen ${activeScreen === 'professor-flashcards' ? 'active' : ''}`} id="professor-flashcards">
+          <div className="card">
+            <h3 className="card-title">Flashcards do Professor</h3>
+            <div className="flashcard-grid">
+              {professorFlashcards && professorFlashcards.length > 0 ? (
+                professorFlashcards.map(card => (
+                  <div key={card._id} className="flashcard-item">
+                    <div className="flashcard-content">
+                      <div className="flashcard-question">{card.question}</div>
+                      <div className="flashcard-answer">{card.answer}</div>
+                    </div>
+                    <div className="flashcard-meta">
+                      <span className="flashcard-subject">{card.subject || 'N/A'}</span>
+                      <span className="flashcard-tags">
+                        {card.tags && card.tags.length > 0 ? card.tags.join(', ') : 'Sem tags'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p>Nenhum flashcard do professor disponível no momento.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* Profile Modal */}
@@ -948,8 +1153,8 @@ styles.innerHTML = `
 
   .sidebar {
     width: 260px;
-    background-color: var(--sidebar-background);
-    color: var(--text-color);
+    background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+    color: white;
     display: flex;
     flex-direction: column;
     transition: transform 0.3s ease;
@@ -958,10 +1163,112 @@ styles.innerHTML = `
     top: 0;
     height: 100vh;
     overflow-y: auto;
+    box-shadow: 3px 0 10px rgba(0,0,0,0.1);
   }
 
   .sidebar.open {
     transform: translateX(0);
+  }
+
+  .logo {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .logo h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+  }
+
+  .logo h1 span {
+    color: #ffc107;
+  }
+
+  .menu {
+    padding: 20px 0;
+    flex: 1;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    margin: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .menu-item:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+  }
+
+  .menu-item.active {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-weight: 500;
+  }
+
+  .menu-item i {
+    margin-right: 12px;
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+  }
+
+  .profile {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .profile:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  .profile-img-container {
+    position: relative;
+    margin-right: 12px;
+  }
+
+  .profile-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+
+  .profile-img-upload-btn {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background: #ffc107;
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+
+  .profile-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
   }
 
   .main-content {
@@ -970,7 +1277,7 @@ styles.innerHTML = `
     flex-direction: column;
     overflow-y: auto;
     padding: 20px;
-    background-color: var(--background);
+    background-color: #f8f9fa;
     width: calc(100% - 260px);
   }
 
@@ -1159,7 +1466,132 @@ styles.innerHTML = `
   }
 
   .attempts-badge {
-    background: linear-gradient(45deg, #6366f1, #8b5cf6);
+    background: linear-gradient(45deg, #d9534f, #c9302c);
+  }
+
+  /* Estilos para as telas do professor */
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .task-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--card-background);
+    transition: all 0.2s ease;
+  }
+
+  .task-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .task-content {
+    flex: 1;
+  }
+
+  .task-title {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 4px;
+  }
+
+  .task-details {
+    font-size: 0.9rem;
+    color: var(--text-light-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .task-meta {
+    display: flex;
+    align-items: center;
+    margin-left: 16px;
+  }
+
+  .task-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .task-status.pending {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+
+  .task-status.in_progress {
+    background-color: #cce5ff;
+    color: #004085;
+  }
+
+  .task-status.completed {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  .flashcard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 16px;
+  }
+
+  .flashcard-item {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.3s ease;
+  }
+
+  .flashcard-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .flashcard-content {
+    margin-bottom: 12px;
+  }
+
+  .flashcard-question {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 8px;
+  }
+
+  .flashcard-answer {
+    color: var(--text-light-color);
+    font-style: italic;
+  }
+
+  .flashcard-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-light-color);
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+  }
+
+  .flashcard-subject {
+    background: rgba(229, 83, 69, 0.1);
+    color: #e55345;
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+
+  .flashcard-tags {
+    font-size: 0.8rem;
   }
 
   @media (max-width: 768px) {

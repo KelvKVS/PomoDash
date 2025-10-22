@@ -5,7 +5,7 @@ import RegisterWrapper from './RegisterWrapper';
 import DashboardInstitution from './DashboardInstitution';
 import DashboardProfessor from './DashboardProfessor';
 import DashboardUser from './DashboardUser';
-import Dashboard from './Dashboard';
+import Dashboard from './Dashboard'; // Student dashboard
 
 const ProtectedRoute = ({ children, user }) => {
   if (!user) {
@@ -34,19 +34,83 @@ const RoleBasedRoute = ({ user, darkMode, toggleDarkMode, onLogout }) => {
   }
 };
 
+// Dashboard role-based routes
+const InstitutionDashboardRoute = ({ user, darkMode, toggleDarkMode, onLogout }) => {
+  if (!user) return <Navigate to="/login" replace />;
+  if (!['global_admin', 'school_admin'].includes(user.role)) {
+    // Redirect unauthorized users to their appropriate dashboard
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <DashboardInstitution user={user} darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={onLogout} />;
+};
+
+const ProfessorDashboardRoute = ({ user, darkMode, toggleDarkMode, onLogout }) => {
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'teacher') {
+    // Redirect unauthorized users to their appropriate dashboard
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <DashboardProfessor user={user} darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={onLogout} />;
+};
+
+const StudentDashboardRoute = ({ user, darkMode, toggleDarkMode, onLogout }) => {
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'student') {
+    // Redirect unauthorized users to their appropriate dashboard
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Dashboard user={user} darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={onLogout} />;
+};
+
 const LoginRoute = ({ user, onLogin, darkMode, toggleDarkMode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   
   // Se o usuário já estiver logado, redireciona para o dashboard
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    // Redirect to role-specific dashboard based on user role
+    const { role } = user;
+    let redirectPath = '/dashboard';
+    switch (role) {
+      case 'global_admin':
+      case 'school_admin':
+        redirectPath = '/dashboard/institution';
+        break;
+      case 'teacher':
+        redirectPath = '/dashboard/professor';
+        break;
+      case 'student':
+        redirectPath = '/dashboard/student';
+        break;
+      default:
+        redirectPath = '/dashboard';
+    }
+    return <Navigate to={redirectPath} replace />;
   }
   
   // Função para passar ao componente de login
   const handleLoginSuccess = (userData, accessData) => {
     onLogin(userData, accessData);
-    navigate('/dashboard', { replace: true });
+    
+    // Navigate to role-specific dashboard after login
+    const { role } = userData;
+    let redirectPath = '/dashboard';
+    switch (role) {
+      case 'global_admin':
+      case 'school_admin':
+        redirectPath = '/dashboard/institution';
+        break;
+      case 'teacher':
+        redirectPath = '/dashboard/professor';
+        break;
+      case 'student':
+        redirectPath = '/dashboard/student';
+        break;
+      default:
+        redirectPath = '/dashboard';
+    }
+    
+    navigate(redirectPath, { replace: true });
   };
   
   return (
@@ -64,7 +128,24 @@ const RegisterRoute = ({ user, darkMode, toggleDarkMode }) => {
   
   // Se o usuário já estiver logado, redireciona para o dashboard
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    // Redirect to appropriate dashboard based on user role
+    const { role } = user;
+    let redirectPath = '/dashboard';
+    switch (role) {
+      case 'global_admin':
+      case 'school_admin':
+        redirectPath = '/dashboard/institution';
+        break;
+      case 'teacher':
+        redirectPath = '/dashboard/professor';
+        break;
+      case 'student':
+        redirectPath = '/dashboard/student';
+        break;
+      default:
+        redirectPath = '/dashboard';
+    }
+    return <Navigate to={redirectPath} replace />;
   }
   
   return (
@@ -101,11 +182,51 @@ const RouteHandler = ({ user, darkMode, toggleDarkMode, onLogout, onLogin }) => 
           />
         } 
       />
+      {/* Role-based dashboard routes */}
       <Route 
         path="/dashboard" 
         element={
           <ProtectedRoute user={user}>
             <RoleBasedRoute 
+              user={user} 
+              darkMode={darkMode} 
+              toggleDarkMode={toggleDarkMode} 
+              onLogout={onLogout} 
+            />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/institution" 
+        element={
+          <ProtectedRoute user={user}>
+            <InstitutionDashboardRoute 
+              user={user} 
+              darkMode={darkMode} 
+              toggleDarkMode={toggleDarkMode} 
+              onLogout={onLogout} 
+            />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/professor" 
+        element={
+          <ProtectedRoute user={user}>
+            <ProfessorDashboardRoute 
+              user={user} 
+              darkMode={darkMode} 
+              toggleDarkMode={toggleDarkMode} 
+              onLogout={onLogout} 
+            />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/student" 
+        element={
+          <ProtectedRoute user={user}>
+            <StudentDashboardRoute 
               user={user} 
               darkMode={darkMode} 
               toggleDarkMode={toggleDarkMode} 
