@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { authAPI } from '../lib/api';
 
-function Login({ onLogin, onRegister, darkMode, toggleDarkMode }) {
+function Login({ onLogin, onRegister }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

@@ -20,9 +20,10 @@ PomoDash é uma plataforma de gerenciamento educacional multi-tenant que combina
 
 ### Para Instituições
 - **Gestão Escolar**: Administração de múltiplas escolas
-- **Gerenciamento de Professores**: Controle de contas e permissões
+- **Gerenciamento de Usuários**: Controle de contas e permissões para professores e alunos
 - **Supervisão de Alunos**: Visão geral de todos os alunos
 - **Relatórios Institucionais**: Análise de desempenho institucional
+- **Registro de Professores**: Interface para cadastro de professores com informações específicas (disciplinas lecionadas)
 - **Relatórios e Estatísticas**: Dados consolidados para tomada de decisão
 
 ### Para Administradores

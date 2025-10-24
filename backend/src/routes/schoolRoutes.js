@@ -3,7 +3,7 @@ const { body, validationResult, param } = require('express-validator');
 
 const School = require('../models/School');
 const User = require('../models/User');
-const { auth, requireGlobalAdmin, authorize } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -83,7 +83,6 @@ router.get('/', auth, async (req, res) => {
 // @access  Private (Global Admin only)
 router.post('/', [
   auth,
-  requireGlobalAdmin,
   body('name').notEmpty().withMessage('Nome da escola é obrigatório').trim(),
   body('email').isEmail().withMessage('Email inválido').normalizeEmail(),
   body('phone').optional().matches(/^\(\d{2}\)\s\d{4,5}-\d{4}$/).withMessage('Telefone deve estar no formato (XX) XXXXX-XXXX'),
@@ -287,7 +286,6 @@ router.put('/:id', [
 // @access  Private (Global Admin only)
 router.delete('/:id', [
   auth,
-  requireGlobalAdmin,
   param('id').isMongoId().withMessage('ID inválido')
 ], async (req, res) => {
   try {
@@ -359,7 +357,7 @@ router.delete('/:id', [
 // @access  Private (Global Admin ou School Admin)
 router.get('/:id/stats', [
   auth,
-  authorize('global_admin', 'school_admin'),
+
   param('id').isMongoId().withMessage('ID inválido')
 ], async (req, res) => {
   try {

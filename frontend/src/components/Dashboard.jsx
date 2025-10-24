@@ -64,7 +64,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     setActiveScreen(screenId);
   };
 
-  const showConfirmation = (message, callback, type = 'warning') => {
+  const showConfirmation = (message, callback) => {
     setConfirmMessage(message);
     setConfirmCallback(() => callback);
     setShowConfirmModal(true);
@@ -149,6 +149,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       handleCompleteSession();
     }
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, time, activeSession]);
 
   // Função para iniciar uma nova sessão de pomodoro
@@ -195,7 +196,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const handleCompleteSession = async () => {
     if (activeSession) {
       try {
-        const response = await pomodoroAPI.completeSession(activeSession._id);
+        
         setActiveSession(null);
         setIsActive(false);
         loadRecentSessions(); // Atualizar lista de sessões recentes
@@ -548,6 +549,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     return () => {
       document.body.removeChild(script);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flashcardStats]); // Adicionando flashcardStats como dependência para atualizar quando mudar
 
   const pageTitles = {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Login from './Login';
 import RegisterWrapper from './RegisterWrapper';
 import DashboardInstitution from './DashboardInstitution';
@@ -37,33 +37,20 @@ const RoleBasedRoute = ({ user, darkMode, toggleDarkMode, onLogout }) => {
 // Dashboard role-based routes
 const InstitutionDashboardRoute = ({ user, darkMode, toggleDarkMode, onLogout }) => {
   if (!user) return <Navigate to="/login" replace />;
-  if (!['global_admin', 'school_admin'].includes(user.role)) {
-    // Redirect unauthorized users to their appropriate dashboard
-    return <Navigate to="/dashboard" replace />;
-  }
   return <DashboardInstitution user={user} darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={onLogout} />;
 };
 
 const ProfessorDashboardRoute = ({ user, darkMode, toggleDarkMode, onLogout }) => {
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== 'teacher') {
-    // Redirect unauthorized users to their appropriate dashboard
-    return <Navigate to="/dashboard" replace />;
-  }
   return <DashboardProfessor user={user} darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={onLogout} />;
 };
 
 const StudentDashboardRoute = ({ user, darkMode, toggleDarkMode, onLogout }) => {
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== 'student') {
-    // Redirect unauthorized users to their appropriate dashboard
-    return <Navigate to="/dashboard" replace />;
-  }
   return <Dashboard user={user} darkMode={darkMode} toggleDarkMode={toggleDarkMode} onLogout={onLogout} />;
 };
 
 const LoginRoute = ({ user, onLogin, darkMode, toggleDarkMode }) => {
-  const location = useLocation();
   const navigate = useNavigate();
   
   // Se o usuário já estiver logado, redireciona para o dashboard

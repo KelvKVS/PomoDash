@@ -72,38 +72,6 @@ const auth = async (req, res, next) => {
   }
 };
 
-// Middleware para verificar permissões por role
-const authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Usuário não autenticado'
-      });
-    }
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Acesso negado. Permissão insuficiente.'
-      });
-    }
-
-    next();
-  };
-};
-
-// Middleware específico para administrador global
-function requireGlobalAdmin(req, res, next) {
-  if (!req.user || req.user.role !== 'global_admin') {
-    return res.status(403).json({
-      status: 'error',
-      message: 'Acesso restrito a administradores globais'
-    });
-  }
-  next();
-}
-
 // Middleware para verificar se o usuário pertence à mesma escola (tenant)
 const checkTenant = (req, res, next) => {
   if (!req.user) {
@@ -111,11 +79,6 @@ const checkTenant = (req, res, next) => {
       status: 'error',
       message: 'Usuário não autenticado'
     });
-  }
-
-  // Administrador global pode acessar qualquer tenant
-  if (req.user.role === 'global_admin') {
-    return next();
   }
 
   const userSchoolId = req.user.school_id._id.toString();
@@ -133,7 +96,5 @@ const checkTenant = (req, res, next) => {
 
 module.exports = {
   auth,
-  authorize,
-  requireGlobalAdmin,
   checkTenant
 };

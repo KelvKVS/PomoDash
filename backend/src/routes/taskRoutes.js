@@ -2,7 +2,7 @@ const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const Task = require('../models/Task');
 const User = require('../models/User');
-const { auth, authorize } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -66,7 +66,7 @@ router.get('/', auth, [
 // @route   POST /api/tasks
 // @desc    Criar tarefa
 // @access  Private (professores e admins)
-router.post('/', auth, authorize(['school_admin', 'teacher']), [
+router.post('/', auth, [
     body('title').trim().notEmpty(),
     body('assigned_to').optional().isArray(),
     body('assigned_to.*').isMongoId(),
@@ -161,7 +161,7 @@ router.put('/:id/status', auth, [
 // @route   DELETE /api/tasks/:id
 // @desc    Arquivar tarefa
 // @access  Private (criador ou admin)
-router.delete('/:id', auth, authorize(['school_admin', 'teacher']), [param('id').isMongoId()], validateRequest, async (req, res) => {
+router.delete('/:id', auth, [param('id').isMongoId()], validateRequest, async (req, res) => {
   try {
     const filter = { _id: req.params.id, school_id: req.user.school_id };
     if (req.user.role === 'teacher') {

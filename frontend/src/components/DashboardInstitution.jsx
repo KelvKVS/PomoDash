@@ -1,7 +1,33 @@
+/* eslint-disable no-undef */
+/* eslint-disable no-empty-pattern */
 import React, { useState, useEffect } from 'react';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Colors
+} from 'chart.js';
+import { Pie, Bar } from 'react-chartjs-2';
 import { authAPI, userAPI, reportAPI, schoolAPI } from '../lib/api';
 import CustomAlert from './CustomAlert';
 import CustomConfirm from './CustomConfirm';
+
+// Registrar componentes do Chart.js
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Colors
+);
 
 function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -10,6 +36,9 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
   });
+  
+  // Estado para aba de relatórios
+  const [activeReportTab, setActiveReportTab] = useState('users'); // 'users', 'registrations', 'activities'
   const [profileImage, setProfileImage] = useState(user?.profilePicture || 'https://i.pravatar.cc/40');
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -19,14 +48,16 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     teachers: false,
     students: false,
     reports: false,
-    school: false
+    school: false,
+    users: false
   });
   
   const [errors, setErrors] = useState({
     teachers: null,
     students: null,
     reports: null,
-    school: null
+    school: null,
+    users: null
   });
   
   // Gerenciamento de Professores
@@ -44,6 +75,16 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   // Relatórios de estatísticas da escola
   const [schoolStats, setSchoolStats] = useState(null);
   
+  // Todos os usuários
+  const [allUsers, setAllUsers] = useState([]);
+  
+  // Filtro por categoria
+  const [userCategoryFilter, setUserCategoryFilter] = useState('all'); // 'all', 'student', 'teacher', 'school_admin'
+  
+  // Dados para gráficos
+  const [userDistribution, setUserDistribution] = useState({ students: 0, teachers: 0, admins: 0 });
+  const [recentRegistrations, setRecentRegistrations] = useState({ students: 0, teachers: 0 });
+  
   // Estados para geração de relatórios
   const [selectedStudentForReport, setSelectedStudentForReport] = useState('');
   const [reportPeriod, setReportPeriod] = useState({ startDate: '', endDate: '' });
@@ -51,36 +92,41 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   const [availableStudents, setAvailableStudents] = useState([]);
   
   // Novos estados para criação
-  const [newTeacher, setNewTeacher] = useState({
+  const [] = useState({
     name: '',
     subject: '',
     email: '',
     role: 'teacher'
   });
 
-  const [newStudent, setNewStudent] = useState({
-    name: '',
-    class: '',
-    avg: 0,
-    role: 'student'
-  });
+  
 
   // estados para alertas e confirmações
   const [alert, setAlert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmCallback, setConfirmCallback] = useState(null);
-  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmCallback] = useState(null);
+  const [confirmMessage] = useState('');
+  
+  // estados para o formulário de registro
+  const [registerFormData, setRegisterFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'student', // Padrão
+    studentId: '',
+    grade: '',
+    subjects: ''
+  });
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerError, setRegisterError] = useState('');
+  const [registerSuccess, setRegisterSuccess] = useState('');
 
   const showScreen = (screenId) => {
     setActiveScreen(screenId);
   };
 
   // Função para mostrar confirmação
-  const showConfirmation = (message, callback, type = 'warning') => {
-    setConfirmMessage(message);
-    setConfirmCallback(() => callback);
-    setShowConfirmModal(true);
-  };
 
   const handleConfirm = () => {
     if (confirmCallback) {
@@ -116,7 +162,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
         }));
         
         setTeachers(teachersData);
-        setAvailableStudents(teachersData); // Atualização: definir professores como estudantes disponíveis para relatórios
+        // Não atualizar availableStudents com professores, apenas manter os alunos
       }
     } catch (error) {
       console.error('Erro ao carregar professores:', error);
@@ -208,81 +254,82 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
-  // Funções para gerenciar professores
-  const handleCreateTeacher = async (e) => {
-    e.preventDefault();
+  // Função para calcular dados dos gráficos
+  const calculateChartDatas = (users) => {
+    // Distribuição por tipo
+    const distribution = users.reduce((acc, user) => {
+      if (user.role === 'student') acc.students++;
+      else if (user.role === 'teacher') acc.teachers++;
+      else if (user.role === 'school_admin') acc.admins++;
+      return acc;
+    }, { students: 0, teachers: 0, admins: 0 });
     
-    if (!newTeacher.name.trim() || !newTeacher.email.trim() || !newTeacher.subject.trim()) {
-      setAlert({ message: 'Por favor, preencha todos os campos obrigatórios', type: 'warning' });
-      return;
-    }
+    // Cadastros recentes (últimos 6 meses para alunos, últimos 12 meses para professores)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    
+    const recentRegs = users.reduce((acc, user) => {
+      const createdAt = new Date(user.createdAt);
+      
+      if (user.role === 'student' && createdAt >= sixMonthsAgo) {
+        acc.students++;
+      } else if (user.role === 'teacher' && createdAt >= twelveMonthsAgo) {
+        acc.teachers++;
+      }
+      
+      return acc;
+    }, { students: 0, teachers: 0 });
+    
+    return { distribution, recentRegs };
+  };
+
+  const loadAllUsers = async () => {
+    setLoading(prev => ({ ...prev, users: true }));
+    setErrors(prev => ({ ...prev, users: null }));
     
     try {
-      // Chamar API para criar professor
-      const response = await userAPI.createUser({ 
-        name: newTeacher.name, 
-        email: newTeacher.email, 
-        password: 'TempPassword123!', 
-        role: 'teacher',
-        school_id: user.school_id // Associar à escola do usuário logado
+      // Carregar todos os usuários da escola
+      const response = await userAPI.getUsers({ 
+        school_id: user.school_id 
       });
       
-      const newTeacherObj = {
-        id: response.data.user._id,
-        name: response.data.user.name,
-        subject: newTeacher.subject,
-        email: response.data.user.email,
-        classes: 0 // Começa com 0 classes até ser designado
-      };
-      
-      setTeachers(prev => [...prev, newTeacherObj]);
-      setNewTeacher({ name: '', subject: '', email: '', role: 'teacher' });
-      
-      setAlert({ message: 'Professor criado com sucesso!', type: 'success' });
+      if (response.data) {
+        const usersData = response.data.map(u => ({
+          id: u._id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          roleDisplay: u.role === 'student' ? 'Aluno' : u.role === 'teacher' ? 'Professor' : u.role === 'school_admin' ? 'Administrador' : u.role,
+          class: u.academic?.grade || u.academic?.class || 'N/A',
+          avg: u.academic?.avg || 0,
+          subject: u.teaching?.subjects?.[0] || 'N/A',
+          classes: u.teaching?.classes?.length || 0,
+          createdAt: u.createdAt
+        }));
+        
+        setAllUsers(usersData);
+        
+        // Calcular dados para gráficos
+        const { distribution, recentRegs } = calculateChartDatas(usersData);
+        setUserDistribution(distribution);
+        setRecentRegistrations(recentRegs);
+      }
     } catch (error) {
-      console.error('Erro ao criar professor:', error);
-      setAlert({ message: 'Erro ao criar professor: ' + (error.message || 'Erro de conexão'), type: 'error' });
+      console.error('Erro ao carregar usuários:', error);
+      setErrors(prev => ({ ...prev, users: error.message || 'Erro ao carregar usuários' }));
+      setAlert({ message: 'Erro ao carregar usuários: ' + (error.message || 'Erro de conexão'), type: 'error' });
+      setAllUsers([]);
+    } finally {
+      setLoading(prev => ({ ...prev, users: false }));
     }
   };
 
+  // Funções para gerenciar professores
+
   // Funções para gerenciar alunos
-  const handleCreateStudent = async (e) => {
-    e.preventDefault();
-    
-    if (!newStudent.name.trim() || !newStudent.class.trim()) {
-      setAlert({ message: 'Por favor, preencha todos os campos obrigatórios', type: 'warning' });
-      return;
-    }
-    
-    try {
-      // Chamar API para criar aluno
-      const response = await userAPI.createUser({ 
-        name: newStudent.name, 
-        email: `${Math.random().toString(36).substring(7)}@${user.school?.email.split('@')[1] || 'escola.com'}`, // gerar email temporário
-        password: 'TempPassword123!', 
-        role: 'student',
-        school_id: user.school_id, // Associar à escola do usuário logado
-        academic: {
-          grade: newStudent.class
-        }
-      });
-      
-      const newStudentObj = {
-        id: response.data.user._id,
-        name: response.data.user.name,
-        class: response.data.user.academic?.grade || newStudent.class,
-        avg: parseFloat(newStudent.avg) || 0
-      };
-      
-      setStudents(prev => [...prev, newStudentObj]);
-      setNewStudent({ name: '', class: '', avg: 0, role: 'student' });
-      
-      setAlert({ message: 'Aluno criado com sucesso!', type: 'success' });
-    } catch (error) {
-      console.error('Erro ao criar aluno:', error);
-      setAlert({ message: 'Erro ao criar aluno: ' + (error.message || 'Erro de conexão'), type: 'error' });
-    }
-  };
 
   // Funções para gerar relatórios de desempenho
   const handleGenerateReport = async (e) => {
@@ -412,6 +459,326 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
+  // Função para excluir usuário com confirmação
+  const deleteUser = async (userId, userName) => {
+    showConfirmation(
+      `Tem certeza que deseja excluir o usuário "${userName}"? Esta ação não pode ser desfeita.`,
+      async () => {
+        try {
+          // Chama API para inativar o usuário
+          await userAPI.deleteUser(userId);
+          
+          // Recarregar a lista de usuários
+          await loadAllUsers();
+          await loadStudents();
+          await loadTeachers();
+          
+          setAlert({ message: `Usuário "${userName}" excluído com sucesso!`, type: 'success' });
+        } catch (error) {
+          console.error('Erro ao excluir usuário:', error);
+          setAlert({ message: 'Erro ao excluir usuário: ' + (error.message || 'Erro de conexão'), type: 'error' });
+        }
+      },
+      'warning'
+    );
+  };
+
+  const handleRegisterChange = (e) => {
+    setRegisterFormData({
+      ...registerFormData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleRegisterSubmit = async (event) => {
+    event.preventDefault();
+    setRegisterError('');
+    setRegisterSuccess('');
+
+    // Validação de senha
+    if (registerFormData.password !== registerFormData.confirmPassword) {
+      setRegisterError('As senhas não coincidem');
+      return;
+    }
+
+    // Validação de tamanho da senha
+    if (registerFormData.password.length < 6) {
+      setRegisterError('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    // Validação de campos obrigatórios
+    if (!registerFormData.name || !registerFormData.email || !registerFormData.password) {
+      setRegisterError('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+
+    // Validação do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(registerFormData.email)) {
+      setRegisterError('Por favor, insira um email válido');
+      return;
+    }
+
+    setRegisterLoading(true);
+
+    try {
+      // Dados para registro de usuário
+      const userData = {
+        name: registerFormData.name,
+        email: registerFormData.email,
+        password: registerFormData.password,
+        role: registerFormData.role
+      };
+
+      // Adiciona campos específicos conforme o papel do usuário
+      if (registerFormData.role === 'student') {
+        userData.studentId = registerFormData.studentId;
+        userData.grade = registerFormData.grade;
+      } else if (registerFormData.role === 'teacher') {
+        userData.subjects = registerFormData.subjects.split(',').map(s => s.trim()).filter(s => s);
+      }
+
+      await userAPI.createUser(userData);
+      
+      setRegisterSuccess('Usuário criado com sucesso na instituição!');
+      
+      // Recarregar a lista de usuários após o registro bem-sucedido
+      loadAllUsers();
+      loadStudents();  // também recarrega os alunos
+      loadTeachers();  // também recarrega os professores
+      
+      // Opcional: limpar o formulário após sucesso
+      setRegisterFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'student',
+        studentId: '',
+        grade: '',
+        subjects: ''
+      });
+    } catch (err) {
+      // Tratar erros específicos do backend
+      if (err.message.includes('Email já cadastrado')) {
+        setRegisterError('Este email já está cadastrado. Tente outro email.');
+      } else {
+        setRegisterError(err.message || 'Erro ao registrar. Por favor, tente novamente.');
+      }
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
+  // Função para exportar dados para Excel
+  const exportToExcel = (data, fileName) => {
+    try {
+      // Criar conteúdo CSV
+      let csvContent = '';
+      
+      // Adicionar cabeçalhos
+      if (data.length > 0) {
+        const headers = Object.keys(data[0]).join(',');
+        csvContent += headers + '\\n';
+        
+        // Adicionar linhas de dados
+        data.forEach(row => {
+          const values = Object.values(row).map(value => {
+            // Escapar valores que contenham vírgulas ou aspas
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          }).join(',');
+          csvContent += values + '\\n';
+        });
+      }
+      
+      // Criar blob e fazer download
+      const blob = new Blob(['\\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${fileName}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setAlert({ message: `Relatório "${fileName}" exportado com sucesso!`, type: 'success' });
+    } catch (error) {
+      console.error('Erro ao exportar para Excel:', error);
+      setAlert({ message: 'Erro ao exportar relatório: ' + (error.message || 'Erro de conexão'), type: 'error' });
+    }
+  };
+
+  // Função para exportar relatório de usuários
+  const exportUsersReport = () => {
+    const usersData = allUsers.map(user => ({
+      'Nome': user.name,
+      'Email': user.email,
+      'Tipo': user.roleDisplay,
+      'Detalhes': user.role === 'student' 
+        ? `Turma: ${user.class}, Média: ${user.avg.toFixed(1)}` 
+        : user.role === 'teacher' 
+        ? `Disciplina: ${user.subject}, Turmas: ${user.classes}`
+        : 'Administrador',
+      'Data de Registro': user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'N/A'
+    }));
+    
+    exportToExcel(usersData, 'relatorio_usuarios');
+  };
+
+  // Função para exportar relatório de distribuição de usuários
+  const exportDistributionReport = () => {
+    const distributionData = [{
+      'Categoria': 'Alunos',
+      'Quantidade': userDistribution.students
+    }, {
+      'Categoria': 'Professores',
+      'Quantidade': userDistribution.teachers
+    }, {
+      'Categoria': 'Administradores',
+      'Quantidade': userDistribution.admins
+    }];
+    
+    exportToExcel(distributionData, 'relatorio_distribuicao_usuarios');
+  };
+
+  // Função para exportar relatório de cadastros recentes
+  const exportRecentRegistrationsReport = () => {
+    const registrationsData = [{
+      'Período': 'Alunos (últimos 6 meses)',
+      'Quantidade': recentRegistrations.students
+    }, {
+      'Período': 'Professores (último ano)',
+      'Quantidade': recentRegistrations.teachers
+    }];
+    
+    exportToExcel(registrationsData, 'relatorio_cadastros_recentes');
+  };
+
+  // Componente de gráfico de pizza usando Chart.js
+  const PieChartComponent = ({ data, total }) => {
+    const chartData = {
+      labels: data.map(item => item.label),
+      datasets: [
+        {
+          data: data.map(item => item.value),
+          backgroundColor: data.map(item => item.color),
+          borderColor: data.map(item => item.color),
+          borderWidth: 1,
+          hoverOffset: 4
+        }
+      ]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 10,
+            usePointStyle: true,
+            pointStyle: 'circle',
+            font: {
+              size: 12
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.raw || 0;
+              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      },
+      animation: {
+        animateRotate: true,
+        animateScale: true,
+        duration: 1000
+      }
+    };
+
+    return (
+      <div style={{ position: 'relative', height: '200px', width: '100%' }}>
+        <Pie data={chartData} options={options} />
+      </div>
+    );
+  };
+
+  // Componente de gráfico de barras usando Chart.js
+  const BarChartComponent = ({ data }) => {
+    const chartData = {
+      labels: data.map(item => item.label),
+      datasets: [
+        {
+          label: 'Quantidade',
+          data: data.map(item => item.value),
+          backgroundColor: data.map(item => item.color),
+          borderColor: data.map(item => item.borderColor || item.color),
+          borderWidth: 1,
+          borderRadius: 4,
+          hoverBackgroundColor: data.map(item => item.hoverColor || item.color)
+        }
+      ]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `Quantidade: ${context.raw}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            font: {
+              size: 10
+            }
+          }
+        },
+        x: {
+          ticks: {
+            font: {
+              size: 10
+            }
+          }
+        }
+      },
+      animation: {
+        duration: 1000,
+        easing: 'easeInOutQuart'
+      }
+    };
+
+    return (
+      <div style={{ position: 'relative', height: '200px', width: '100%' }}>
+        <Bar data={chartData} options={options} />
+      </div>
+    );
+  };
+
 
 
   useEffect(() => {
@@ -420,6 +787,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     loadStudents();
     loadReports();
     loadSchoolStats();
+    loadAllUsers();
     
     // Font Awesome for icons
     const script = document.createElement('script');
@@ -430,14 +798,15 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     return () => {
       document.body.removeChild(script);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.school_id]);
 
   const pageTitles = {
     'dashboard': 'Dashboard Escola',
-    'teachers': 'Professores',
-    'students': 'Alunos',
+    'users': 'Lista de Usuários',
     'reports': 'Relatórios',
     'performance': 'Desempenho',
+    'register': 'Registro de Usuário',
   };
 
   return (
@@ -451,11 +820,14 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
           <div className={`menu-item ${activeScreen === 'dashboard' ? 'active' : ''}`} onClick={() => {showScreen('dashboard'); setSidebarOpen(false);}}>
             <i className="fas fa-tachometer-alt"></i><span>Dashboard</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'teachers' ? 'active' : ''}`} onClick={() => {showScreen('teachers'); setSidebarOpen(false);}}>
-            <i className="fas fa-chalkboard-teacher"></i><span>Professores</span>
+          <div className={`menu-item ${activeScreen === 'users' ? 'active' : ''}`} onClick={() => {showScreen('users'); setSidebarOpen(false);}}>
+            <i className="fas fa-users"></i><span>Usuários</span>
           </div>
-          <div className={`menu-item ${activeScreen === 'students' ? 'active' : ''}`} onClick={() => {showScreen('students'); setSidebarOpen(false);}}>
-            <i className="fas fa-users"></i><span>Alunos</span>
+          <div className={`menu-item ${activeScreen === 'register' ? 'active' : ''}`} onClick={() => {showScreen('register'); setSidebarOpen(false);}}>
+            <i className="fas fa-user-plus"></i><span>Registrar Usuário</span>
+          </div>
+          <div className={`menu-item ${activeScreen === 'reports' ? 'active' : ''}`} onClick={() => {showScreen('reports'); setSidebarOpen(false);}}>
+            <i className="fas fa-file-export"></i><span>Relatórios</span>
           </div>
         </div>
         
@@ -520,169 +892,136 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
           </div>
           
           <div className="dashboard-grid">
-            <div className="card">
-              <h3 className="card-title">Atividade Recente</h3>
-              <div className="activity-chart">
-                <div className="activity-item">
-                  <span className="activity-label">Professores Ativos</span>
-                  <span className="activity-value">{schoolStats?.users?.school_admins || 0}</span>
-                </div>
-                <div className="activity-item">
-                  <span className="activity-label">Alunos Ativos</span>
-                  <span className="activity-value">{schoolStats?.users?.students || 0}</span>
-                </div>
-                <div className="activity-item">
-                  <span className="activity-label">Professores Ativos</span>
-                  <span className="activity-value">{schoolStats?.users?.teachers || 0}</span>
-                </div>
+            <div className="card animated" style={{ animationDelay: '0.1s' }}>
+              <h3 className="card-title">Distribuição de Usuários</h3>
+              <div className="pie-chart-wrapper" style={{ marginTop: '10px', height: '200px' }}>
+                <PieChartComponent 
+                  data={[
+                    { label: 'Alunos', value: userDistribution.students, color: '#5cb85c' },
+                    { label: 'Professores', value: userDistribution.teachers, color: '#0275d8' },
+                    { label: 'Administradores', value: userDistribution.admins, color: '#d9534f' }
+                  ]}
+                  total={userDistribution.students + userDistribution.teachers + userDistribution.admins}
+                />
               </div>
             </div>
             
-            <div className="card">
-              <h3 className="card-title">Utilização da Plataforma</h3>
-              <div className="usage-info">
-                <div className="usage-item">
-                  <span className="usage-label">Capacidade</span>
-                  <span className="usage-value">{schoolStats?.usage?.users || 'N/A'}</span>
+            <div className="card animated" style={{ animationDelay: '0.2s' }}>
+              <h3 className="card-title">Cadastros Recentes</h3>
+              <div className="recent-registrations">
+                <div className="registration-item">
+                  <div className="registration-label">Alunos (últimos 6 meses)</div>
+                  <div className="registration-value">{recentRegistrations.students}</div>
                 </div>
-                <div className="usage-bar">
-                  <div 
-                    className="usage-progress" 
-                    style={{ width: `${schoolStats?.usage?.usersPercentage || 0}%` }}
-                  ></div>
+                <div className="registration-item">
+                  <div className="registration-label">Professores (último ano)</div>
+                  <div className="registration-value">{recentRegistrations.teachers}</div>
                 </div>
-                <div className="usage-percent">{schoolStats?.usage?.usersPercentage || 0}%</div>
+                
+                {/* Gráfico de barras usando Chart.js para cadastros recentes */}
+                <div className="bar-chart-wrapper" style={{ marginTop: '15px', height: '200px' }}>
+                  <BarChartComponent 
+                    data={[
+                      { 
+                        label: 'Alunos (6 meses)', 
+                        value: recentRegistrations.students, 
+                        color: 'rgba(92, 184, 92, 0.7)',
+                        borderColor: 'rgba(92, 184, 92, 1)',
+                        hoverColor: 'rgba(92, 184, 92, 0.9)'
+                      },
+                      { 
+                        label: 'Professores (1 ano)', 
+                        value: recentRegistrations.teachers, 
+                        color: 'rgba(2, 117, 216, 0.7)',
+                        borderColor: 'rgba(2, 117, 216, 1)',
+                        hoverColor: 'rgba(2, 117, 216, 0.9)'
+                      }
+                    ]}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-
-
-        {/* Teachers Screen */}
-        <div className={`screen ${activeScreen === 'teachers' ? 'active' : ''}`} id="teachers">
+        {/* Users Screen */}
+        <div className={`screen ${activeScreen === 'users' ? 'active' : ''}`} id="users">
           <div className="card">
-            <h3 className="card-title">Gerenciar Professores</h3>
-            <form onSubmit={handleCreateTeacher} className="add-teacher-form">
-              <div className="input-row">
-                <input 
-                  type="text" 
-                  value={newTeacher.name}
-                  onChange={(e) => setNewTeacher({...newTeacher, name: e.target.value})}
-                  placeholder="Nome do professor" 
-                  className="add-teacher-input"
-                  required
-                />
-                <input 
-                  type="text" 
-                  value={newTeacher.subject}
-                  onChange={(e) => setNewTeacher({...newTeacher, subject: e.target.value})}
-                  placeholder="Disciplina" 
-                  className="add-teacher-input"
-                  required
-                />
+            <div className="users-header">
+              <h3 className="card-title">Lista de Usuários</h3>
+              <div className="user-filters">
+                <select 
+                  value={userCategoryFilter} 
+                  onChange={(e) => setUserCategoryFilter(e.target.value)}
+                  className="user-category-filter"
+                >
+                  <option value="all">Todos</option>
+                  <option value="student">Alunos</option>
+                  <option value="teacher">Professores</option>
+                  <option value="school_admin">Administradores</option>
+                </select>
               </div>
-              <div className="input-row">
-                <input 
-                  type="email" 
-                  value={newTeacher.email}
-                  onChange={(e) => setNewTeacher({...newTeacher, email: e.target.value})}
-                  placeholder="Email" 
-                  className="add-teacher-input"
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-primary">Adicionar Professor</button>
-            </form>
+            </div>
             
-            {loading.teachers ? (
-              <div className="loading">Carregando professores...</div>
-            ) : errors.teachers ? (
-              <div className="error">Erro: {errors.teachers}</div>
+            {loading.users ? (
+              <div className="loading">Carregando usuários...</div>
+            ) : errors.users ? (
+              <div className="error">Erro: {errors.users}</div>
             ) : (
-              <div className="teacher-list">
-                {teachers && teachers.length > 0 ? (
-                  teachers.map(teacher => (
-                    <div key={teacher.id} className="teacher-item">
-                      <div className="teacher-content">
-                        <div className="teacher-title">{teacher.name}</div>
-                        <div className="teacher-details">
-                          Disciplina: {teacher.subject} • Email: {teacher.email} • Turmas: {teacher.classes}
-                        </div>
-                      </div>
-                      <button className="btn-view-teacher">
-                        <i className="fas fa-eye"></i>
-                      </button>
-                    </div>
-                  ))
+              <div className="all-users-list">
+                {allUsers && allUsers.length > 0 ? (
+                  <div className="users-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Nome</th>
+                          <th>Email</th>
+                          <th>Tipo</th>
+                          <th>Detalhes</th>
+                          <th>Data de Registro</th>
+                          <th>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allUsers
+                          .filter(user => userCategoryFilter === 'all' || user.role === userCategoryFilter)
+                          .map(userItem => (
+                          <tr key={userItem.id}>
+                            <td>{userItem.name}</td>
+                            <td>{userItem.email}</td>
+                            <td>
+                              <span className={`role-badge ${userItem.role}`}>
+                                {userItem.roleDisplay}
+                              </span>
+                            </td>
+                            <td>
+                              {userItem.role === 'student' && (
+                                <span>Turma: {userItem.class} • Média: {userItem.avg.toFixed(1)}</span>
+                              )}
+                              {userItem.role === 'teacher' && (
+                                <span>Disciplina: {userItem.subject} • Turmas: {userItem.classes}</span>
+                              )}
+                              {userItem.role === 'school_admin' && (
+                                <span>Administrador</span>
+                              )}
+                            </td>
+                            <td>{userItem.createdAt ? new Date(userItem.createdAt).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                            <td>
+                              <button 
+                                className="btn-delete-user"
+                                onClick={() => deleteUser(userItem.id, userItem.name)}
+                                title="Excluir usuário"
+                              >
+                                Excluir
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
-                  <p>Nenhum professor encontrado.</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Students Screen */}
-        <div className={`screen ${activeScreen === 'students' ? 'active' : ''}`} id="students">
-          <div className="card">
-            <h3 className="card-title">Gerenciar Alunos</h3>
-            <form onSubmit={handleCreateStudent} className="add-student-form">
-              <div className="input-row">
-                <input 
-                  type="text" 
-                  value={newStudent.name}
-                  onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                  placeholder="Nome do aluno" 
-                  className="add-student-input"
-                  required
-                />
-                <input 
-                  type="text" 
-                  value={newStudent.class}
-                  onChange={(e) => setNewStudent({...newStudent, class: e.target.value})}
-                  placeholder="Turma" 
-                  className="add-student-input"
-                  required
-                />
-              </div>
-              <div className="input-row">
-                <input 
-                  type="number" 
-                  value={newStudent.avg}
-                  onChange={(e) => setNewStudent({...newStudent, avg: e.target.value})}
-                  placeholder="Média" 
-                  className="add-student-input"
-                  min="0"
-                  max="10"
-                  step="0.1"
-                />
-              </div>
-              <button type="submit" className="btn btn-primary">Adicionar Aluno</button>
-            </form>
-            
-            {loading.students ? (
-              <div className="loading">Carregando alunos...</div>
-            ) : errors.students ? (
-              <div className="error">Erro: {errors.students}</div>
-            ) : (
-              <div className="student-list">
-                {students && students.length > 0 ? (
-                  students.map(student => (
-                    <div key={student.id} className="student-item">
-                      <div className="student-content">
-                        <div className="student-title">{student.name}</div>
-                        <div className="student-details">
-                          Turma: {student.class} • Média: {student.avg.toFixed(1)}
-                        </div>
-                      </div>
-                      <button className="btn-view-student">
-                        <i className="fas fa-eye"></i>
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <p>Nenhum aluno encontrado.</p>
+                  <p>Nenhum usuário encontrado.</p>
                 )}
               </div>
             )}
@@ -809,6 +1148,426 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Register Screen */}
+        <div className={`screen ${activeScreen === 'register' ? 'active' : ''}`} id="register">
+          <div className="card register-card">
+            <div className="register-header">
+              <h3 className="card-title">Cadastro de Usuário</h3>
+              <p className="register-subtitle">Preencha os dados abaixo para registrar um novo usuário</p>
+            </div>
+            
+            <div className="register-content">
+              {registerError && (
+                <div className="error-message">
+                  {registerError}
+                </div>
+              )}
+              
+              {registerSuccess && (
+                <div className="success-message">
+                  {registerSuccess}
+                </div>
+              )}
+              
+              <form className="register-form" onSubmit={handleRegisterSubmit}>
+                <div className="form-section">
+                  <h4 className="section-title">Informações Básicas</h4>
+                  
+                  <div className="input-group">
+                    <label htmlFor="name">Nome Completo</label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      placeholder="Seu nome completo"
+                      value={registerFormData.name}
+                      onChange={handleRegisterChange}
+                      disabled={registerLoading}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="input-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      placeholder="seu@email.com"
+                      value={registerFormData.email}
+                      onChange={handleRegisterChange}
+                      disabled={registerLoading}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label htmlFor="password">Senha</label>
+                      <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Sua senha (mínimo 6 caracteres)"
+                        value={registerFormData.password}
+                        onChange={handleRegisterChange}
+                        disabled={registerLoading}
+                        required
+                        minLength="6"
+                      />
+                    </div>
+                    
+                    <div className="input-group">
+                      <label htmlFor="confirmPassword">Confirmar Senha</label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        placeholder="Confirme sua senha"
+                        value={registerFormData.confirmPassword}
+                        onChange={handleRegisterChange}
+                        disabled={registerLoading}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  {registerFormData.password && registerFormData.confirmPassword && registerFormData.password !== registerFormData.confirmPassword && (
+                    <div className="password-mismatch-error">
+                      As senhas não coincidem
+                    </div>
+                  )}
+                </div>
+                
+                <div className="form-section">
+                  <h4 className="section-title">Tipo de Usuário</h4>
+                  
+                  <div className="role-selection">
+                    <div className="role-buttons">
+                      <button 
+                        type="button"
+                        className={`role-btn ${registerFormData.role === 'student' ? 'role-btn-active' : ''}`}
+                        onClick={() => setRegisterFormData({...registerFormData, role: 'student', subjects: '', studentId: '', grade: ''})}
+                        disabled={registerLoading}
+                      >
+                        <i className="fas fa-user-graduate"></i>
+                        <span>Aluno</span>
+                      </button>
+                      <button 
+                        type="button"
+                        className={`role-btn ${registerFormData.role === 'teacher' ? 'role-btn-active' : ''}`}
+                        onClick={() => setRegisterFormData({...registerFormData, role: 'teacher', studentId: '', grade: ''})}
+                        disabled={registerLoading}
+                      >
+                        <i className="fas fa-chalkboard-teacher"></i>
+                        <span>Professor</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {registerFormData.role === 'student' && (
+                  <div className="form-section">
+                    <h4 className="section-title">Informações do Aluno</h4>
+                    
+                    <div className="input-row">
+                      <div className="input-group">
+                        <label htmlFor="studentId">Matrícula</label>
+                        <input
+                          type="text"
+                          id="studentId"
+                          name="studentId"
+                          placeholder="Número de matrícula"
+                          value={registerFormData.studentId}
+                          onChange={handleRegisterChange}
+                          disabled={registerLoading}
+                        />
+                      </div>
+                      
+                      <div className="input-group">
+                        <label htmlFor="grade">Turma/Série</label>
+                        <input
+                          type="text"
+                          id="grade"
+                          name="grade"
+                          placeholder="Ex: 1º Ano, 2º Ano, etc."
+                          value={registerFormData.grade}
+                          onChange={handleRegisterChange}
+                          disabled={registerLoading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {registerFormData.role === 'teacher' && (
+                  <div className="form-section">
+                    <h4 className="section-title">Informações do Professor</h4>
+                    
+                    <div className="input-group">
+                      <label htmlFor="subjects">Disciplinas (separadas por vírgula)</label>
+                      <input
+                        type="text"
+                        id="subjects"
+                        name="subjects"
+                        placeholder="Matemática, Português, etc."
+                        value={registerFormData.subjects}
+                        onChange={handleRegisterChange}
+                        disabled={registerLoading}
+                      />
+                      <small className="input-hint">Digite as disciplinas separadas por vírgula</small>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="form-actions">
+                  <button type="submit" className="btn btn-primary" disabled={registerLoading}>
+                    {registerLoading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin"></i>
+                        <span>Registrando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-user-plus"></i>
+                        <span>Registrar Usuário</span>
+                      </>
+                    )}
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => {
+                      // Limpar formulário
+                      setRegisterFormData({
+                        name: '',
+                        email: '',
+                        password: '',
+                        confirmPassword: '',
+                        role: 'student',
+                        studentId: '',
+                        grade: '',
+                        subjects: ''
+                      });
+                      setRegisterError('');
+                      setRegisterSuccess('');
+                    }}
+                    disabled={registerLoading}
+                  >
+                    <i className="fas fa-undo"></i>
+                    <span>Limpar</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        {/* Reports Screen */}
+        <div className={`screen ${activeScreen === 'reports' ? 'active' : ''}`} id="reports">
+          <div className="card">
+            <h3 className="card-title">Relatórios e Exportação</h3>
+            
+            <div className="report-tabs">
+              <div 
+                className={`report-tab ${activeReportTab === 'users' ? 'active' : ''}`}
+                onClick={() => setActiveReportTab('users')}
+              >
+                Usuários
+              </div>
+              <div 
+                className={`report-tab ${activeReportTab === 'distribution' ? 'active' : ''}`}
+                onClick={() => setActiveReportTab('distribution')}
+              >
+                Distribuição
+              </div>
+              <div 
+                className={`report-tab ${activeReportTab === 'registrations' ? 'active' : ''}`}
+                onClick={() => setActiveReportTab('registrations')}
+              >
+                Cadastros Recentes
+              </div>
+            </div>
+            
+            <div className="report-content">
+              {activeReportTab === 'users' && (
+                <div className="report-data">
+                  <div className="report-header">
+                    <h4>Relatório de Usuários</h4>
+                    <button 
+                      className="export-button"
+                      onClick={exportUsersReport}
+                    >
+                      <i className="fas fa-file-export"></i>
+                      Exportar para Excel
+                    </button>
+                  </div>
+                  
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Tipo</th>
+                        <th>Detalhes</th>
+                        <th>Data de Registro</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsers.map(user => (
+                        <tr key={user.id}>
+                          <td>{user.name}</td>
+                          <td>{user.email}</td>
+                          <td>
+                            <span className={`role-badge ${user.role}`}>
+                              {user.roleDisplay}
+                            </span>
+                          </td>
+                          <td>
+                            {user.role === 'student' && (
+                              <span>Turma: {user.class} • Média: {user.avg.toFixed(1)}</span>
+                            )}
+                            {user.role === 'teacher' && (
+                              <span>Disciplina: {user.subject} • Turmas: {user.classes}</span>
+                            )}
+                            {user.role === 'school_admin' && (
+                              <span>Administrador</span>
+                            )}
+                          </td>
+                          <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              {activeReportTab === 'distribution' && (
+                <div className="report-data">
+                  <div className="report-header">
+                    <h4>Relatório de Distribuição de Usuários</h4>
+                    <button 
+                      className="export-button"
+                      onClick={exportDistributionReport}
+                    >
+                      <i className="fas fa-file-export"></i>
+                      Exportar para Excel
+                    </button>
+                  </div>
+                  
+                  <div className="chart-container">
+                    <div className="pie-chart-wrapper" style={{ marginTop: '10px', height: '200px' }}>
+                      <PieChartComponent 
+                        data={[
+                          { label: 'Alunos', value: userDistribution.students, color: '#5cb85c' },
+                          { label: 'Professores', value: userDistribution.teachers, color: '#0275d8' },
+                          { label: 'Administradores', value: userDistribution.admins, color: '#d9534f' }
+                        ]}
+                        total={userDistribution.students + userDistribution.teachers + userDistribution.admins}
+                      />
+                    </div>
+                  </div>
+                  
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Categoria</th>
+                        <th>Quantidade</th>
+                        <th>Porcentagem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Alunos</td>
+                        <td>{userDistribution.students}</td>
+                        <td>{Math.round((userDistribution.students / Math.max(userDistribution.students + userDistribution.teachers + userDistribution.admins, 1)) * 100)}%</td>
+                      </tr>
+                      <tr>
+                        <td>Professores</td>
+                        <td>{userDistribution.teachers}</td>
+                        <td>{Math.round((userDistribution.teachers / Math.max(userDistribution.students + userDistribution.teachers + userDistribution.admins, 1)) * 100)}%</td>
+                      </tr>
+                      <tr>
+                        <td>Administradores</td>
+                        <td>{userDistribution.admins}</td>
+                        <td>{Math.round((userDistribution.admins / Math.max(userDistribution.students + userDistribution.teachers + userDistribution.admins, 1)) * 100)}%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              {activeReportTab === 'registrations' && (
+                <div className="report-data">
+                  <div className="report-header">
+                    <h4>Relatório de Cadastros Recentes</h4>
+                    <button 
+                      className="export-button"
+                      onClick={exportRecentRegistrationsReport}
+                    >
+                      <i className="fas fa-file-export"></i>
+                      Exportar para Excel
+                    </button>
+                  </div>
+                  
+                  <div className="recent-registrations">
+                    <div className="registration-item">
+                      <div className="registration-label">Alunos (últimos 6 meses)</div>
+                      <div className="registration-value">{recentRegistrations.students}</div>
+                    </div>
+                    <div className="registration-item">
+                      <div className="registration-label">Professores (último ano)</div>
+                      <div className="registration-value">{recentRegistrations.teachers}</div>
+                    </div>
+                    
+                    {/* Gráfico de barras usando Chart.js para relatório de cadastros recentes */}
+                    <div className="bar-chart-wrapper" style={{ marginTop: '15px', height: '200px' }}>
+                      <BarChartComponent 
+                        data={[
+                          { 
+                            label: 'Alunos (6 meses)', 
+                            value: recentRegistrations.students, 
+                            color: 'rgba(92, 184, 92, 0.7)',
+                            borderColor: 'rgba(92, 184, 92, 1)',
+                            hoverColor: 'rgba(92, 184, 92, 0.9)'
+                          },
+                          { 
+                            label: 'Professores (1 ano)', 
+                            value: recentRegistrations.teachers, 
+                            color: 'rgba(2, 117, 216, 0.7)',
+                            borderColor: 'rgba(2, 117, 216, 1)',
+                            hoverColor: 'rgba(2, 117, 216, 0.9)'
+                          }
+                        ]}
+                      />
+                    </div>
+                  </div>
+                  
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Período</th>
+                        <th>Quantidade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Alunos (últimos 6 meses)</td>
+                        <td>{recentRegistrations.students}</td>
+                      </tr>
+                      <tr>
+                        <td>Professores (último ano)</td>
+                        <td>{recentRegistrations.teachers}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1295,6 +2054,922 @@ styles.innerHTML = `
     
     .main-content {
       width: 100%;
+    }
+  }
+  
+  /* Register form styles from Register.css */
+  .register-form {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .register-subtitle {
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--text-light-color);
+  }
+  
+  .input-group {
+    margin-bottom: 15px;
+  }
+  
+  .input-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-color);
+    font-weight: 500;
+  }
+  
+  .input-group input,
+  .input-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--input-background);
+    color: var(--text-color);
+    font-size: 14px;
+  }
+  
+  .input-group input:focus,
+  .input-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+  
+  .password-mismatch-error {
+    color: var(--danger-color);
+    font-size: 0.85rem;
+    margin-top: 5px;
+  }
+  
+  .error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid #f5c6cb;
+  }
+  
+  .success-message {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid #c3e6cb;
+  }
+  
+  /* Users screen styles */
+  .users-container {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .users-section {
+    flex: 1;
+    min-width: 300px;
+  }
+  
+  .users-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+  }
+  
+  .teacher-item, .student-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: var(--card-background);
+  }
+  
+  .teacher-content, .student-content {
+    flex: 1;
+  }
+  
+  .teacher-title, .student-title {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 4px;
+  }
+  
+  .teacher-details, .student-details {
+    font-size: 0.9rem;
+    color: var(--text-light-color);
+  }
+  
+  .btn-view-teacher, .btn-view-student {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  
+  .btn-view-teacher:hover, .btn-view-student:hover {
+    background: #c54335;
+  }
+  
+  /* Role buttons styles */
+  .role-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+  }
+  
+  .role-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .role-btn:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .role-btn-active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  
+  .role-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  /* Users table styles */
+  .users-table table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .users-table th,
+  .users-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .users-table th {
+    background-color: var(--card-background);
+    font-weight: 600;
+    color: var(--text-color);
+  }
+  
+  .role-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .role-badge.student {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+  }
+  
+  .role-badge.teacher {
+    background-color: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+    border: 1px solid rgba(0, 123, 255, 0.3);
+  }
+  
+  .role-badge.school_admin {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+  }
+  
+  /* Botão de exclusão de usuário */
+  .btn-delete-user {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  
+  .btn-delete-user:hover {
+    background: #c9302c;
+  }
+  
+  /* Filtros de usuário */
+  .users-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .user-filters {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .user-category-filter {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--input-background);
+    color: var(--text-color);
+    font-size: 0.9rem;
+  }
+  
+  .user-category-filter:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+  
+  /* Melhorias na dashboard */
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  
+  .stat-card {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  }
+  
+  .stat-card i {
+    display: block;
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #d9534f;
+    margin: 10px 0;
+  }
+  
+  .stat-label {
+    font-size: 1rem;
+    color: var(--text-light-color);
+  }
+  
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .stats-container {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  /* Pie Chart Styles */
+  .pie-chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .pie-chart-svg {
+    width: 200px;
+    height: 200px;
+    transform: rotate(-90deg);
+  }
+  
+  .pie-chart-circle-bg {
+    fill: none;
+    stroke: #f0f0f0;
+    stroke-width: 8;
+  }
+  
+  .pie-chart-circle {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease-in-out;
+  }
+  
+  .pie-chart-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .pie-chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+  }
+  
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+  }
+  
+  .chart-center-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  
+  .total-count {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--text-color);
+  }
+  
+  .total-label {
+    font-size: 0.8rem;
+    color: var(--text-light-color);
+  }
+  
+  .recent-registrations {
+    padding: 10px 0;
+  }
+  
+  .registration-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .registration-label {
+    color: var(--text-light-color);
+  }
+  
+  .registration-value {
+    font-weight: bold;
+    color: var(--primary-color);
+  }
+  
+  .simple-bar-chart {
+    margin-top: 20px;
+  }
+  
+  .bar-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .bar-label {
+    width: 100px;
+    font-size: 0.8rem;
+    color: var(--text-light-color);
+  }
+  
+  .bar {
+    flex: 1;
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+  }
+  
+  .bar-students {
+    background-color: #5cb85c;
+  }
+  
+  .bar-teachers {
+    background-color: #0275d8;
+  }
+  
+  .bar-value {
+    width: 30px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--text-color);
+  }
+  
+  /* Abas de relatórios */
+  .report-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+  }
+  
+  .report-tab {
+    padding: 10px 20px;
+    background: var(--input-background);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .report-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  
+  .report-tab:hover:not(.active) {
+    background: #f0f0f0;
+  }
+  
+  .report-content {
+    margin-top: 20px;
+  }
+  
+  .export-button {
+    background: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.3s ease;
+  }
+  
+  .export-button:hover {
+    background: #218838;
+  }
+  
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .report-table th,
+  .report-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .report-table th {
+    background: var(--card-background);
+    font-weight: 600;
+  }
+  
+  .report-data {
+    margin-top: 20px;
+  }
+  
+  /* Animações */
+  @keyframes drawChart {
+    from {
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dashoffset: var(--target-offset);
+    }
+  }
+  
+  /* Pie Chart Styles */
+  .pie-chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .pie-chart-svg {
+    width: 200px;
+    height: 200px;
+    transform: rotate(-90deg);
+  }
+  
+  .pie-chart-circle-bg {
+    fill: none;
+    stroke: #f0f0f0;
+    stroke-width: 8;
+  }
+  
+  .pie-chart-circle {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease-in-out;
+  }
+  
+  .pie-chart-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .pie-chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+  }
+  
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+  }
+  
+  .chart-center-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  
+  .total-count {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--text-color);
+  }
+  
+  .total-label {
+    font-size: 0.8rem;
+    color: var(--text-light-color);
+  }
+  
+  /* Animações */
+  @keyframes drawChart {
+    from {
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dashoffset: var(--target-offset);
+    }
+  }
+  
+  @keyframes growBar {
+    from {
+      width: 0;
+    }
+    to {
+      width: var(--target-width);
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Animações gerais */
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .slide-in-left {
+    animation: slideInLeft 0.5s ease-in-out;
+  }
+  
+  .slide-in-right {
+    animation: slideInRight 0.5s ease-in-out;
+  }
+  
+  .slide-in-up {
+    animation: slideInUp 0.5s ease-in-out;
+  }
+  
+  /* Estilos para cards com animação */
+  .card.animated {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideInUp 0.6s ease-out forwards;
+  }
+  
+  /* Estilos específicos para gráficos Chart.js */
+  .chart-container {
+    position: relative;
+    height: 200px !important;
+    width: 100% !important;
+  }
+  
+  .chart-container canvas {
+    height: 200px !important;
+    width: 100% !important;
+  }
+  
+  /* Estilos para wrappers de gráficos */
+  .pie-chart-wrapper,
+  .bar-chart-wrapper {
+    height: 200px !important;
+    width: 100% !important;
+  }
+  
+  .pie-chart-wrapper canvas,
+  .bar-chart-wrapper canvas {
+    height: 200px !important;
+    width: 100% !important;
+  }
+  
+  /* Estilos para seção de registro otimizada */
+  .register-card {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  
+  .register-header {
+    text-align: left;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .register-subtitle {
+    color: var(--text-light-color);
+    font-size: 0.9rem;
+    margin-top: 5px;
+  }
+  
+  .register-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .form-section {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .section-title {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+    font-size: 1.1rem;
+  }
+  
+  .input-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .input-row .input-group {
+    flex: 1;
+  }
+  
+  .role-selection {
+    margin-top: 10px;
+  }
+  
+  .role-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .role-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-background);
+    color: var(--text-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .role-btn:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .role-btn-active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  
+  .role-btn i {
+    font-size: 1.5rem;
+  }
+  
+  .form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+  }
+  
+  .btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #5a6268;
+  }
+  
+  .btn-secondary:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  .input-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-light-color);
+    margin-top: 5px;
+  }
+  
+  .info-text {
+    color: var(--text-light-color);
+    font-style: italic;
+  }
+  
+  .password-mismatch-error {
+    color: var(--danger-color);
+    font-size: 0.85rem;
+    margin-top: 5px;
+    padding: 8px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .password-mismatch-error::before {
+    content: "⚠";
+  }
+  
+  /* Responsividade para dispositivos móveis */
+  @media (max-width: 768px) {
+    .register-card {
+      margin: 10px;
+      padding: 15px;
+    }
+    
+    .input-row {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .role-buttons {
+      flex-direction: column;
+    }
+    
+    .role-btn {
+      min-width: auto;
+    }
+    
+    .form-actions {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .form-actions .btn {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .section-title {
+      font-size: 1rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .register-header h3 {
+      font-size: 1.2rem;
+    }
+    
+    .register-subtitle {
+      font-size: 0.8rem;
+    }
+    
+    .form-section {
+      padding: 15px;
     }
   }
 `;

@@ -601,6 +601,7 @@ export const setupTokenInterceptor = () => {
             };
           }
           response = await originalFetch(resource, config);
+        // eslint-disable-next-line no-unused-vars
         } catch (refreshError) {
           // Se não conseguir refresh, limpa o usuário
           authAPI.logout();

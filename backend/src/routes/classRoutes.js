@@ -5,14 +5,14 @@ const mongoose = require('mongoose');
 const Class = require('../models/Class');
 const User = require('../models/User');
 const School = require('../models/School');
-const { auth, authorize } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
 // @route   GET /api/classes
 // @desc    Obter todas as turmas (com filtros)
-// @access  Private - teacher, school_admin, global_admin
-router.get('/', auth, authorize(['teacher', 'school_admin', 'global_admin']), [
+// @access  Private
+router.get('/', auth, [
   query('status').optional().isIn(['active', 'inactive', 'archived']).withMessage('Status inválido'),
   query('academic_year').optional().matches(/^\d{4}$|^\d{4}-\d{2}$/).withMessage('Ano acadêmico inválido'),
   query('teacher_id').optional().isMongoId().withMessage('ID do professor inválido'),
@@ -89,7 +89,7 @@ router.get('/', auth, authorize(['teacher', 'school_admin', 'global_admin']), [
 // @route   GET /api/classes/:id
 // @desc    Obter uma turma específica
 // @access  Private - teacher, school_admin, global_admin
-router.get('/:id', auth, authorize(['teacher', 'school_admin', 'global_admin']), async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const classId = req.params.id;
 
@@ -139,7 +139,7 @@ router.get('/:id', auth, authorize(['teacher', 'school_admin', 'global_admin']),
 // @route   POST /api/classes
 // @desc    Criar nova turma
 // @access  Private - teacher, school_admin
-router.post('/', auth, authorize(['teacher', 'school_admin']), [
+router.post('/', auth, [
   body('name').notEmpty().withMessage('Nome da turma é obrigatório'),
   body('subject').notEmpty().withMessage('Disciplina é obrigatória'),
   body('academic_year').matches(/^\d{4}$|^\d{4}-\d{2}$/).withMessage('Ano acadêmico inválido'),
@@ -230,7 +230,7 @@ router.post('/', auth, authorize(['teacher', 'school_admin']), [
 // @route   PUT /api/classes/:id
 // @desc    Atualizar turma
 // @access  Private - teacher, school_admin
-router.put('/:id', auth, authorize(['teacher', 'school_admin']), [
+router.put('/:id', auth, [
   body('name').optional().notEmpty().withMessage('Nome da turma não pode estar vazio'),
   body('subject').optional().notEmpty().withMessage('Disciplina não pode estar vazia'),
   body('academic_year').optional().matches(/^\d{4}$|^\d{4}-\d{2}$/).withMessage('Ano acadêmico inválido'),
@@ -308,7 +308,7 @@ router.put('/:id', auth, authorize(['teacher', 'school_admin']), [
 // @route   DELETE /api/classes/:id
 // @desc    Arquivar turma (soft delete)
 // @access  Private - teacher, school_admin
-router.delete('/:id', auth, authorize(['teacher', 'school_admin']), async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const classId = req.params.id;
 
@@ -365,7 +365,7 @@ router.delete('/:id', auth, authorize(['teacher', 'school_admin']), async (req, 
 // @route   POST /api/classes/:id/students
 // @desc    Adicionar aluno à turma
 // @access  Private - teacher, school_admin
-router.post('/:id/students', auth, authorize(['teacher', 'school_admin']), [
+router.post('/:id/students', auth, [
   body('student_id').isMongoId().withMessage('ID do aluno inválido')
 ], async (req, res) => {
   try {
@@ -454,7 +454,7 @@ router.post('/:id/students', auth, authorize(['teacher', 'school_admin']), [
 // @route   DELETE /api/classes/:id/students/:studentId
 // @desc    Remover aluno da turma
 // @access  Private - teacher, school_admin
-router.delete('/:id/students/:studentId', auth, authorize(['teacher', 'school_admin']), async (req, res) => {
+router.delete('/:id/students/:studentId', auth, async (req, res) => {
   try {
     const classId = req.params.id;
     const studentId = req.params.studentId;
@@ -515,7 +515,7 @@ router.delete('/:id/students/:studentId', auth, authorize(['teacher', 'school_ad
 // @route   GET /api/classes/:id/students
 // @desc    Obter alunos da turma
 // @access  Private - teacher, school_admin
-router.get('/:id/students', auth, authorize(['teacher', 'school_admin']), async (req, res) => {
+router.get('/:id/students', auth, async (req, res) => {
   try {
     const classId = req.params.id;
 
@@ -574,7 +574,7 @@ router.get('/:id/students', auth, authorize(['teacher', 'school_admin']), async 
 // @route   GET /api/classes/teacher/:teacherId
 // @desc    Obter turmas de um professor específico
 // @access  Private - school_admin, global_admin, ou o próprio professor
-router.get('/teacher/:teacherId', auth, authorize(['teacher', 'school_admin', 'global_admin']), async (req, res) => {
+router.get('/teacher/:teacherId', auth, async (req, res) => {
   try {
     const teacherId = req.params.teacherId;
 

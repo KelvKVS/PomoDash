@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { testBackendConnection, testLogin } from '../lib/authTest';
+import { testBackendConnection } from '../lib/authTest';
 
 function AuthChecker() {
   const [status, setStatus] = useState('checking'); // checking, success, error

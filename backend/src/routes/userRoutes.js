@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param, query, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { auth, authorize } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -16,8 +16,8 @@ const validateRequest = (req, res, next) => {
 
 // @route   GET /api/users
 // @desc    Listar usuários da escola
-// @access  Private (admin/teacher)
-router.get('/', auth, authorize(['school_admin', 'teacher']), [
+// @access  Private
+router.get('/', auth, [
     query('page').optional().isInt({ min: 1 }).toInt(),
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
     query('role').optional().isIn(['school_admin', 'teacher', 'student']),
@@ -53,15 +53,15 @@ router.get('/', auth, authorize(['school_admin', 'teacher']), [
 
 // @route   POST /api/users
 // @desc    Criar novo usuário
-// @access  Private (admin)
-router.post('/', auth, authorize(['school_admin']), [
+// @access  Private
+router.post('/', auth, [
     body('email').isEmail().normalizeEmail(),
     body('name').trim().notEmpty(),
     body('password').isLength({ min: 6 }),
     body('role').isIn(['school_admin', 'teacher', 'student']),
 ], validateRequest, async (req, res) => {
   try {
-    const { name, email, password, role, studentId, grade } = req.body;
+    const { name, email, password, role, studentId, grade, subjects, classes } = req.body;
 
     let user = await User.findOne({ email, school_id: req.user.school_id });
     if (user) {
@@ -79,6 +79,8 @@ router.post('/', auth, authorize(['school_admin']), [
 
     if (role === 'student') {
         userData.academic = { studentId, grade };
+    } else if (role === 'teacher') {
+        userData.teaching = { subjects: subjects || [], classes: classes || [] };
     }
 
     user = new User(userData);
@@ -92,8 +94,8 @@ router.post('/', auth, authorize(['school_admin']), [
 
 // @route   GET /api/users/:id
 // @desc    Obter usuário específico
-// @access  Private (admin/teacher)
-router.get('/:id', auth, authorize(['school_admin', 'teacher']), [param('id').isMongoId()], validateRequest, async (req, res) => {
+// @access  Private
+router.get('/:id', auth, [param('id').isMongoId()], validateRequest, async (req, res) => {
   try {
     const filter = { _id: req.params.id, school_id: req.user.school_id };
     if (req.user.role === 'teacher') {
@@ -111,8 +113,8 @@ router.get('/:id', auth, authorize(['school_admin', 'teacher']), [param('id').is
 
 // @route   PUT /api/users/:id
 // @desc    Atualizar usuário
-// @access  Private (admin)
-router.put('/:id', auth, authorize(['school_admin']), [param('id').isMongoId()], validateRequest, async (req, res) => {
+// @access  Private
+router.put('/:id', auth, [param('id').isMongoId()], validateRequest, async (req, res) => {
   try {
     const { name, role, status, studentId, grade } = req.body;
 
@@ -135,8 +137,8 @@ router.put('/:id', auth, authorize(['school_admin']), [param('id').isMongoId()],
 
 // @route   DELETE /api/users/:id
 // @desc    Inativar usuário
-// @access  Private (admin)
-router.delete('/:id', auth, authorize(['school_admin']), [param('id').isMongoId()], validateRequest, async (req, res) => {
+// @access  Private
+router.delete('/:id', auth, [param('id').isMongoId()], validateRequest, async (req, res) => {
   try {
     if (req.params.id === req.user.id) {
         return res.status(400).json({ status: 'error', message: 'Você não pode inativar a si mesmo.' });

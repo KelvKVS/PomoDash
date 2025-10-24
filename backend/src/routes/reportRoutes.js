@@ -4,7 +4,7 @@ const Report = require('../models/Report');
 const User = require('../models/User');
 const PomodoroSession = require('../models/PomodoroSession');
 const Task = require('../models/Task');
-const { auth, authorize } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ const validateRequest = (req, res, next) => {
 // @route   GET /api/reports
 // @desc    Listar relatórios
 // @access  Private (admin/teacher)
-router.get('/', auth, authorize(['school_admin', 'teacher']), [
+router.get('/', auth, [
   query('page').optional().isInt({ min: 1 }).toInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
   query('type').optional().isIn(['student-performance', 'class-performance', 'school-performance', 'pomodoro-analytics', 'task-completion', 'flashcard-progress']),
@@ -69,7 +69,7 @@ router.get('/', auth, authorize(['school_admin', 'teacher']), [
 // @route   GET /api/reports/:id
 // @desc    Obter relatório específico
 // @access  Private (admin/teacher do mesmo school_id)
-router.get('/:id', auth, authorize(['school_admin', 'teacher']), [param('id').isMongoId()], validateRequest, async (req, res) => {
+router.get('/:id', auth, [param('id').isMongoId()], validateRequest, async (req, res) => {
   try {
     const report = await Report.findOne({ 
       _id: req.params.id, 
@@ -90,7 +90,7 @@ router.get('/:id', auth, authorize(['school_admin', 'teacher']), [param('id').is
 // @route   POST /api/reports/generate/student/:studentId
 // @desc    Gerar relatório de desempenho de aluno
 // @access  Private (school_admin/teacher)
-router.post('/generate/student/:studentId', auth, authorize(['school_admin', 'teacher']), [
+router.post('/generate/student/:studentId', auth, [
   param('studentId').isMongoId(),
   body('startDate').isISO8601(),
   body('endDate').isISO8601(),
@@ -138,7 +138,7 @@ router.post('/generate/student/:studentId', auth, authorize(['school_admin', 'te
 // @route   GET /api/reports/student/:studentId
 // @desc    Obter relatórios de um aluno específico
 // @access  Private (admin/teacher)
-router.get('/student/:studentId', auth, authorize(['school_admin', 'teacher']), [
+router.get('/student/:studentId', auth, [
   param('studentId').isMongoId()
 ], validateRequest, async (req, res) => {
   try {

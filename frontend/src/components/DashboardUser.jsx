@@ -66,7 +66,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     setActiveScreen(screenId);
   };
 
-  const showConfirmation = (message, callback, type = 'warning') => {
+  const showConfirmation = (message, callback) => {
     setConfirmMessage(message);
     setConfirmCallback(() => callback);
     setShowConfirmModal(true);
@@ -159,7 +159,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     }
     
     return () => clearInterval(interval);
-  }, [isActive, time, activeSession]);
+  }, [isActive, time, activeSession, updateDocumentTitle, handleCompleteSession]);
 
   // Função para iniciar uma nova sessão de pomodoro
   const startNewSession = async (type = 'work', plannedDuration = 25) => {
@@ -205,10 +205,10 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Função para completar a sessão
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleCompleteSession = async () => {
     if (activeSession) {
       try {
-        const response = await pomodoroAPI.completeSession(activeSession._id);
         setActiveSession(null);
         setIsActive(false);
         loadRecentSessions(); // Atualizar lista de sessões recentes
@@ -344,6 +344,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Função para atualizar o título do documento com o tempo restante
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateDocumentTitle = (seconds, isActiveSession) => {
     if (isActiveSession) {
       const formattedTime = formatTime(seconds);
@@ -353,7 +354,19 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
+  // Efeito para atualizar o título quando o componente montar e desmontar
+  useEffect(() => {
+    // Atualiza o título quando o componente é montado
+    updateDocumentTitle(time, isActive);
+    
+    // Limpa o título quando o componente é desmontado
+    return () => {
+      document.title = "PomoDash";
+    };
+  }, [isActive, time, updateDocumentTitle]);
+
   // Função para carregar flashcards
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadFlashcards = async () => {
     try {
       const response = await flashcardAPI.getFlashcards();
@@ -386,15 +399,6 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Função para atualizar flashcard
-  const handleUpdateFlashcard = async (id, updatedData) => {
-    try {
-      const response = await flashcardAPI.updateFlashcard(id, updatedData);
-      setFlashcards(flashcards.map(card => card._id === id ? response.data : card));
-    } catch (error) {
-      console.error('Erro ao atualizar flashcard:', error);
-      alert('Erro ao atualizar flashcard: ' + error.message);
-    }
-  };
 
   // Função para deletar flashcard
   const handleDeleteFlashcard = async (id) => {
@@ -549,13 +553,13 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   };
   
   // Função para carregar as estatísticas do aluno
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadStats = async () => {
     try {
       // Carregar estatísticas de Pomodoro
       const pomodoroStats = await pomodoroAPI.getStats();
       
       // Carregar tarefas
-      const tasksResponse = await taskAPI.getTasks({ status: 'pending' });
       const allTasksResponse = await taskAPI.getTasks();
       
       // Calcular estatísticas
@@ -616,7 +620,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       // Reset document title when component unmounts
       document.title = "PomoDash";
     };
-  }, [flashcardStats]); // Adicionando flashcardStats como dependência para atualizar quando mudar
+  }, [flashcardStats, loadFlashcards, loadStats]); // Adicionando flashcardStats como dependência para atualizar quando mudar
 
   // useEffect para carregar dados do professor quando as telas forem acessadas
   useEffect(() => {
@@ -625,7 +629,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     } else if (activeScreen === 'professor-flashcards') {
       loadProfessorFlashcards();
     }
-  }, [activeScreen]);
+  }, [activeScreen, loadProfessorFlashcards, loadProfessorTasks]);
 
   const pageTitles = {
     'dashboard': 'Dashboard Geral',
@@ -639,6 +643,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Função para carregar tarefas do professor
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadProfessorTasks = async () => {
     try {
       // Obter tarefas criadas pelos professores da escola do aluno
@@ -655,6 +660,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Função para carregar flashcards do professor
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadProfessorFlashcards = async () => {
     try {
       // Obter flashcards criados pelos professores da escola do aluno

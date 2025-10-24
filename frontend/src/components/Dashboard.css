@@ -1423,8 +1423,8 @@
     border-color: #e76b64 !important; /* Red claro para modo escuro */
     background: var(--card-background) !important;
     box-shadow: 
-        0 0 0 4px rgba(231, 107, 100, 0.1) !important,
-        inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+        0 0 0 4px rgba(231, 107, 100, 0.1) !important;
+        inset:  0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Estilos para checkboxes no modo escuro */
