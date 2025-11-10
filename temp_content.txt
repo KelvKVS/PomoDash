@@ -1,0 +1,65 @@
+  const loadProfessorPerformanceData = async () => {
+    setLoading(prev => ({ ...prev, performance: true }));
+    setErrors(prev => ({ ...prev, performance: null }));
+    
+    try {
+      // Carregar dados de desempenho geral do professor
+      // Vamos usar a API existente em vez de fetch direto
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/performance/teacher/${user._id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Erro ao carregar dados de desempenho');
+      }
+      
+      // Transformar os dados para o formato esperado pela UI
+      const performanceWithDetails = [];
+      
+      if (data.data && data.data.classes && data.data.classes.length > 0) {
+        for (const classData of data.data.classes) {
+          // Carregar alunos dessa turma para mostrar detalhes
+          const classStudentsResponse = await classAPI.getClassStudents(classData.classId);
+          
+          if (classStudentsResponse.data && classStudentsResponse.data.students) {
+            for (const student of classStudentsResponse.data.students) {
+              // Pegar tarefas recentes do aluno
+              const studentTasksResponse = await taskAPI.getTasks({
+                'assigned_to.user': student.user_id._id,
+                status: 'completed'
+              });
+              
+              performanceWithDetails.push({
+                classId: classData.classId,
+                className: classData.className,
+                subject: classData.subject,
+                student_id: student.user_id._id,
+                student_name: student.user_id.name,
+                student_grade: student.user_id.academic?.grade || 'N/A',
+                totalTasks: classData.totalTasks,
+                completedTasks: classData.completedTasks,
+                avgCompletion: classData.avgCompletion,
+                studentTasks: studentTasksResponse.data.length,
+                // Atributos para manter compatibilidade com o código existente
+                title: `${student.user_id.name} - ${classData.subject}`,
+                subject: classData.subject,
+                assigned_to: [{user: student.user_id._id, status: 'completed', completed_at: new Date()}]
+              });
+            }
+          }
+        }
+      }
+      
+      setPerformanceData(performanceWithDetails);
+    } catch (error) {
+      console.error('Erro ao carregar dados de desempenho:', error);
+      setErrors(prev => ({ ...prev, performance: error.message }));
+      setAlert({ message: 'Erro ao carregar dados de desempenho: ' + error.message, type: 'error' });
+      setPerformanceData([]);
+    } finally {

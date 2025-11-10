@@ -18,6 +18,7 @@ const pomodoroRoutes = require('./routes/pomodoroRoutes');
 const flashcardRoutes = require('./routes/flashcardRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const classRoutes = require('./routes/classRoutes');
+const performanceRoutes = require('./routes/performanceRoutes');
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use('/api/pomodoro', pomodoroRoutes);
 app.use('/api/flashcards', flashcardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/classes', classRoutes);
+app.use('/api/performance', performanceRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {

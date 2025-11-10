@@ -1,5 +1,5 @@
 // src/lib/api.js
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // Função para fazer requisições HTTP com tratamento de erro
 const request = async (endpoint, options = {}) => {
@@ -569,6 +569,30 @@ export const schoolAPI = {
     const url = permanent ? `/schools/${schoolId}?permanent=true` : `/schools/${schoolId}`;
     return request(url, {
       method: 'DELETE',
+    });
+  },
+};
+
+// Funções para Desempenho
+export const performanceAPI = {
+  // Obter desempenho das turmas do professor
+  getTeacherPerformance: async (teacherId) => {
+    return request(`/performance/teacher/${teacherId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter desempenho de uma turma específica
+  getClassPerformance: async (classId) => {
+    return request(`/performance/class/${classId}`, {
+      method: 'GET',
+    });
+  },
+
+  // Obter desempenho de um aluno específico
+  getStudentPerformance: async (studentId) => {
+    return request(`/performance/student/${studentId}`, {
+      method: 'GET',
     });
   },
 };
