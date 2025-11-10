@@ -1,0 +1,16 @@
+  const loadPerformanceData = async () => {
+    setLoading(prev => ({ ...prev, performance: true }));
+    setErrors(prev => ({ ...prev, performance: null }));
+
+    try {
+      // Carregar tarefas para entender o desempenho dos alunos
+      const response = await taskAPI.getTasksByTeacher(user._id);
+      setPerformanceData(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar dados de desempenho:', error);
+      // Não definir erro específico pois pode ser normal não ter dados de desempenho
+      setPerformanceData([]);
+    } finally {
+      setLoading(prev => ({ ...prev, performance: false }));
+    }
+  };
