@@ -243,7 +243,6 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                 studentTasks: studentTasksResponse.data.length,
                 // Atributos para manter compatibilidade com o código existente
                 title: `${student.user_id.name} - ${classData.subject}`,
-                subject: classData.subject,
                 assigned_to: [{user: student.user_id._id, status: 'completed', completed_at: new Date()}]
               });
             }
