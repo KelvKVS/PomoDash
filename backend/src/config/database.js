@@ -7,10 +7,11 @@ const connectDB = async () => {
       : process.env.MONGODB_URI;
 
     const conn = await mongoose.connect(mongoURI, {
-      // Opções de conexão recomendadas
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      // Opções de conexão recomendadas para MongoDB Atlas
+      maxPoolSize: 10, // Mantém até 10 conexões de socket
+      serverSelectionTimeoutMS: 5000, // Tempo limite de seleção do servidor
+      socketTimeoutMS: 45000, // Fecha soquetes após 45 segundos de inatividade
+      tls: true, // Habilita TLS para conexões com Atlas
     });
 
     console.log(`✅ MongoDB conectado: ${conn.connection.host}`);

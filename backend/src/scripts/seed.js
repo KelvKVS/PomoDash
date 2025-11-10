@@ -7,7 +7,11 @@ const School = require('../models/School');
 const connectDB = async () => {
   try {
     // Tenta conectar usando a URI do .env, com fallback
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pomodash';
+    const mongoURI = process.env.MONGODB_URI;
+    if (!mongoURI) {
+      console.error('❌ MONGODB_URI não está definida nas variáveis de ambiente');
+      process.exit(1);
+    }
     
     const conn = await mongoose.connect(mongoURI, {
       maxPoolSize: 10,

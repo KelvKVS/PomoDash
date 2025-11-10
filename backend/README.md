@@ -248,7 +248,9 @@ brew services start mongodb-community
 ```env
 PORT=3001
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/pomodash
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
+# Para deployment com MongoDB Atlas
+# Substitua <username>, <password>, <cluster> e <database> pelas suas informações
 JWT_SECRET=sua_chave_super_secreta_com_pelo_menos_32_caracteres
 JWT_EXPIRE=15m
 JWT_REFRESH_SECRET=sua_chave_refresh_super_secreta_diferente_da_primeira
