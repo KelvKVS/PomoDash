@@ -275,6 +275,31 @@
     font-weight: 500;
 }
 
+/* Layout de menu para dispositivos móveis */
+@media (max-width: 768px) {
+    .menu {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .menu-item {
+        flex-direction: row; /* Mantém ícone e texto na horizontal dentro de cada item */
+        justify-content: flex-start;
+        margin: 0 8px;
+        border-radius: 8px;
+    }
+    
+    .menu-item i {
+        margin-right: 12px;
+        font-size: 1.2rem;
+        min-width: 20px;
+    }
+    
+    .menu-item span {
+        flex: 1;
+    }
+}
+
 .menu-item:hover,
 .menu-item.active {
     background: rgba(255, 255, 255, 0.1);
@@ -347,8 +372,13 @@
 .main-content {
     flex-grow: 1;
     padding: 30px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: var(--background-color);
     min-height: 100vh;
+    position: relative;
+}
+
+.dark-theme .main-content {
+    background: var(--background-color);
 }
 
 .header {
@@ -846,58 +876,351 @@
     transform: scale(1.1);
 }
 
-/* Responsive */
+/* Mobile-first responsive design */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
     }
+    
     .sidebar {
         width: 100%;
-        flex-direction: row;
-        justify-content: space-between;
-        padding: 10px 20px;
         height: auto;
+        min-height: 60px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+        padding: 10px 15px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        overflow-y: auto;
+        max-height: 100vh;
     }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
     .logo {
-        padding: 10px;
-        text-align: left;
+        display: none;
     }
+    
     .menu {
         display: flex;
-        flex-grow: 0;
+        flex-direction: row;
+        justify-content: space-around;
         padding: 0;
-        gap: 8px;
+        gap: 0;
+        width: 100%;
     }
+    
     .menu-item {
-        padding: 10px;
-        flex-direction: column;
-        text-align: center;
-        font-size: 0.7rem;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        text-align: left !important;
+        font-size: 1rem !important;
+        padding: 12px 16px !important;
+        background: transparent !important;
+        border-radius: 8px !important;
+        margin: 0 8px !important;
+        border-left: none !important;
+        border-bottom: 2px solid transparent !important;
     }
+    
     .menu-item i {
-        margin-right: 0;
-        margin-bottom: 4px;
-        font-size: 1.1rem;
+        margin-right: 12px !important;
+        font-size: 1.2rem !important;
+        min-width: 20px !important;
     }
+    
+    .menu-item span {
+        flex: 1 !important;
+    }
+    
+    .menu-item.active {
+        background: rgba(255, 255, 255, 0.15);
+        border-left: none;
+        border-bottom: 2px solid white;
+    }
+    
+    .menu-item i {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+    }
+    
     .profile {
         display: none;
     }
+    
     .main-content {
-        padding: 20px;
+        padding: 80px 15px 20px;
+        width: 100%;
+        margin-top: 0;
     }
+    
     .stats-container {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
+    
     .page-title {
-        font-size: 22px;
+        font-size: 1.5rem;
+        margin: 0;
+        padding: 0;
     }
+    
     .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 15px;
+        z-index: 999;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+    }
+    
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .menu-toggle {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-color);
+        padding: 5px;
+        border-radius: 5px;
+    }
+    
+    .menu-toggle:hover {
+        background: #f8f9fa;
+    }
+    
+    .user-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .card {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .add-task-form {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .add-task-input {
+        margin-bottom: 0;
+    }
+    
+    .task-item {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 8px;
+        padding: 12px 0;
     }
-    .user-actions {
-        align-self: flex-end;
+    
+    .task-content {
+        width: 100%;
+    }
+    
+    .task-details {
+        width: 100%;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.8rem;
+    }
+    
+    .timer {
+        width: 200px;
+        height: 200px;
+        transform: scale(0.85);
+        margin: 10px auto 20px;
+    }
+    
+    .timer-time {
+        font-size: 28px;
+    }
+    
+    .timer-controls {
+        flex-direction: row;
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .session-types {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .btn-session {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+    
+    .deck-list,
+    .flashcard-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .deck-item {
+        padding: 16px;
+    }
+    
+    .flashcard {
+        height: 180px;
+    }
+    
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        display: block;
+    }
+    
+    .notification-btn,
+    .user-menu {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 80px 10px 15px;
+    }
+    
+    .page-title {
+        font-size: 1.3rem;
+    }
+    
+    .stats-container {
+        gap: 10px;
+    }
+    
+    .stat-card {
+        padding: 12px;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+    }
+    
+    .card {
+        padding: 14px;
+    }
+    
+    .timer {
+        width: 160px;
+        height: 160px;
+        transform: scale(0.7);
+    }
+    
+    .timer-time {
+        font-size: 24px;
+    }
+    
+    .btn-session {
+        padding: 7px 10px;
+        font-size: 0.75rem;
+    }
+    
+    .menu-item {
+        min-width: 60px;
+        padding: 8px 3px;
+    }
+    
+    .menu-item i {
+        font-size: 1.2rem;
+    }
+    
+    .task-details {
+        font-size: 0.75rem;
+    }
+    
+    .notification-btn,
+    .user-menu {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .profile-modal-content {
+        width: 95%;
+        padding: 1.2rem;
+        margin: 10px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .profile-modal-header input[type="text"] {
+        font-size: 1.1rem;
+    }
+    
+    .profile-modal-img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .header {
+        padding: 12px 10px;
+    }
+    
+    .menu-toggle {
+        font-size: 1.3rem;
+    }
+}
+
+/* Adicionando media query para telas ainda menores (como dispositivos dobráveis) */
+@media (max-width: 360px) {
+    .timer {
+        transform: scale(0.6);
+    }
+    
+    .menu-item {
+        min-width: 55px;
+        padding: 6px 2px;
+    }
+    
+    .menu-item i {
+        font-size: 1.1rem;
+    }
+    
+    .menu-item span {
+        font-size: 0.6rem;
+    }
+    
+    .stat-value {
+        font-size: 1.3rem;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem;
     }
 }
 
@@ -1266,6 +1589,24 @@
 
 .dark-theme .header {
     color: var(--text-color);
+    background: var(--background-color) !important;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 16px 0;
+    background: var(--background-color) !important;
+    color: var(--text-color);
+}
+
+/* Estilo específico para modo escuro no header */
+.dark-theme .header {
+    background: var(--background-color) !important;
+    color: var(--text-color);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .dark-theme .stat-card .stat-icon {
@@ -1366,6 +1707,76 @@
 
 /* Estilos para outros campos de texto */
 .dark-theme .add-class-input,
+
+/* Estilos para elementos adicionais no header */
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-menu-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+}
+
+.user-menu-img:hover {
+  border-color: var(--primary-color);
+}
+
+/* Estilos para o toggle do menu em dispositivos móveis */
+.menu-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-color);
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.menu-toggle:hover {
+  background-color: var(--background-color);
+}
+
+/* Overlay para o sidebar em dispositivos móveis */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.show {
+  display: block;
+  opacity: 1;
+}
+
+/* Estilos para modo escuro nos novos elementos */
+.dark-theme .user-menu-img {
+  border-color: var(--border-color);
+}
+
+.dark-theme .menu-toggle {
+  color: var(--text-color);
+}
+
+.dark-theme .menu-toggle:hover {
+  background-color: var(--background-color);
+}
 .dark-theme .add-assignment-input,
 .dark-theme .add-flashcard-input,
 .dark-theme .add-student-input,
@@ -1615,8 +2026,23 @@
     }
     
     .header {
-        padding-left: 20px;
-        padding-right: 20px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: var(--background-color) !important;
+        padding: 15px 20px;
+        z-index: 999;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+    }
+    
+    .dark-theme .header {
+        background: var(--background-color) !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
 }
 
@@ -1669,4 +2095,177 @@
 .profile-modal-img-upload-btn:hover {
     background: #c9302c;
     transform: scale(1.1);
+}
+
+/* Estilos específicos para sidebar móvel */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 95% !important; /* Ocupa quase toda a tela */
+        max-width: 320px !important; /* Limite máximo para telas maiores */
+        z-index: 1001 !important; /* Acima de outros elementos */
+    }
+
+    .sidebar.open {
+        transform: translateX(0) !important;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2) !important;
+    }
+    
+    .sidebar-overlay {
+        background: rgba(0,0,0,0.5) !important;
+    }
+}
+
+/* Estilo para o botão de menu */
+.menu-toggle {
+    position: relative;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-color);
+    padding: 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    width: 40px;
+    height: 40px;
+}
+
+.menu-toggle {
+    position: relative;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-color);
+    padding: 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    width: 40px;
+    height: 40px;
+}
+
+.menu-toggle::before {
+    content: "☰"; /* Ícone de menu hambúrguer como texto */
+    font-size: 1.5rem;
+    line-height: 1;
+    position: relative;
+    z-index: 2; /* Acima de qualquer possível ícone do Font Awesome */
+}
+
+/* Garantir que o ícone do Font Awesome também seja visível */
+.menu-toggle i {
+    position: relative;
+    z-index: 2;
+    font-size: 1.5rem;
+}
+
+.menu-toggle:hover {
+    background-color: var(--background-color);
+}
+
+/* Estilos para o menu quando aberto ocupar toda a altura visível */
+.sidebar {
+    height: 100vh !important; /* Ocupa toda a altura da tela */
+    top: 0 !important;
+    position: fixed !important;
+    z-index: 1000 !important;
+}
+
+.sidebar.open {
+    height: 100vh !important;
+    top: 0 !important;
+}
+
+/* Ajuste para o conteúdo principal quando o header é fixo */
+.main-content {
+    margin-top: 60px; /* Altura do header */
+    padding-top: 20px;
+    min-height: calc(100vh - 60px); /* Ocupa o restante da tela */
+}
+
+/* Estilos específicos para sidebar móvel */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100% !important; /* Ocupa toda a largura */
+        max-width: 320px !important; /* Limite máximo para telas maiores */
+        z-index: 1001 !important; /* Acima de outros elementos */
+        height: 100vh !important; /* Ocupa toda a altura da tela */
+        top: 0 !important;
+        left: 0 !important;
+        right: auto !important;
+    }
+
+    .sidebar.open {
+        transform: translateX(0) !important;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.2) !important;
+    }
+    
+    .sidebar-overlay {
+        background: rgba(0,0,0,0.5) !important;
+    }
+    
+    .main-content {
+        margin-top: 60px; /* Empurra o conteúdo principal abaixo do header fixo */
+        padding-top: 20px;
+        min-height: calc(100vh - 60px); /* Ocupa o restante da tela */
+    }
+    
+    .header {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: var(--background-color) !important;
+        padding: 15px !important;
+        z-index: 999 !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        height: 60px !important;
+    }
+    
+    .dark-theme .header {
+        background: var(--background-color) !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+    }
+    
+    /* Sobrescrever layout horizontal para vertical em mobile */
+    .menu {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 15px 0 !important;
+        gap: 8px !important;
+    }
+
+    .menu-item {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        padding: 12px 16px !important;
+        text-align: left !important;
+        font-size: 1rem !important;
+        border-radius: 8px !important;
+        margin: 0 8px !important;
+        background: transparent !important;
+        border-left: none !important;
+        border-bottom: 2px solid transparent !important;
+    }
+    
+    .menu-item i {
+        margin-right: 12px !important;
+        font-size: 1.2rem !important;
+        min-width: 20px !important;
+    }
+    
+    .menu-item span {
+        flex: 1 !important;
+    }
 }

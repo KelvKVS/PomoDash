@@ -80,13 +80,67 @@ body {
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  font-size: 0.8rem; /* Redução de 20% no tamanho da fonte (de 16px para 12.8px) */
+  line-height: 1.2; /* Ajuste na altura da linha para manter proporção */
+  overflow-x: hidden;
 }
 
 #root {
   width: 100%;
   height: 100vh;
   overflow-x: hidden;
+}
+
+/* Estilos responsivos para dispositivos móveis */
+@media screen and (max-width: 768px) {
+  body {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  #root {
+    width: 100%;
+    height: 100vh;
+  }
+  
+  /* Melhorar experiência em dispositivos móveis */
+  * {
+    box-sizing: border-box;
+  }
+  
+  /* Para inputs e buttons, tornar mais fáceis de tocar */
+  input, button, select, textarea {
+    min-height: 44px; /* Tamanho mínimo recomendado para toque em dispositivos móveis */
+    min-width: 44px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}
+
+/* Estilo para telas maiores, mantendo o zoom em 20% */
+@media screen and (min-width: 1200px) {
+  body {
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+}
+
+/* Media query para telas muito pequenas */
+@media screen and (max-width: 320px) {
+  body {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  
+  .container {
+    padding: 8px;
+  }
 }
 
 /* Modern scrollbar */

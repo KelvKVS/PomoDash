@@ -59,7 +59,7 @@
 .dark-theme .input-group select:focus {
   background: var(--card-background);
   border-color: #e76b64; /* Red claro para modo escuro */
-  box-shadow: 
+  box-shadow:
     0 0 0 4px rgba(231, 107, 100, 0.1),
     inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
@@ -183,7 +183,7 @@
   outline: none;
   border-color: #d9534f; /* Red mais suave */
   background-color: white;
-  box-shadow: 
+  box-shadow:
     0 0 0 4px rgba(217, 83, 79, 0.1),
     inset 0 1px 2px rgba(0, 0, 0, 0.05);
   transform: translateY(-2px);
@@ -338,17 +338,65 @@
 }
 
 /* Responsive Design */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .register-form {
     padding: 2rem;
     margin: 0 1rem;
+    width: 90%;
   }
-  
+
+  .input-group input,
+  .input-group select {
+    padding: 0.9rem 1.1rem;
+    font-size: 0.95rem;
+  }
+
   .register-title {
     font-size: 1.75rem;
   }
-  
+
   .register-subtitle {
     font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .input-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .register-button {
+    padding: 0.9rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-form {
+    padding: 1.5rem;
+    margin: 0 0.5rem;
+  }
+
+  .register-title {
+    font-size: 1.5rem;
+  }
+
+  .register-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .input-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group input,
+  .input-group select {
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .register-button {
+    padding: 0.85rem;
+    font-size: 0.95rem;
   }
 }
