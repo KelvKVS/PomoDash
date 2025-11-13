@@ -5,41 +5,39 @@ const reportSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['student-performance', 'class-performance', 'school-performance', 'pomodoro-analytics', 'task-completion', 'flashcard-progress'],
-    index: true
+    enum: ['student-performance', 'class-performance', 'school-performance', 'pomodoro-analytics', 'task-completion', 'flashcard-progress']
   },
-  
+
   // Multi-tenant
   school_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'School',
-    required: true,
-    index: true
+    required: true
   },
-  
+
   // Usuário que gerou o relatório (opcional)
   generated_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  
+
   // Usuário ou turma alvo do relatório
   target: {
     type: mongoose.Schema.Types.ObjectId,
     refPath: 'targetModel'
   },
-  
+
   targetModel: {
     type: String,
     enum: ['User', 'Class']
   },
-  
+
   // Dados do relatório
   data: {
     type: mongoose.Schema.Types.Mixed,
     required: true
   },
-  
+
   // Período do relatório
   period: {
     startDate: {
@@ -51,7 +49,7 @@ const reportSchema = new mongoose.Schema({
       required: true
     }
   },
-  
+
   // Metadados
   metadata: {
     generatedAt: {
@@ -67,7 +65,7 @@ const reportSchema = new mongoose.Schema({
       default: false
     }
   }
-  
+
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -96,18 +94,18 @@ reportSchema.statics.generateStudentPerformanceReport = async function(studentId
   // Obter sessões Pomodoro do aluno
   const pomodoroSessions = await this.db.model('PomodoroSession').find({
     user_id: studentId,
-    'timing.started_at': { 
-      $gte: period.startDate, 
-      $lte: period.endDate 
+    'timing.started_at': {
+      $gte: period.startDate,
+      $lte: period.endDate
     }
   });
 
   // Obter tarefas do aluno
   const tasks = await this.db.model('Task').find({
     'assigned_to.user': studentId,
-    createdAt: { 
-      $gte: period.startDate, 
-      $lte: period.endDate 
+    createdAt: {
+      $gte: period.startDate,
+      $lte: period.endDate
     }
   });
 
@@ -175,12 +173,12 @@ function calculateOverallScore(pomodoroCompletion, taskCompletion, avgProductivi
   // - Completude Tarefas: 30%
   // - Produtividade: 25%
   // - Foco: 20%
-  
-  const weightedScore = (pomodoroCompletion * 0.25 * 100) + 
-                       (taskCompletion * 0.30 * 100) + 
-                       (avgProductivity * 0.25) + 
+
+  const weightedScore = (pomodoroCompletion * 0.25 * 100) +
+                       (taskCompletion * 0.30 * 100) +
+                       (avgProductivity * 0.25) +
                        (avgFocus * 0.20);
-  
+
   return Math.min(100, Math.max(0, weightedScore));
 }
 

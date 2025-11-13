@@ -193,7 +193,6 @@ userSchema.pre('save', function(next) {
 });
 
 // Índices para otimização
-userSchema.index({ email: 1 });
 userSchema.index({ school_id: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ status: 1 });

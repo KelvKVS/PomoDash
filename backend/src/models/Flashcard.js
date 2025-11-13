@@ -4,14 +4,12 @@ const flashcardSchema = new mongoose.Schema({
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   school_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'School',
-    required: true,
-    index: true
+    required: true
   },
   question: {
     type: String,

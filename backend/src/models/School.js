@@ -161,8 +161,6 @@ schoolSchema.pre('save', function(next) {
 });
 
 // Índices para otimização
-schoolSchema.index({ slug: 1 });
-schoolSchema.index({ email: 1 });
 schoolSchema.index({ status: 1 });
 schoolSchema.index({ 'subscription.endDate': 1 });
 

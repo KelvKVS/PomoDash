@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-require('dotenv').config({ path: '../../.env' });
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
 const User = require('../models/User');
 const School = require('../models/School');
@@ -17,6 +17,8 @@ const connectDB = async () => {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      useNewUrlParser: true,
+      useUnifiedTopology: true
     });
 
     console.log(`MongoDB conectado: ${conn.connection.host}`);
@@ -57,7 +59,7 @@ const seedDatabase = async () => {
     // Criar usuário global admin
     const globalAdmin = new User({
       name: 'Administrador Global',
-      email: 'admin@aesa.edu.br',
+      email: 'global_admin@aesa.edu.br', // Alterando o email para evitar conflito com o admin da escola
       password: '123456', // Será hasheada automaticamente pelo middleware
       role: 'global_admin',
       status: 'active',
@@ -111,7 +113,7 @@ const seedDatabase = async () => {
 
     console.log('\nUsuários de exemplo da AESA criados com sucesso!');
     console.log('Credenciais de exemplo:');
-    console.log('Global Admin: admin@aesa.edu.br - senha: 123456');
+    console.log('Global Admin: global_admin@aesa.edu.br - senha: 123456');
     console.log('School Admin: admin@aesa.edu.br - senha: 123456');
     console.log('Professor: professor@aesa.edu.br - senha: 123456');
     console.log('Aluno: aluno@aesa.edu.br - senha: 123456');

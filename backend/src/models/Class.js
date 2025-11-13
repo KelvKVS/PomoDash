@@ -148,7 +148,6 @@ classSchema.virtual('studentCount').get(function() {
 // Índices para otimização
 classSchema.index({ school_id: 1, status: 1 });
 classSchema.index({ teacher_id: 1, status: 1 });
-classSchema.index({ code: 1 });
 classSchema.index({ academic_year: 1, school_id: 1 });
 classSchema.index({ 'students.user_id': 1 });
 
