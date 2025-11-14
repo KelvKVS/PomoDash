@@ -174,11 +174,10 @@ No diretório raiz, você pode executar:
 2. Importe seu projeto do repositório Git
 3. **Importante**: Durante a importação, configure o "Root Directory" para `frontend`
 4. Na seção "Build & Output Settings", configure:
-   - Framework Preset: `Vite` (ou deixe em branco para auto-detecção)
    - Build Command: `npm run build`
    - Output Directory: `dist`
    - Install Command: `npm install`
 5. Na seção "Environment Variables", adicione:
    - `VITE_API_BASE_URL`: A URL do seu backend no Render (ex: `https://seu-backend.onrender.com/api`)
 
-Após o deploy, o frontend se conectará automaticamente ao seu backend usando a variável definida e todas as rotas do React Router funcionarão corretamente.
+**Importante**: O arquivo `vercel.json` já está configurado corretamente no diretório frontend para funcionar com React Router.
