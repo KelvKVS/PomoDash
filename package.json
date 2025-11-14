@@ -2,14 +2,14 @@
   "name": "pomodash",
   "version": "1.0.0",
   "description": "Plataforma de gerenciamento educacional multi-tenant com métodos de produtividade",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
     "frontend": "cd frontend && npm run dev",
     "backend": "cd backend && npm run dev",
     "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install",
     "build": "cd frontend && npm install && npm run build",
-    "start": "cd backend && npm start"
+    "start": "node server.js"
   },
   "keywords": [
     "education",
@@ -30,10 +30,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/seu-usuario/pomodash.git"
+    "url": "https://github.com/KelvKVS/PomoDash"
   },
   "bugs": {
-    "url": "https://github.com/seu-usuario/pomodash/issues"
+    "url": "https://github.com/KelvKVS/PomoDash/issues"
   },
-  "homepage": "https://github.com/seu-usuario/pomodash#readme"
+  "homepage": "https://github.com/KelvKVS/PomoDash#readme",
+  "dependencies": {
+    "mongodb": "^7.0.0"
+  }
 }
