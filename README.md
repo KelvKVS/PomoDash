@@ -172,12 +172,12 @@ No diretório raiz, você pode executar:
 
 1. Crie uma conta no Vercel
 2. Importe seu projeto do repositório Git
-3. Escolha o diretório `frontend`
+3. **Importante**: Durante a importação, configure o "Root Directory" para `frontend`
 4. Na seção "Build & Output Settings", configure:
    - Framework Preset: `Vite` (ou deixe em branco para auto-detecção)
-   - Build Command: `cd frontend && npm run build`
+   - Build Command: `npm run build`
    - Output Directory: `dist`
-   - Install Command: `cd frontend && npm install`
+   - Install Command: `npm install`
 5. Na seção "Environment Variables", adicione:
    - `VITE_API_BASE_URL`: A URL do seu backend no Render (ex: `https://seu-backend.onrender.com/api`)
 

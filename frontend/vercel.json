@@ -1,41 +1,5 @@
 {
-  "version": 2,
-  "name": "pomodash-frontend",
-  "framework": "vite",
-  "headers": [
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/vite.svg",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/favicon.ico",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ],
   "rewrites": [
-    {
-      "source": "/((?!assets|vite.svg|favicon.ico).*)",
-      "destination": "/index.html"
-    }
-  ],
-  "public": true
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
