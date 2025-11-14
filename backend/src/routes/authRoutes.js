@@ -11,6 +11,9 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Log para debug
+console.log('🔄 Carregando authRoutes...');
+
 // Utilitários para JWT
 const generateTokens = (userId) => {
   const accessToken = jwt.sign(
@@ -189,9 +192,13 @@ const getAccessAreas = (role) => {
 // @desc    Login de usuário
 // @access  Public
 router.post('/login', loginValidation, async (req, res) => {
+  console.log('🔐 Rota de login acessada:', req.method, req.url);
+  console.log('📧 Email recebido:', req.body.email); // Apenas para debug
+
   try {
     // Verificar se o banco de dados está disponível
     if (mongoose.connection.readyState !== 1) {
+      console.log('⚠️ Banco de dados não está disponível');
       return res.status(503).json({
         status: 'error',
         message: 'Serviço temporariamente indisponível devido a problemas com o banco de dados'
@@ -200,6 +207,7 @@ router.post('/login', loginValidation, async (req, res) => {
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Erros de validação:', errors.array());
       return res.status(400).json({
         status: 'error',
         message: 'Dados de entrada inválidos',
@@ -722,4 +730,5 @@ router.put('/profile', auth, [
   }
 });
 
+console.log('✅ authRoutes carregado com sucesso');
 module.exports = router;
