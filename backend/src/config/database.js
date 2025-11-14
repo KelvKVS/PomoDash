@@ -13,9 +13,6 @@ const connectDB = async () => {
       socketTimeoutMS: 45000, // Fecha soquetes após 45 segundos de inatividade
       // tls: true, // Habilita TLS para conexões com Atlas
       retryWrites: true, // Reescreve tentativas
-      // Adicionando mais opções para conexão mais estável
-      useNewUrlParser: true,
-      useUnifiedTopology: true
     });
 
     console.log(`✅ MongoDB conectado: ${conn.connection.host}`);
