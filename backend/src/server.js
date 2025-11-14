@@ -22,6 +22,15 @@ const performanceRoutes = require('./routes/performanceRoutes');
 
 const app = express();
 
+// ⭐ ADICIONADO - Configuração do Trust Proxy para Deploy no Render
+// Configuração para confiar em proxies (essencial para deploys em plataformas como Render)
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
+  app.set('trust proxy', 1);
+} else {
+  // Em desenvolvimento, pode ser útil definir o número esperado de proxies
+  app.set('trust proxy', 1);
+}
+
 // Conectar ao banco de dados com tratamento de erro
 connectDB().catch(err => {
   console.error('⚠️ Falha na conexão com o banco de dados:', err.message);
@@ -40,6 +49,8 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Opções para trabalhar corretamente com proxies
+  trustProxy: true,
 });
 
 app.use('/api', limiter);
