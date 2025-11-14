@@ -42,9 +42,9 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Definir origens permitidas para CORS
-const allowedOrigins = process.env.NODE_ENV === 'production'
+const allowedOrigins = (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
   ? [
-      'https://pomo-dash-khaki.vercel.app/', // Frontend no Vercel
+      'https://pomo-dash-khaki.vercel.app', // Frontend no Vercel
       'https://vercel.com/kelvins-projects-9346729f/pomo-dash/GixDu8R1C8NcrGDSBrv4btiwQiDC', // Branch main do Vercel
       process.env.FRONTEND_URL // URL do frontend do .env
     ].filter(Boolean) // Filtra valores que não são null/undefined
@@ -54,28 +54,45 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
       process.env.FRONTEND_URL // URL do frontend do .env
     ].filter(Boolean); // Filtra valores que não são null/undefined
 
-// CORS
-app.use(cors({
+// Configuração do CORS
+const corsOptions = {
   origin: function(origin, callback) {
     // Permite requisições sem origin (Postman, apps mobile, etc)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'A política CORS não permite acesso deste domínio.';
+      console.log('CORS blocked:', origin); // Log para debug
       return callback(new Error(msg), false);
     }
+    console.log('CORS allowed:', origin); // Log para debug
     return callback(null, true);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-HTTP-Method-Override', 'Accept', 'Access-Control-Allow-Origin', 'Access-Control-Allow-Credentials']
+};
+
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Middleware para lidar com requisições OPTIONS (preflight CORS)
+app.options('*', (req, res) => {
+  const origin = req.get('Origin');
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-HTTP-Method-Override, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Credentials');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 // Middleware para adicionar tenant_id às requisições
 app.use('/api', (req, res, next) => {
@@ -94,6 +111,18 @@ app.use('/api/flashcards', flashcardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/performance', performanceRoutes);
+
+// Log para debug das rotas
+console.log('Rotas montadas:');
+console.log('- /api/auth (authRoutes)');
+console.log('- /api/schools (schoolRoutes)');
+console.log('- /api/users (userRoutes)');
+console.log('- /api/tasks (taskRoutes)');
+console.log('- /api/pomodoro (pomodoroRoutes)');
+console.log('- /api/flashcards (flashcardRoutes)');
+console.log('- /api/reports (reportRoutes)');
+console.log('- /api/classes (classRoutes)');
+console.log('- /api/performance (performanceRoutes)');
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
