@@ -41,12 +41,25 @@ const limiter = rateLimit({
 
 app.use('/api', limiter);
 
+// Definir origens permitidas para CORS
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+      'https://pomo-dash-khaki.vercel.app/', // Frontend no Vercel
+      'https://vercel.com/kelvins-projects-9346729f/pomo-dash/GixDu8R1C8NcrGDSBrv4btiwQiDC', // Branch main do Vercel
+      process.env.FRONTEND_URL // URL do frontend do .env
+    ].filter(Boolean) // Filtra valores que não são null/undefined
+  : [
+      'http://localhost:5173', // Vite default
+      'http://localhost:3001', // React default
+      process.env.FRONTEND_URL // URL do frontend do .env
+    ].filter(Boolean); // Filtra valores que não são null/undefined
+
 // CORS
 app.use(cors({
   origin: function(origin, callback) {
     // Permite requisições sem origin (Postman, apps mobile, etc)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'A política CORS não permite acesso deste domínio.';
       return callback(new Error(msg), false);
