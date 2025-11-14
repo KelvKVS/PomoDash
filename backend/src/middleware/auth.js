@@ -1,11 +1,12 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 
 // Middleware para verificar autenticação
 const auth = async (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         status: 'error',
@@ -17,7 +18,15 @@ const auth = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
+
+      // Verificar se o banco de dados está disponível
+      if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+          status: 'error',
+          message: 'Serviço temporariamente indisponível devido a problemas com o banco de dados'
+        });
+      }
+
       // Buscar usuário no banco
       const user = await User.findById(decoded.user_id)
         .populate('school_id', 'name status')
@@ -56,7 +65,7 @@ const auth = async (req, res, next) => {
           message: 'Token expirado'
         });
       }
-      
+
       return res.status(401).json({
         status: 'error',
         message: 'Token inválido'

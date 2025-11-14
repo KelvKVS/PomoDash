@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 
 const User = require('../models/User');
@@ -45,6 +46,14 @@ const loginValidation = [
 // @access  Public (mas validado pelo school_admin)
 router.post('/register', registerValidation, async (req, res) => {
   try {
+    // Verificar se o banco de dados está disponível
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        status: 'error',
+        message: 'Serviço temporariamente indisponível devido a problemas com o banco de dados'
+      });
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -181,6 +190,14 @@ const getAccessAreas = (role) => {
 // @access  Public
 router.post('/login', loginValidation, async (req, res) => {
   try {
+    // Verificar se o banco de dados está disponível
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        status: 'error',
+        message: 'Serviço temporariamente indisponível devido a problemas com o banco de dados'
+      });
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({

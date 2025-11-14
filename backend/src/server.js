@@ -22,8 +22,11 @@ const performanceRoutes = require('./routes/performanceRoutes');
 
 const app = express();
 
-// Conectar ao banco de dados
-connectDB();
+// Conectar ao banco de dados com tratamento de erro
+connectDB().catch(err => {
+  console.error('⚠️ Falha na conexão com o banco de dados:', err.message);
+  console.error('⚠️ O servidor continuará rodando, mas funcionalidades que requerem banco de dados não estarão disponíveis');
+});
 
 // Middleware de segurança
 app.use(helmet());
