@@ -85,18 +85,6 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware para lidar com requisições OPTIONS (preflight CORS)
-app.options('*', (req, res) => {
-  const origin = req.get('Origin');
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-HTTP-Method-Override, Accept, Access-Control-Allow-Origin, Access-Control-Allow-Credentials');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
-
 // Middleware para adicionar tenant_id às requisições
 app.use('/api', (req, res, next) => {
   // O tenant_id virá do JWT ou header personalizado
