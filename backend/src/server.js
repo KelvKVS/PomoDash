@@ -103,6 +103,20 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/performance', performanceRoutes);
 
+// Rota de debug temporária
+app.post('/debug', (req, res) => {
+  console.log('🔍 Debug - Headers:', req.headers);
+  console.log('🔍 Debug - Body:', req.body);
+  console.log('🔍 Debug - Query:', req.query);
+  res.json({
+    status: 'success',
+    message: 'Debug endpoint reached',
+    headers: req.headers,
+    body: req.body,
+    query: req.query
+  });
+});
+
 // Log para debug das rotas
 console.log('Rotas montadas:');
 console.log('- /api/auth (authRoutes)');
