@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "name": "pomodash-frontend",
+  "framework": "vite",
+  "builds": [
+    {
+      "src": "dist/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "public": true
+}

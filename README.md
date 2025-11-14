@@ -150,3 +150,35 @@ No diretório raiz, você pode executar:
 - `npm run dev` - Inicia frontend e backend simultaneamente
 - `npm run frontend` - Inicia apenas o frontend
 - `npm run backend` - Inicia apenas o backend
+
+## Deploy
+
+### Deploy do Backend no Render
+
+1. Crie uma conta no Render
+2. Crie um novo serviço Web Service
+3. Conecte ao seu repositório Git
+4. Escolha o diretório `backend`
+5. Na seção "Environment Variables", adicione:
+   - `MONGODB_URI`: Sua string de conexão MongoDB Atlas
+   - `NODE_ENV`: `production`
+   - `JWT_SECRET`: Sua chave secreta JWT
+   - `JWT_REFRESH_SECRET`: Sua chave secreta para refresh tokens
+   - `FRONTEND_URL`: URL do seu frontend (ex: `https://seu-frontend.vercel.app`)
+6. Defina o comando de build como: `cd backend && npm install`
+7. Defina o comando de start como: `cd backend && npm start`
+
+### Deploy do Frontend no Vercel
+
+1. Crie uma conta no Vercel
+2. Importe seu projeto do repositório Git
+3. Escolha o diretório `frontend`
+4. Na seção "Build & Output Settings", configure:
+   - Framework Preset: `Other`
+   - Build Command: `cd frontend && npm run build`
+   - Output Directory: `frontend/dist`
+   - Install Command: `cd frontend && npm install`
+5. Na seção "Environment Variables", adicione:
+   - `VITE_API_BASE_URL`: A URL do seu backend no Render (ex: `https://seu-backend.onrender.com/api`)
+
+Após o deploy, o frontend se conectará automaticamente ao seu backend usando a variável definida.
