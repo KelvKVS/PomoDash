@@ -96,8 +96,13 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware para adicionar tenant_id às requisições
+// Middleware para adicionar tenant_id às requisições, mas exceto para autenticação
 app.use('/api', (req, res, next) => {
+  // Pular o middleware de tenant_id para rotas de autenticação (login, register, etc.)
+  // req.path já é relativo ao prefixo '/api', então '/api/auth/login' se torna '/auth/login'
+  if (req.path.startsWith('/auth/')) {
+    return next();
+  }
   // O tenant_id virá do JWT ou header personalizado
   req.tenant_id = req.headers['x-tenant-id'] || req.user?.school_id;
   next();
