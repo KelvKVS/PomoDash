@@ -1,19 +1,16 @@
 {
   "version": 2,
+  "name": "pomodash-backend",
   "builds": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "src": "src/server.js",
+      "use": "@vercel/node"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "src/server.js"
     }
-  ],
-  "buildCommand": "cd frontend && npm install && npx vite build"
+  ]
 }
