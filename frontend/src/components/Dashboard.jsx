@@ -494,12 +494,15 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       // Calcular estatísticas
       const completedTasks = allTasksResponse.data.filter(task =>
         task.assigned_to?.find(assignment =>
-          assignment.user.toString() === user._id.toString() && assignment.status === 'completed'
+          assignment.user && user._id &&
+          assignment.user.toString() === user._id.toString() &&
+          assignment.status === 'completed'
         )
       ).length;
 
       const totalTasks = allTasksResponse.data.filter(task =>
         task.assigned_to?.find(assignment =>
+          assignment.user && user._id &&
           assignment.user.toString() === user._id.toString()
         )
       ).length;
@@ -534,21 +537,12 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   useEffect(() => {
-    // Font Awesome for icons
-    const script = document.createElement('script');
-    script.src = 'https://kit.fontawesome.com/a076d05399.js';
-    script.crossOrigin = 'anonymous';
-    document.body.appendChild(script);
-
     // Carregar dados iniciais quando o componente montar
     loadActiveSession();
     loadRecentSessions();
     loadStats();
     loadFlashcards();
 
-    return () => {
-      document.body.removeChild(script);
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flashcardStats]); // Adicionando flashcardStats como dependência para atualizar quando mudar
 
@@ -649,7 +643,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             {stats.upcomingTasks && stats.upcomingTasks.length > 0 ? (
               <div className="task-list">
                 {stats.upcomingTasks.map(task => {
-                  const assignment = task.assigned_to?.find(a => a.user.toString() === user._id.toString());
+                  const assignment = task.assigned_to?.find(a => a.user && user._id && a.user.toString() === user._id.toString());
                   const status = assignment ? assignment.status : 'pending';
 
                   return (
@@ -766,7 +760,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 <div className="task-list">
                   {tasks && tasks.length > 0 ? (
                     tasks.map(task => {
-                      const assignment = task.assigned_to?.find(a => a.user.toString() === user._id.toString());
+                      const assignment = task.assigned_to?.find(a => a.user && user._id && a.user.toString() === user._id.toString());
                       const status = assignment ? assignment.status : 'pending';
 
                       return (
@@ -798,7 +792,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
 
         {/* Pomodoro Screen */}
         <div className={`screen ${activeScreen === 'pomodoro' ? 'active' : ''}`} id="pomodoro">
-            <div class="card">
+            <div className="card">
                 <div className="session-types">
                   <button onClick={() => selectSession('Pomodoro')} className={`btn-session ${sessionType === 'Pomodoro' || sessionType === 'work' ? 'active' : ''}`}>Pomodoro</button>
                   <button onClick={() => selectSession('Short Break')} className={`btn-session ${sessionType === 'Short Break' || sessionType === 'short_break' ? 'active' : ''}`}>Pausa Curta</button>
@@ -943,8 +937,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
 
         {/* Stats Screen */}
         <div className={`screen ${activeScreen === 'stats' ? 'active' : ''}`} id="stats">
-            <div class="card">
-                <h3 class="card-title">Suas Estatísticas</h3>
+            <div className="card">
+                <h3 className="card-title">Suas Estatísticas</h3>
                 <div className="stats-grid">
                     <div className="stat-item">
                         <h4>Tempo de Foco</h4>
@@ -1002,7 +996,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                     {stats.upcomingTasks && stats.upcomingTasks.length > 0 ? (
                         <div className="task-list">
                             {stats.upcomingTasks.map(task => {
-                                const assignment = task.assigned_to?.find(a => a.user.toString() === user._id.toString());
+                                const assignment = task.assigned_to?.find(a => a.user && user._id && a.user.toString() === user._id.toString());
                                 const status = assignment ? assignment.status : 'pending';
 
                                 return (
@@ -1291,14 +1285,24 @@ styles.innerHTML = `
 
   .flashcard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
     margin-top: 15px;
   }
 
   .flashcard {
-    height: 200px;
+    height: 220px;
     perspective: 1000px;
+    cursor: pointer;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .flashcard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   }
 
   .flashcard-inner {
@@ -1308,6 +1312,7 @@ styles.innerHTML = `
     text-align: center;
     transition: transform 0.6s;
     transform-style: preserve-3d;
+    border-radius: 12px;
   }
 
   .flashcard.flipped .flashcard-inner {
@@ -1320,30 +1325,59 @@ styles.innerHTML = `
     height: 100%;
     backface-visibility: hidden;
     display: flex;
-    align-items: center;
     justify-content: center;
-    padding: 15px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: var(--card-background);
+    align-items: center;
+    padding: 20px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+
+  .flashcard-front {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     color: var(--text-color);
+    border: 2px solid #dee2e6;
   }
 
   .flashcard-back {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    color: white;
     transform: rotateY(180deg);
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .flashcard-front:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  }
+
+  .flashcard-back:hover {
+    background: linear-gradient(135deg, #343a40 0%, #212529 100%);
   }
 
   .btn-delete-flashcard {
     position: absolute;
-    top: 5px;
-    right: 5px;
-    background: var(--danger-color);
+    top: 10px;
+    right: 10px;
+    background: rgba(217, 83, 79, 0.9);
     color: white;
     border: none;
-    border-radius: 4px;
-    padding: 5px;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    transition: all 0.3s ease;
     z-index: 10;
+    font-size: 0.9rem;
+  }
+
+  .btn-delete-flashcard:hover {
+    background: rgba(165, 30, 20, 0.9);
+    transform: scale(1.1);
   }
 
   .flashcard-stats {
