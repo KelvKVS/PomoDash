@@ -43,18 +43,18 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const [newFlashcard, setNewFlashcard] = useState({ question: '', answer: '', tags: [] });
   const [showFlashcardForm, setShowFlashcardForm] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
-  
+
   // Alert State
   const [alert, setAlert] = useState(null);
-  
+
   // Flashcard Stats
-  const { 
-    updateFlashcardStats, 
-    getOverallAccuracy, 
+  const {
+    updateFlashcardStats,
+    getOverallAccuracy,
     getFlashcardStats,
-    stats: flashcardStats 
+    stats: flashcardStats
   } = useFlashcardStats();
-  
+
   // Confirmation Modal State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmCallback, setConfirmCallback] = useState(null);
@@ -84,16 +84,16 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const handleAddTask = async (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
-    
+
     try {
       const taskData = {
         title: newTask.title,
         subject: newTask.subject,
         due_date: newTask.due_date || undefined,
         priority: newTask.priority,
-        assigned_to: [user._id] // Atribuir a tarefa a si mesmo
+        assigned_to: user._id // Enviar apenas o ID do usuário como string
       };
-      
+
       await taskAPI.createTask(taskData);
       setNewTask({ title: '', subject: '', due_date: '', priority: 'medium' });
       setShowTaskForm(false); // Fechar o formulário após criar a tarefa
@@ -159,7 +159,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         type,
         planned_duration: plannedDuration,
       };
-      
+
       const response = await pomodoroAPI.startSession(sessionData);
       setActiveSession(response.data);
       setIsActive(true);
@@ -196,7 +196,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const handleCompleteSession = async () => {
     if (activeSession) {
       try {
-        
+
         setActiveSession(null);
         setIsActive(false);
         loadRecentSessions(); // Atualizar lista de sessões recentes
@@ -380,14 +380,14 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     try {
       // Verifica se temos um arquivo de imagem para upload
       const file = profileImageFile;
-      
+
       let response;
       if (file) {
         // Se houver um arquivo de imagem, usamos FormData para upload
         const formData = new FormData();
         formData.append('name', profileData.name);
         formData.append('profilePicture', file);
-        
+
         response = await authAPI.updateProfile(formData);
       } else {
         // Caso contrário, envia apenas os dados textuais
@@ -395,14 +395,14 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
           name: profileData.name
         });
       }
-      
+
       // Atualiza o localStorage com os novos dados do usuário
       const updatedUser = { ...user, name: response.data.user.name, profilePicture: response.data.user.profilePicture || user?.profilePicture };
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       // Atualiza o estado do usuário no componente pai
       // Aqui você pode chamar uma função passada como prop para atualizar o usuário globalmente
-      
+
       setEditProfile(false);
       // Limpa o arquivo de imagem após salvar
       setProfileImageFile(null);
@@ -438,7 +438,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         setProfileImage(reader.result);
       };
       reader.readAsDataURL(file);
-      
+
       // Armazena o arquivo original para uso durante o salvamento
       setProfileImageFile(file);
     }
@@ -486,38 +486,38 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     try {
       // Carregar estatísticas de Pomodoro
       const pomodoroStats = await pomodoroAPI.getStats();
-      
+
       // Carregar tarefas
       const tasksResponse = await taskAPI.getTasks({ status: 'pending' });
       const allTasksResponse = await taskAPI.getTasks();
-      
+
       // Calcular estatísticas
-      const completedTasks = allTasksResponse.data.filter(task => 
-        task.assigned_to?.find(assignment => 
+      const completedTasks = allTasksResponse.data.filter(task =>
+        task.assigned_to?.find(assignment =>
           assignment.user.toString() === user._id.toString() && assignment.status === 'completed'
         )
       ).length;
-      
-      const totalTasks = allTasksResponse.data.filter(task => 
-        task.assigned_to?.find(assignment => 
+
+      const totalTasks = allTasksResponse.data.filter(task =>
+        task.assigned_to?.find(assignment =>
           assignment.user.toString() === user._id.toString()
         )
       ).length;
-      
+
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
       let focusTime = 0;
       if (pomodoroStats.data && pomodoroStats.data.totalMinutes) {
         focusTime = Math.floor(pomodoroStats.data.totalMinutes);
       }
-      
+
       // Formatar tempo de foco
       const hours = Math.floor(focusTime / 60);
       const minutes = focusTime % 60;
       const focusTimeFormatted = `${hours}h ${minutes}m`;
-      
+
       // Carregar e calcular aproveitamento de flashcards
       const flashcardAcc = getOverallAccuracy();
-      
+
       setStats({
         focusTime: focusTimeFormatted,
         completedTasks,
@@ -526,7 +526,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         recentSessions: [],
         upcomingTasks: tasksResponse.data.slice(0, 3) // Próximas 3 tarefas
       });
-      
+
       setTasks(tasksResponse.data || []);
     } catch (error) {
       setAlert({ message: 'Erro ao carregar estatísticas: ' + error.message, type: 'error' });
@@ -597,8 +597,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         <div className="profile" onClick={() => {openProfileModal(); setSidebarOpen(false);}}>
           <div className="profile-img-container">
             <img src={profileImage} alt="User" className="profile-img" />
-            <button 
-              className="profile-img-upload-btn" 
+            <button
+              className="profile-img-upload-btn"
               title="Alterar foto"
               onClick={triggerImageUpload}
               style={{ display: 'none' }}
@@ -651,7 +651,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 {stats.upcomingTasks.map(task => {
                   const assignment = task.assigned_to?.find(a => a.user.toString() === user._id.toString());
                   const status = assignment ? assignment.status : 'pending';
-                  
+
                   return (
                     <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : ''}`}>
                       <div className="task-content">
@@ -671,7 +671,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
               <p>Você não tem tarefas pendentes no momento.</p>
             )}
           </div>
-          
+
           {/* Últimas sessões de Pomodoro */}
           <div className="card">
             <h3 className="card-title">Suas últimas sessões</h3>
@@ -690,9 +690,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                         {Math.round(session.timing.actual_duration / 60)} min
                       </div>
                       <div className={`session-status ${session.status}`}>
-                        {session.status === 'completed' ? 'Concluído' : 
-                         session.status === 'abandoned' ? 'Abandonado' : 
-                         session.status === 'paused' ? 'Pausado' : 
+                        {session.status === 'completed' ? 'Concluído' :
+                         session.status === 'abandoned' ? 'Abandonado' :
+                         session.status === 'paused' ? 'Pausado' :
                          session.status}
                       </div>
                     </div>
@@ -711,8 +711,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 <h3 className="card-title">Gerenciar Tarefas</h3>
                 {/* Botão para criar tarefa */}
                 <div className="create-task-section">
-                  <button 
-                    className="btn btn-primary" 
+                  <button
+                    className="btn btn-primary"
                     onClick={() => setShowTaskForm(!showTaskForm)}
                   >
                     {showTaskForm ? 'Cancelar' : '+ Criar Nova Tarefa'}
@@ -720,32 +720,32 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                   {showTaskForm && (
                     <form onSubmit={handleAddTask} className="add-task-form" style={{marginTop: '20px'}}>
                       <div className="input-group">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={newTask.title}
                           onChange={(e) => handleNewTaskChange('title', e.target.value)}
-                          placeholder="Título da tarefa" 
+                          placeholder="Título da tarefa"
                           className="add-task-input"
                           required
                         />
                       </div>
                       <div className="input-row">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={newTask.subject}
                           onChange={(e) => handleNewTaskChange('subject', e.target.value)}
-                          placeholder="Disciplina" 
+                          placeholder="Disciplina"
                           className="add-task-input"
                         />
-                        <input 
-                          type="date" 
+                        <input
+                          type="date"
                           value={newTask.due_date}
                           onChange={(e) => handleNewTaskChange('due_date', e.target.value)}
                           className="add-task-input"
                         />
                       </div>
                       <div className="input-row">
-                        <select 
+                        <select
                           value={newTask.priority}
                           onChange={(e) => handleNewTaskChange('priority', e.target.value)}
                           className="add-task-input"
@@ -768,12 +768,12 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                     tasks.map(task => {
                       const assignment = task.assigned_to?.find(a => a.user.toString() === user._id.toString());
                       const status = assignment ? assignment.status : 'pending';
-                      
+
                       return (
                         <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : ''}`}>
-                          <input 
-                            type="checkbox" 
-                            className="task-checkbox" 
+                          <input
+                            type="checkbox"
+                            className="task-checkbox"
                             checked={status === 'completed'}
                             onChange={() => toggleTaskCompletion(task._id, status)}
                           />
@@ -816,7 +816,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                     Resetar
                   </button>
                 </div>
-                
+
                 {/* Exibir sessões recentes */}
                 <div className="recent-sessions">
                   <h4>Sessões Recentes</h4>
@@ -835,9 +835,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                               {Math.round(session.timing.actual_duration / 60)} min
                             </div>
                             <div className={`session-status ${session.status}`}>
-                              {session.status === 'completed' ? 'Concluído' : 
-                               session.status === 'abandoned' ? 'Abandonado' : 
-                               session.status === 'paused' ? 'Pausado' : 
+                              {session.status === 'completed' ? 'Concluído' :
+                               session.status === 'abandoned' ? 'Abandonado' :
+                               session.status === 'paused' ? 'Pausado' :
                                session.status}
                             </div>
                           </div>
@@ -857,8 +857,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             <h3 className="card-title">Seus Flashcards</h3>
             {/* Botão para criar flashcard */}
             <div className="create-flashcard-section">
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={() => setShowFlashcardForm(!showFlashcardForm)}
               >
                 {showFlashcardForm ? 'Cancelar' : '+ Criar Novo Flashcard'}
@@ -866,31 +866,31 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
               {showFlashcardForm && (
                 <form onSubmit={handleCreateFlashcard} className="add-flashcard-form" style={{marginTop: '20px'}}>
                   <div className="input-group">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={newFlashcard.question}
                       onChange={(e) => setNewFlashcard({...newFlashcard, question: e.target.value})}
-                      placeholder="Pergunta" 
+                      placeholder="Pergunta"
                       className="add-flashcard-input"
                       required
                     />
                   </div>
                   <div className="input-group">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={newFlashcard.answer}
                       onChange={(e) => setNewFlashcard({...newFlashcard, answer: e.target.value})}
-                      placeholder="Resposta" 
+                      placeholder="Resposta"
                       className="add-flashcard-input"
                       required
                     />
                   </div>
                   <div className="input-group">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={newFlashcard.tags.join(', ')}
                       onChange={(e) => setNewFlashcard({...newFlashcard, tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)})}
-                      placeholder="Tags (separadas por vírgula)" 
+                      placeholder="Tags (separadas por vírgula)"
                       className="add-flashcard-input"
                     />
                   </div>
@@ -904,7 +904,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 </form>
               )}
             </div>
-            
+
             {flashcards && flashcards.length > 0 ? (
               <div className="flashcard-grid">
                 {flashcards.map(card => (
@@ -926,8 +926,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                         {card.stats?.attempts || 0}
                       </span>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDeleteFlashcard(card._id); }} 
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteFlashcard(card._id); }}
                       className="btn-delete-flashcard"
                     >
                       <i className="fas fa-trash-alt"></i>
@@ -963,7 +963,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                         <p className="stat-value">{recentSessions.length}</p>
                     </div>
                 </div>
-                
+
                 {/* Últimas sessões de Pomodoro */}
                 <div className="recent-activity">
                     <h4>Sessões Recentes</h4>
@@ -982,9 +982,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                                             {Math.round(session.timing.actual_duration / 60)} min
                                         </div>
                                         <div className={`session-status ${session.status}`}>
-                                            {session.status === 'completed' ? 'Concluído' : 
-                                            session.status === 'abandoned' ? 'Abandonado' : 
-                                            session.status === 'paused' ? 'Pausado' : 
+                                            {session.status === 'completed' ? 'Concluído' :
+                                            session.status === 'abandoned' ? 'Abandonado' :
+                                            session.status === 'paused' ? 'Pausado' :
                                             session.status}
                                         </div>
                                     </div>
@@ -995,7 +995,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                         <p>Nenhuma sessão registrada ainda.</p>
                     )}
                 </div>
-                
+
                 {/* Tarefas Recentes */}
                 <div className="recent-activity">
                     <h4>Tarefas Recentes</h4>
@@ -1004,7 +1004,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                             {stats.upcomingTasks.map(task => {
                                 const assignment = task.assigned_to?.find(a => a.user.toString() === user._id.toString());
                                 const status = assignment ? assignment.status : 'pending';
-                                
+
                                 return (
                                     <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : ''}`}>
                                         <div className="task-content">
@@ -1037,20 +1037,20 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             <div className="profile-modal-header">
               <div className="profile-modal-img-container">
                 <img src={profileImage} alt="User" className="profile-modal-img" />
-                <button 
-                  className="profile-img-upload-btn" 
+                <button
+                  className="profile-img-upload-btn"
                   title="Alterar foto"
                   onClick={triggerImageUpload}
                   style={{ display: editProfile ? 'block' : 'none' }}
                 >
                   <i className="fas fa-camera"></i>
                 </button>
-                <input 
+                <input
                   id="profile-image-upload"
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageChange} 
-                  style={{ display: 'none' }} 
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  style={{ display: 'none' }}
                 />
               </div>
               <div className="profile-modal-info">
@@ -1100,9 +1100,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
               </div>
             </div>
             <div className="profile-modal-actions">
-              <button 
-                onClick={toggleDarkMode} 
-                className="theme-toggle-btn" 
+              <button
+                onClick={toggleDarkMode}
+                className="theme-toggle-btn"
                 aria-label={darkMode ? "Alternar para modo claro" : "Alternar para modo escuro"}
               >
                 <div className="theme-toggle-switch">
@@ -1131,11 +1131,11 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       )}
       {alert && <CustomAlert message={alert.message} type={alert.type} onClose={() => setAlert(null)} />}
       {showConfirmModal && (
-        <CustomConfirm 
-          message={confirmMessage} 
-          onConfirm={handleConfirm} 
-          onCancel={handleCancel} 
-          type="warning" 
+        <CustomConfirm
+          message={confirmMessage}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+          type="warning"
         />
       )}
     </div>
@@ -1147,8 +1147,9 @@ const styles = document.createElement('style');
 styles.innerHTML = `
   .container-app {
     display: flex;
-    height: 100vh;
+    min-height: 100vh;
     overflow: hidden;
+    position: relative;
   }
 
   .sidebar {
@@ -1159,27 +1160,9 @@ styles.innerHTML = `
     flex-direction: column;
     transition: transform 0.3s ease;
     z-index: 1000;
-    position: sticky;
+    position: fixed;
     top: 0;
-    height: 100vh;
-  }
-  
-  .container-app {
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  .sidebar {
-    width: 260px;
-    background-color: var(--sidebar-background);
-    color: var(--text-color);
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.3s ease;
-    z-index: 1000;
-    position: sticky;
-    top: 0;
+    left: 0;
     height: 100vh;
     overflow-y: auto;
   }
@@ -1195,6 +1178,8 @@ styles.innerHTML = `
     overflow-y: auto;
     padding: 20px;
     background-color: var(--background);
+    transition: transform 0.3s ease, margin-left 0.3s ease;
+    margin-left: 260px;
     width: calc(100% - 260px);
   }
 
@@ -1463,23 +1448,36 @@ styles.innerHTML = `
   }
 
   @media (max-width: 768px) {
-    .container-app {
-      flex-direction: column;
-    }
-    
     .sidebar {
-      width: 100%;
-      height: auto;
-      max-height: 300px;
+      position: fixed;
       transform: translateX(-100%);
+      width: 80%;
+      max-width: 280px;
     }
-    
+
     .sidebar.open {
       transform: translateX(0);
     }
-    
+
     .main-content {
+      margin-left: 0;
       width: 100%;
+      padding: 80px 15px 20px 15px;
+    }
+
+    .sidebar.open ~ .main-content {
+      filter: blur(2px);
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+      width: 240px;
+    }
+
+    .main-content {
+      margin-left: 240px;
+      width: calc(100% - 240px);
     }
   }
 `;
