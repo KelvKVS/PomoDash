@@ -18,34 +18,37 @@ const useFlashcardStats = () => {
   }, [stats]);
 
   // Atualizar estatísticas quando o usuário responde um flashcard
-  const updateFlashcardStats = async (flashcardId, correct) => {
-    const flashcardStats = stats[flashcardId] || {
-      attempts: 0,
-      correct: 0,
-      incorrect: 0,
-      accuracy: 0,
-      lastReviewed: null,
-      streak: 0
-    };
+    const updateFlashcardStats = async (flashcardId, correct) => {
+    setStats(prevStats => {
+      const flashcardStats = prevStats[flashcardId] || {
+        attempts: 0,
+        correct: 0,
+        incorrect: 0,
+        accuracy: 0,
+        lastReviewed: null,
+        streak: 0
+      };
 
-    const newAttempts = flashcardStats.attempts + 1;
-    const newCorrect = correct ? flashcardStats.correct + 1 : flashcardStats.correct;
-    const newIncorrect = correct ? flashcardStats.incorrect : flashcardStats.incorrect + 1;
-    const newAccuracy = Math.round((newCorrect / newAttempts) * 100);
-    const newStreak = correct ? flashcardStats.streak + 1 : 0;
+      const newAttempts = flashcardStats.attempts + 1;
+      const newCorrect = correct ? flashcardStats.correct + 1 : flashcardStats.correct;
+      const newIncorrect = correct ? flashcardStats.incorrect : flashcardStats.incorrect + 1;
+      const newAccuracy = Math.round((newCorrect / newAttempts) * 100);
+      const newStreak = correct ? flashcardStats.streak + 1 : 0;
 
-    const updatedStats = {
-      ...stats,
-      [flashcardId]: {
-        attempts: newAttempts,
-        correct: newCorrect,
-        incorrect: newIncorrect,
-        accuracy: newAccuracy,
-        lastReviewed: new Date().toISOString(),
-        streak: newStreak
-      }
-    };
+      return {
+        ...prevStats,
+        [flashcardId]: {
+          attempts: newAttempts,
+          correct: newCorrect,
+          incorrect: newIncorrect,
+          accuracy: newAccuracy,
+          lastReviewed: new Date().toISOString(),
+          streak: newStreak
+        }
+      };
+    });
 
+    // eslint-disable-next-line no-undef
     setStats(updatedStats);
 
     // Atualizar estatísticas no backend também

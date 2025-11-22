@@ -454,7 +454,14 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       const response = await pomodoroAPI.getSessions({ limit: 5 });
       setRecentSessions(response.data || []);
     } catch (error) {
-      setAlert({ message: 'Erro ao carregar sessões recentes: ' + error.message, type: 'error' });
+      // Tratar erros de rede de forma mais graciosa
+      if (error.message.includes('Falha na conexão com o servidor') ||
+          error.message.includes('Failed to fetch')) {
+        console.log('Erro de conexão ao carregar sessões recentes (não exibido ao usuário)');
+        // Não exibir alerta para erros de conexão, apenas manter sessões anteriores
+      } else {
+        setAlert({ message: 'Erro ao carregar sessões recentes: ' + error.message, type: 'error' });
+      }
     }
   };
 
@@ -475,8 +482,14 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       }
     } catch (error) {
       // Se não houver sessão ativa, é normal - não faz nada
-      if (!error.message.includes('Nenhuma sessão ativa')) {
-        setAlert({ message: 'Erro ao carregar sessão ativa: ' + error.message, type: 'error' });
+      if (!error.message.includes('Nenhuma sessão ativa encontrada')) {
+        // Verificar se é erro de conexão para não exibir alerta
+        if (!error.message.includes('Falha na conexão com o servidor') &&
+            !error.message.includes('Failed to fetch')) {
+          setAlert({ message: 'Erro ao carregar sessão ativa: ' + error.message, type: 'error' });
+        } else {
+          console.log('Erro de conexão ao carregar sessão ativa (não exibido ao usuário)');
+        }
       }
     }
   };
@@ -488,24 +501,39 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       const pomodoroStats = await pomodoroAPI.getStats();
 
       // Carregar tarefas
-      const tasksResponse = await taskAPI.getTasks({ status: 'pending' });
-      const allTasksResponse = await taskAPI.getTasks();
+      let pendingTasksResponse = { data: [] };
+      let allTasksResponse = { data: [] };
+
+      try {
+        pendingTasksResponse = await taskAPI.getTasks({ status: 'pending' });
+        allTasksResponse = await taskAPI.getTasks();
+      } catch (error) {
+        console.error('Erro ao carregar tarefas:', error.message);
+        // Verificar se é erro de conexão para não exibir alerta
+        if (!error.message.includes('Falha na conexão com o servidor') &&
+            !error.message.includes('Failed to fetch')) {
+          setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
+        } else {
+          console.log('Erro de conexão ao carregar tarefas (não exibido ao usuário)');
+        }
+        // Continuar com arrays vazios para evitar quebra de interface
+      }
 
       // Calcular estatísticas
-      const completedTasks = allTasksResponse.data.filter(task =>
+      const completedTasks = allTasksResponse.data?.filter ? allTasksResponse.data.filter(task =>
         task.assigned_to?.find(assignment =>
           assignment.user && user._id &&
           assignment.user.toString() === user._id.toString() &&
           assignment.status === 'completed'
         )
-      ).length;
+      ).length : 0;
 
-      const totalTasks = allTasksResponse.data.filter(task =>
+      const totalTasks = allTasksResponse.data?.filter ? allTasksResponse.data.filter(task =>
         task.assigned_to?.find(assignment =>
           assignment.user && user._id &&
           assignment.user.toString() === user._id.toString()
         )
-      ).length;
+      ).length : 0;
 
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
       let focusTime = 0;
@@ -527,12 +555,49 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         totalTasks,
         flashcardAccuracy: flashcardAcc,
         recentSessions: [],
-        upcomingTasks: tasksResponse.data.slice(0, 3) // Próximas 3 tarefas
+        upcomingTasks: pendingTasksResponse.data?.slice ? pendingTasksResponse.data.slice(0, 3) : [] // Próximas 3 tarefas
       });
 
-      setTasks(tasksResponse.data || []);
+      // Para exibir na tela de tarefas, carregar todas as tarefas do usuário
+      if (activeScreen === 'tasks') {
+        setTasks(allTasksResponse.data || []);
+      } else {
+        setTasks(pendingTasksResponse.data || []);
+      }
     } catch (error) {
       setAlert({ message: 'Erro ao carregar estatísticas: ' + error.message, type: 'error' });
+    }
+  };
+
+  // Função para carregar tarefas específicas para a tela de tarefas
+  const loadTasksForScreen = async () => {
+    try {
+      let tasksResponse = { data: [] };
+
+      try {
+        tasksResponse = await taskAPI.getTasks();
+      } catch (error) {
+        console.error('Erro ao carregar tarefas para tela:', error.message);
+        if (!error.message.includes('Falha na conexão com o servidor') &&
+            !error.message.includes('Failed to fetch')) {
+          setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
+        } else {
+          console.log('Erro de conexão ao carregar tarefas (não exibido ao usuário)');
+        }
+        // Continuar com arrays vazios para evitar quebra de interface
+      }
+
+      // Filtrar tarefas atribuídas ao usuário logado
+      const userTasks = tasksResponse.data?.filter ? tasksResponse.data.filter(task =>
+        task.assigned_to?.some(assignment =>
+          assignment.user && user._id &&
+          assignment.user.toString() === user._id.toString()
+        )
+      ) : [];
+
+      setTasks(userTasks);
+    } catch (error) {
+      setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
     }
   };
 
@@ -544,7 +609,16 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     loadFlashcards();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flashcardStats]); // Adicionando flashcardStats como dependência para atualizar quando mudar
+  }, []); // Executar apenas uma vez quando o componente monta
+
+  // Efeito para recarregar as tarefas quando a tela ativa mudar
+  useEffect(() => {
+    if (activeScreen === 'tasks') {
+      loadTasksForScreen();
+    } else {
+      loadStats();
+    }
+  }, [activeScreen]);
 
   const pageTitles = {
     'dashboard': 'Dashboard',
