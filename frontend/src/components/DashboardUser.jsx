@@ -545,7 +545,8 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   // Função para carregar as tarefas
   const loadTasks = async () => {
     try {
-      const response = await taskAPI.getTasks({ status: 'pending' });
+      // Carregar todas as tarefas sem filtro de status para ter o conjunto completo
+      const response = await taskAPI.getTasks();
       setTasks(response.data || []);
     } catch (error) {
       console.error('Erro ao carregar tarefas:', error);
@@ -624,12 +625,14 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
 
   // useEffect para carregar dados do professor quando as telas forem acessadas
   useEffect(() => {
-    if (activeScreen === 'professor-tasks') {
+    if (activeScreen === 'tasks') {
+      loadTasks(); // Recarregar tarefas quando entra na tela de tarefas
+    } else if (activeScreen === 'professor-tasks') {
       loadProfessorTasks();
     } else if (activeScreen === 'professor-flashcards') {
       loadProfessorFlashcards();
     }
-  }, [activeScreen, loadProfessorFlashcards, loadProfessorTasks]);
+  }, [activeScreen, loadProfessorFlashcards, loadProfessorTasks, loadTasks]);
 
   const pageTitles = {
     'dashboard': 'Dashboard Geral',

@@ -62,17 +62,37 @@ function App() {
       document.body.classList.add('dark-theme');
     }
     
-    // SEMPRE forçar o usuário a ir para a tela de login
-    // Isso garante que mesmo com dados de sessão antigos, 
-    // o usuário precise autenticar-se novamente no início
     // Verificar se o usuário já está logado (apenas para manter a sessão ativa)
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    
+
     if (storedUser && token) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+        // Validar se o token ainda é válido fazendo uma chamada de teste
+        // Isso ajuda a detectar incompatibilidades entre servidores
+        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        .then(response => {
+          if (response.ok) {
+            setUser(parsedUser);
+          } else {
+            // Token inválido ou incompatível, limpar
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+          }
+        })
+        .catch(error => {
+          console.error('Erro ao validar token:', error);
+          // Em caso de erro na validação, limpar os dados
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+        });
       } catch (error) {
         console.error('Erro ao parsear usuário do localStorage:', error);
         localStorage.removeItem('token');

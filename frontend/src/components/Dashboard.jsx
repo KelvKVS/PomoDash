@@ -97,8 +97,12 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       await taskAPI.createTask(taskData);
       setNewTask({ title: '', subject: '', due_date: '', priority: 'medium' });
       setShowTaskForm(false); // Fechar o formulário após criar a tarefa
-      // Recarregar as tarefas
-      loadStats(); // Atualiza as estatísticas e tarefas
+      // Recarregar as tarefas - evitar chamada duplicada quando na tela de tarefas
+      if (activeScreen !== 'tasks') {
+        loadStats(); // Atualiza as estatísticas e tarefas para outras telas
+      } else {
+        loadTasksForScreen(); // Atualiza tarefas na tela de tarefas
+      }
       setAlert({ message: 'Tarefa criada com sucesso!', type: 'success' });
     } catch (error) {
       setAlert({ message: 'Erro ao criar tarefa: ' + error.message, type: 'error' });
@@ -109,8 +113,12 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     try {
       const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
       await taskAPI.updateTaskStatus(taskId, newStatus);
-      // Recarregar as tarefas
-      loadStats(); // Atualiza as estatísticas e tarefas
+      // Recarregar as tarefas - evitar chamada duplicada quando na tela de tarefas
+      if (activeScreen !== 'tasks') {
+        loadStats(); // Atualiza as estatísticas e tarefas para outras telas
+      } else {
+        loadTasksForScreen(); // Atualiza tarefas na tela de tarefas
+      }
     } catch (error) {
       setAlert({ message: 'Erro ao atualizar status da tarefa: ' + error.message, type: 'error' });
     }
@@ -120,8 +128,12 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     if (window.confirm('Tem certeza que deseja arquivar esta tarefa?')) {
       try {
         await taskAPI.archiveTask(taskId);
-        // Recarregar as tarefas
-        loadStats(); // Atualiza as estatísticas e tarefas
+        // Recarregar as tarefas - evitar chamada duplicada quando na tela de tarefas
+        if (activeScreen !== 'tasks') {
+          loadStats(); // Atualiza as estatísticas e tarefas para outras telas
+        } else {
+          loadTasksForScreen(); // Atualiza tarefas na tela de tarefas
+        }
         setAlert({ message: 'Tarefa arquivada com sucesso!', type: 'success' });
       } catch (error) {
         setAlert({ message: 'Erro ao arquivar tarefa: ' + error.message, type: 'error' });
@@ -521,18 +533,28 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
 
       // Calcular estatísticas
       const completedTasks = allTasksResponse.data?.filter ? allTasksResponse.data.filter(task =>
-        task.assigned_to?.find(assignment =>
-          assignment.user && user._id &&
-          assignment.user.toString() === user._id.toString() &&
-          assignment.status === 'completed'
-        )
+        task.assigned_to?.find(assignment => {
+          const assignmentUserId = assignment.user?._id || assignment.user;
+          const currentUserId = user._id;
+
+          if (assignmentUserId && currentUserId) {
+            return assignmentUserId.toString() === currentUserId.toString() &&
+                   assignment.status === 'completed';
+          }
+          return false;
+        })
       ).length : 0;
 
       const totalTasks = allTasksResponse.data?.filter ? allTasksResponse.data.filter(task =>
-        task.assigned_to?.find(assignment =>
-          assignment.user && user._id &&
-          assignment.user.toString() === user._id.toString()
-        )
+        task.assigned_to?.find(assignment => {
+          const assignmentUserId = assignment.user?._id || assignment.user;
+          const currentUserId = user._id;
+
+          if (assignmentUserId && currentUserId) {
+            return assignmentUserId.toString() === currentUserId.toString();
+          }
+          return false;
+        })
       ).length : 0;
 
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
@@ -554,8 +576,17 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         completedTasks,
         totalTasks,
         flashcardAccuracy: flashcardAcc,
-        recentSessions: [],
-        upcomingTasks: pendingTasksResponse.data?.slice ? pendingTasksResponse.data.slice(0, 3) : [] // Próximas 3 tarefas
+        // Obter tarefas não concluídas para a dashboard (tarefas restantes) - usando comparação robusta de IDs
+        upcomingTasks: allTasksResponse.data?.filter ? allTasksResponse.data.filter(task =>
+          task.assigned_to?.some(assignment => {
+            const assignmentUserId = assignment.user?._id || assignment.user;
+            const currentUserId = user._id;
+
+            return assignmentUserId && currentUserId &&
+                   assignmentUserId.toString() === currentUserId.toString() &&
+                   assignment.status !== 'completed'; // Apenas tarefas não concluídas
+          })
+        ) : [] // Todas as tarefas restantes (não concluídas)
       });
 
       // Para exibir na tela de tarefas, carregar todas as tarefas do usuário
@@ -572,32 +603,86 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   // Função para carregar tarefas específicas para a tela de tarefas
   const loadTasksForScreen = async () => {
     try {
-      let tasksResponse = { data: [] };
+      console.log('Iniciando loadTasksForScreen...');
 
-      try {
-        tasksResponse = await taskAPI.getTasks();
-      } catch (error) {
-        console.error('Erro ao carregar tarefas para tela:', error.message);
-        if (!error.message.includes('Falha na conexão com o servidor') &&
-            !error.message.includes('Failed to fetch')) {
-          setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
-        } else {
-          console.log('Erro de conexão ao carregar tarefas (não exibido ao usuário)');
-        }
-        // Continuar com arrays vazios para evitar quebra de interface
+      // Obter tarefas diretamente da API
+      const tasksResponse = await taskAPI.getTasks();
+      console.log('Resposta da API de tarefas:', tasksResponse);
+
+      // Verificar se há dados válidos
+      if (!tasksResponse || !tasksResponse.data) {
+        console.log('Nenhum dado de tarefas recebido');
+        setTasks([]);
+        return;
       }
 
-      // Filtrar tarefas atribuídas ao usuário logado
-      const userTasks = tasksResponse.data?.filter ? tasksResponse.data.filter(task =>
-        task.assigned_to?.some(assignment =>
-          assignment.user && user._id &&
-          assignment.user.toString() === user._id.toString()
-        )
-      ) : [];
+      console.log(`Total de tarefas recebidas: ${tasksResponse.data.length}`);
 
-      setTasks(userTasks);
+      // Filtrar tarefas atribuídas ao usuário logado com verificação robusta de IDs
+      const filteredTasks = tasksResponse.data.filter(task => {
+        console.log('Verificando tarefa:', task._id, 'Atribuída a:', task.assigned_to);
+
+        if (!task.assigned_to || !Array.isArray(task.assigned_to)) {
+          console.log('Tarefa não tem assigned_to ou não é array');
+          return false;
+        }
+
+        // Procurar por tarefa atribuída ao usuário atual com verificação robusta
+        const isUserAssigned = task.assigned_to.some(assignment => {
+          if (!assignment || !assignment.user) {
+            console.log('Assignment ou assignment.user inválido');
+            return false;
+          }
+
+          // Obter o ID do usuário - pode ser um objeto com _id, id ou uma string diretamente
+          let assignmentUserId;
+          if (typeof assignment.user === 'string') {
+            assignmentUserId = assignment.user;
+          } else if (assignment.user && typeof assignment.user._id !== 'undefined') {
+            assignmentUserId = assignment.user._id;
+          } else if (assignment.user && typeof assignment.user.id !== 'undefined') {
+            assignmentUserId = assignment.user.id;
+          } else {
+            console.log('Formato de assignment.user desconhecido:', assignment.user);
+            return false;
+          }
+
+          // Obter o ID do usuário logado (pode estar em user._id ou user.id)
+          const currentUserId = user ? (user._id || user.id) : null;
+
+          console.log('Comparando IDs - Assignment:', assignmentUserId, 'Current:', currentUserId);
+
+          // Comparar IDs convertendo ambos para string
+          const match = assignmentUserId && currentUserId &&
+                 assignmentUserId.toString() === currentUserId.toString();
+
+          if (match) {
+            console.log('Match encontrado para tarefa:', task._id);
+          }
+
+          return match;
+        });
+
+        return isUserAssigned;
+      });
+
+      console.log(`Tarefas filtradas para o usuário: ${filteredTasks.length}`);
+      console.log('IDs das tarefas filtradas:', filteredTasks.map(t => t._id));
+
+      // Atualizar o estado com as tarefas filtradas
+      setTasks(filteredTasks);
+
+      // Caso as tarefas estiverem vazias, exibir mensagem de debug
+      if (filteredTasks.length === 0) {
+        console.log('AVISO: Nenhuma tarefa encontrada para o usuário atual');
+        console.log('Usuário logado:', user);
+        console.log('Verificando se o usuário tem ID:', user && (user._id || user.id));
+      }
+
     } catch (error) {
+      console.error('Erro completo ao carregar tarefas:', error);
       setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
+      setTasks([]); // Garantir que o estado seja limpo em caso de erro
     }
   };
 
@@ -608,17 +693,37 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     loadStats();
     loadFlashcards();
 
+    // Certificar-se de carregar as tarefas corretas para a tela inicial se for a tela de tarefas
+    if (activeScreen === 'tasks') {
+      setTimeout(() => {
+        loadTasksForScreen();
+      }, 100); // Pequeno delay para garantir que o estado esteja sincronizado
+    }
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Executar apenas uma vez quando o componente monta
 
   // Efeito para recarregar as tarefas quando a tela ativa mudar
   useEffect(() => {
+    console.log('activeScreen mudou para:', activeScreen);
+    // Sempre recarregar tarefas quando a tela mudar para 'tasks'
     if (activeScreen === 'tasks') {
+      console.log('Carregando tarefas para a tela de tarefas');
       loadTasksForScreen();
     } else {
+      console.log('Carregando estatísticas para outras telas');
       loadStats();
     }
-  }, [activeScreen]);
+  }, [activeScreen, user]); // Adicionando user como dependência para garantir atualização completa
+
+  // Efeito para garantir que tarefas sejam carregadas imediatamente ao inicializar
+  useEffect(() => {
+    // Se estiver na tela de tarefas e o usuário estiver definido, carregar tarefas imediatamente
+    if (activeScreen === 'tasks' && user && user._id) {
+      console.log('Forçando carregamento de tarefas na inicialização na tela de tarefas');
+      loadTasksForScreen();
+    }
+  }, [activeScreen, user]); // Carregar quando a tela ou o usuário mudar
 
   const pageTitles = {
     'dashboard': 'Dashboard',
@@ -713,11 +818,16 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             </div>
           </div>
           <div className="card">
-            <h3 className="card-title">Suas próximas tarefas</h3>
+            <h3 className="card-title">Suas últimas 5 tarefas restantes</h3>
             {stats.upcomingTasks && stats.upcomingTasks.length > 0 ? (
               <div className="task-list">
-                {stats.upcomingTasks.map(task => {
-                  const assignment = task.assigned_to?.find(a => a.user && user._id && a.user.toString() === user._id.toString());
+                {stats.upcomingTasks.slice(0, 5).map(task => {  // Apenas as 5 primeiras tarefas
+                  const assignment = task.assigned_to?.find(a => {
+                    const assignmentUserId = a.user?._id || a.user;
+                    const currentUserId = user._id;
+                    return assignmentUserId && currentUserId &&
+                           assignmentUserId.toString() === currentUserId.toString();
+                  });
                   const status = assignment ? assignment.status : 'pending';
 
                   return (
@@ -736,7 +846,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 })}
               </div>
             ) : (
-              <p>Você não tem tarefas pendentes no momento.</p>
+              <p>Você não tem tarefas restantes no momento.</p>
             )}
           </div>
 
@@ -834,7 +944,12 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 <div className="task-list">
                   {tasks && tasks.length > 0 ? (
                     tasks.map(task => {
-                      const assignment = task.assigned_to?.find(a => a.user && user._id && a.user.toString() === user._id.toString());
+                      const assignment = task.assigned_to?.find(a => {
+                        const assignmentUserId = a.user?._id || a.user;
+                        const currentUserId = user._id;
+                        return assignmentUserId && currentUserId &&
+                               assignmentUserId.toString() === currentUserId.toString();
+                      });
                       const status = assignment ? assignment.status : 'pending';
 
                       return (
@@ -1066,11 +1181,16 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
 
                 {/* Tarefas Recentes */}
                 <div className="recent-activity">
-                    <h4>Tarefas Recentes</h4>
+                    <h4>Últimas 5 tarefas restantes</h4>
                     {stats.upcomingTasks && stats.upcomingTasks.length > 0 ? (
                         <div className="task-list">
-                            {stats.upcomingTasks.map(task => {
-                                const assignment = task.assigned_to?.find(a => a.user && user._id && a.user.toString() === user._id.toString());
+                            {stats.upcomingTasks.slice(0, 5).map(task => {  // Apenas as 5 primeiras tarefas
+                                const assignment = task.assigned_to?.find(a => {
+                                  const assignmentUserId = a.user?._id || a.user;
+                                  const currentUserId = user._id;
+                                  return assignmentUserId && currentUserId &&
+                                         assignmentUserId.toString() === currentUserId.toString();
+                                });
                                 const status = assignment ? assignment.status : 'pending';
 
                                 return (
@@ -1089,7 +1209,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                             })}
                         </div>
                     ) : (
-                        <p>Você não tem tarefas recentes.</p>
+                        <p>Você não tem tarefas restantes.</p>
                     )}
                 </div>
             </div>
