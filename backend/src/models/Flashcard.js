@@ -27,7 +27,15 @@ const flashcardSchema = new mongoose.Schema({
     type: String,
     trim: true,
     lowercase: true
-  }]
+  }],
+  stats: {
+    attempts: { type: Number, default: 0 },
+    correct: { type: Number, default: 0 },
+    incorrect: { type: Number, default: 0 },
+    accuracy: { type: Number, default: 0 },
+    lastReviewed: { type: Date, default: null },
+    streak: { type: Number, default: 0 }
+  }
 }, {
   timestamps: true
 });

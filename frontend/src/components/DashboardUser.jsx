@@ -1455,27 +1455,121 @@ styles.innerHTML = `
 
   .flashcard-stats {
     position: absolute;
-    bottom: 5px;
-    right: 5px;
+    bottom: 10px;
+    right: 10px;
     display: flex;
-    gap: 5px;
+    gap: 8px;
     z-index: 5;
   }
 
   .accuracy-badge, .attempts-badge {
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    border-radius: 10px;
-    padding: 2px 6px;
-    font-size: 0.7em;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.1);
   }
 
   .accuracy-badge {
-    background: linear-gradient(45deg, #10b981, #34d399);
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
   }
 
   .attempts-badge {
-    background: linear-gradient(45deg, #d9534f, #c9302c);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+  }
+
+  /* Estilo melhorado para o flashcard */
+  .flashcard {
+    height: 240px;
+    perspective: 1000px;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+
+  .flashcard-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s;
+    transform-style: preserve-3d;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .flashcard.flipped .flashcard-inner {
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-front,
+  .flashcard-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .flashcard-front {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #333;
+    border: 1px solid #dee2e6;
+  }
+
+  .flashcard-back {
+    background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+    color: white;
+    transform: rotateY(180deg);
+    font-size: 1.2rem;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .btn-delete-flashcard {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  .btn-delete-flashcard:hover {
+    background: #ff6b6b;
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .flashcard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    margin-top: 20px;
   }
 
   /* Estilos para as telas do professor */

@@ -18,7 +18,7 @@ const useFlashcardStats = () => {
   }, [stats]);
 
   // Atualizar estatísticas quando o usuário responde um flashcard
-    const updateFlashcardStats = async (flashcardId, correct) => {
+  const updateFlashcardStats = async (flashcardId, correct) => {
     setStats(prevStats => {
       const flashcardStats = prevStats[flashcardId] || {
         attempts: 0,
@@ -47,9 +47,6 @@ const useFlashcardStats = () => {
         }
       };
     });
-
-    // eslint-disable-next-line no-undef
-    setStats(updatedStats);
 
     // Atualizar estatísticas no backend também
     try {
