@@ -584,6 +584,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       // Calcular estatísticas de tarefas do usuário logado
       let completedTasks = 0;
       let totalTasks = 0;
+      let userTasks = [];
 
       if (allTasksResponse.data && Array.isArray(allTasksResponse.data)) {
         allTasksResponse.data.forEach(task => {
@@ -598,6 +599,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                 if (assignment.status === 'completed') {
                   completedTasks++;
                 }
+                userTasks.push({ ...task, currentAssignment: assignment });
               }
             });
           }

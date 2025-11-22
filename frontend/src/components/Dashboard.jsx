@@ -532,7 +532,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       // Calcular estatísticas de tarefas do usuário logado
       let completedTasks = 0;
       let totalTasks = 0;
-      let userTasks = [];
+      const userTasksWithAssignments = [];
 
       if (allTasksResponse.data && Array.isArray(allTasksResponse.data)) {
         allTasksResponse.data.forEach(task => {
@@ -547,7 +547,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 if (assignment.status === 'completed') {
                   completedTasks++;
                 }
-                userTasks.push({ ...task, currentAssignment: assignment });
+                userTasksWithAssignments.push({ ...task, currentAssignment: assignment });
               }
             });
           }
@@ -574,12 +574,12 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         totalTasks,
         flashcardAccuracy: flashcardAcc,
         // Obter tarefas não concluídas para a dashboard (tarefas restantes)
-        upcomingTasks: userTasks.filter(task => task.currentAssignment?.status !== 'completed')
+        upcomingTasks: userTasksWithAssignments.filter(task => task.currentAssignment?.status !== 'completed')
       });
 
       // Para exibir na tela de tarefas, carregar todas as tarefas do usuário
       if (activeScreen === 'tasks') {
-        setTasks(userTasks.map(task => ({...task, currentAssignment: task.currentAssignment})));
+        setTasks(userTasksWithAssignments);
       }
     } catch (error) {
       setAlert({ message: 'Erro ao carregar estatísticas: ' + error.message, type: 'error' });
