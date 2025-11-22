@@ -530,19 +530,31 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       }
 
       // Calcular estatísticas de tarefas do usuário logado
+      console.log('Dados do usuário:', user);
+      console.log('Todas as tarefas recebidas:', allTasksResponse.data);
+
       let completedTasks = 0;
       let totalTasks = 0;
       const userTasksWithAssignments = [];
 
       if (allTasksResponse.data && Array.isArray(allTasksResponse.data)) {
         allTasksResponse.data.forEach(task => {
+          console.log('Processando tarefa:', task._id, 'assigned_to:', task.assigned_to);
+
           if (task.assigned_to && Array.isArray(task.assigned_to)) {
             task.assigned_to.forEach(assignment => {
+              // Verificação robusta de IDs que lida com diferentes formatos
               const assignmentUserId = assignment.user?._id || assignment.user;
-              const currentUserId = user._id;
+              const currentUserId = user._id || user.id;
 
-              if (assignmentUserId && currentUserId &&
-                  assignmentUserId.toString() === currentUserId.toString()) {
+              // Garantir que ambos sejam strings para comparação
+              const assignmentIdStr = assignmentUserId ? assignmentUserId.toString() : null;
+              const userIdStr = currentUserId ? currentUserId.toString() : null;
+
+              console.log('Comparando IDs:', assignmentIdStr, 'com', userIdStr, 'Resultado:', assignmentIdStr === userIdStr);
+
+              if (assignmentIdStr && userIdStr && assignmentIdStr === userIdStr) {
+                console.log('Tarefa encontrada para o usuário:', task.title, 'Status:', assignment.status);
                 totalTasks++;
                 if (assignment.status === 'completed') {
                   completedTasks++;
@@ -553,6 +565,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
           }
         });
       }
+
+      console.log('Estatísticas calculadas - Total:', totalTasks, 'Concluídas:', completedTasks, 'Tarefas do usuário:', userTasksWithAssignments.length);
 
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
       let focusTime = 0;
