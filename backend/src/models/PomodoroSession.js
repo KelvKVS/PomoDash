@@ -20,8 +20,7 @@ const pomodoroSessionSchema = new mongoose.Schema({
   // Tarefa associada (opcional)
   task_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Task',
-    index: true
+    ref: 'Task'
   },
   
   // Tipo de sessão
@@ -181,7 +180,6 @@ pomodoroSessionSchema.virtual('effectiveness').get(function() {
 // Índices para otimização
 pomodoroSessionSchema.index({ school_id: 1, user_id: 1 });
 pomodoroSessionSchema.index({ user_id: 1, createdAt: -1 });
-pomodoroSessionSchema.index({ task_id: 1 });
 pomodoroSessionSchema.index({ status: 1 });
 pomodoroSessionSchema.index({ type: 1 });
 pomodoroSessionSchema.index({ 'timing.started_at': -1 });

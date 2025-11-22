@@ -513,11 +513,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       const pomodoroStats = await pomodoroAPI.getStats();
 
       // Carregar tarefas
-      let pendingTasksResponse = { data: [] };
       let allTasksResponse = { data: [] };
 
       try {
-        pendingTasksResponse = await taskAPI.getTasks({ status: 'pending' });
         allTasksResponse = await taskAPI.getTasks();
       } catch (error) {
         console.error('Erro ao carregar tarefas:', error.message);
@@ -531,31 +529,30 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         // Continuar com arrays vazios para evitar quebra de interface
       }
 
-      // Calcular estatísticas
-      const completedTasks = allTasksResponse.data?.filter ? allTasksResponse.data.filter(task =>
-        task.assigned_to?.find(assignment => {
-          const assignmentUserId = assignment.user?._id || assignment.user;
-          const currentUserId = user._id;
+      // Calcular estatísticas de tarefas do usuário logado
+      let completedTasks = 0;
+      let totalTasks = 0;
+      let userTasks = [];
 
-          if (assignmentUserId && currentUserId) {
-            return assignmentUserId.toString() === currentUserId.toString() &&
-                   assignment.status === 'completed';
+      if (allTasksResponse.data && Array.isArray(allTasksResponse.data)) {
+        allTasksResponse.data.forEach(task => {
+          if (task.assigned_to && Array.isArray(task.assigned_to)) {
+            task.assigned_to.forEach(assignment => {
+              const assignmentUserId = assignment.user?._id || assignment.user;
+              const currentUserId = user._id;
+
+              if (assignmentUserId && currentUserId &&
+                  assignmentUserId.toString() === currentUserId.toString()) {
+                totalTasks++;
+                if (assignment.status === 'completed') {
+                  completedTasks++;
+                }
+                userTasks.push({ ...task, currentAssignment: assignment });
+              }
+            });
           }
-          return false;
-        })
-      ).length : 0;
-
-      const totalTasks = allTasksResponse.data?.filter ? allTasksResponse.data.filter(task =>
-        task.assigned_to?.find(assignment => {
-          const assignmentUserId = assignment.user?._id || assignment.user;
-          const currentUserId = user._id;
-
-          if (assignmentUserId && currentUserId) {
-            return assignmentUserId.toString() === currentUserId.toString();
-          }
-          return false;
-        })
-      ).length : 0;
+        });
+      }
 
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
       let focusTime = 0;
@@ -576,24 +573,13 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         completedTasks,
         totalTasks,
         flashcardAccuracy: flashcardAcc,
-        // Obter tarefas não concluídas para a dashboard (tarefas restantes) - usando comparação robusta de IDs
-        upcomingTasks: allTasksResponse.data?.filter ? allTasksResponse.data.filter(task =>
-          task.assigned_to?.some(assignment => {
-            const assignmentUserId = assignment.user?._id || assignment.user;
-            const currentUserId = user._id;
-
-            return assignmentUserId && currentUserId &&
-                   assignmentUserId.toString() === currentUserId.toString() &&
-                   assignment.status !== 'completed'; // Apenas tarefas não concluídas
-          })
-        ) : [] // Todas as tarefas restantes (não concluídas)
+        // Obter tarefas não concluídas para a dashboard (tarefas restantes)
+        upcomingTasks: userTasks.filter(task => task.currentAssignment?.status !== 'completed')
       });
 
       // Para exibir na tela de tarefas, carregar todas as tarefas do usuário
       if (activeScreen === 'tasks') {
-        setTasks(allTasksResponse.data || []);
-      } else {
-        setTasks(pendingTasksResponse.data || []);
+        setTasks(userTasks.map(task => ({...task, currentAssignment: task.currentAssignment})));
       }
     } catch (error) {
       setAlert({ message: 'Erro ao carregar estatísticas: ' + error.message, type: 'error' });

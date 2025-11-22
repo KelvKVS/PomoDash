@@ -545,9 +545,27 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   // Função para carregar as tarefas
   const loadTasks = async () => {
     try {
-      // Carregar todas as tarefas sem filtro de status para ter o conjunto completo
+      // Carregar todas as tarefas e filtrar para o usuário logado
       const response = await taskAPI.getTasks();
-      setTasks(response.data || []);
+
+      if (response.data && Array.isArray(response.data)) {
+        // Filtrar tarefas atribuídas ao usuário logado
+        const userTasks = response.data.filter(task => {
+          if (task.assigned_to && Array.isArray(task.assigned_to)) {
+            return task.assigned_to.some(assignment => {
+              const assignmentUserId = assignment.user?._id || assignment.user;
+              const currentUserId = user._id;
+
+              return assignmentUserId && currentUserId &&
+                     assignmentUserId.toString() === currentUserId.toString();
+            });
+          }
+          return false;
+        });
+        setTasks(userTasks);
+      } else {
+        setTasks([]);
+      }
     } catch (error) {
       console.error('Erro ao carregar tarefas:', error);
     }
@@ -559,44 +577,54 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     try {
       // Carregar estatísticas de Pomodoro
       const pomodoroStats = await pomodoroAPI.getStats();
-      
+
       // Carregar tarefas
       const allTasksResponse = await taskAPI.getTasks();
-      
-      // Calcular estatísticas
-      const completedTasks = allTasksResponse.data.filter(task => 
-        task.assigned_to?.find(assignment => 
-          assignment.user.toString() === user._id.toString() && assignment.status === 'completed'
-        )
-      ).length;
-      
-      const totalTasks = allTasksResponse.data.filter(task => 
-        task.assigned_to?.find(assignment => 
-          assignment.user.toString() === user._id.toString()
-        )
-      ).length;
-      
+
+      // Calcular estatísticas de tarefas do usuário logado
+      let completedTasks = 0;
+      let totalTasks = 0;
+
+      if (allTasksResponse.data && Array.isArray(allTasksResponse.data)) {
+        allTasksResponse.data.forEach(task => {
+          if (task.assigned_to && Array.isArray(task.assigned_to)) {
+            task.assigned_to.forEach(assignment => {
+              const assignmentUserId = assignment.user?._id || assignment.user;
+              const currentUserId = user._id;
+
+              if (assignmentUserId && currentUserId &&
+                  assignmentUserId.toString() === currentUserId.toString()) {
+                totalTasks++;
+                if (assignment.status === 'completed') {
+                  completedTasks++;
+                }
+              }
+            });
+          }
+        });
+      }
+
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
       let focusTime = 0;
       if (pomodoroStats.data && pomodoroStats.data.totalMinutes) {
         focusTime = Math.floor(pomodoroStats.data.totalMinutes);
       }
-      
+
       // Formatar tempo de foco
       const hours = Math.floor(focusTime / 60);
       const minutes = focusTime % 60;
       const focusTimeFormatted = `${hours}h ${minutes}m`;
-      
+
       // Carregar e calcular aproveitamento de flashcards
       const flashcardAcc = getOverallAccuracy();
-      
+
       setStats({
         focusTime: focusTimeFormatted,
         completedTasks,
         totalTasks,
         flashcardAccuracy: flashcardAcc
       });
-      
+
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     }
