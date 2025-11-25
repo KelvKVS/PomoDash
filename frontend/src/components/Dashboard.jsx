@@ -18,6 +18,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const [newTask, setNewTask] = useState({
     title: '',
     subject: '',
+    description: '',
+    attachments: [],
     due_date: '',
     priority: 'medium'
   });
@@ -109,6 +111,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       const taskData = {
         title: newTask.title,
         subject: newTask.subject,
+        description: newTask.description,
+        attachments: newTask.attachments,
         due_date: newTask.due_date || undefined,
         priority: newTask.priority,
         assigned_to: user._id // Enviar apenas o ID do usuário como string
@@ -144,7 +148,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
+  const handleArchiveTask = async (taskId) => {
     showConfirmation(
       'Tem certeza que deseja arquivar esta tarefa?',
       async () => {
@@ -165,11 +169,91 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     );
   };
 
+  const handleDeleteTask = async (taskId) => {
+    showConfirmation(
+      'Tem certeza que deseja excluir permanentemente esta tarefa?',
+      async () => {
+        try {
+          await taskAPI.deleteTask(taskId); // Supondo que exista um endpoint para exclusão permanente
+          // Recarregar as tarefas - evitar chamada duplicada quando na tela de tarefas
+          if (activeScreen !== 'tasks') {
+            loadStats(); // Atualiza as estatísticas e tarefas para outras telas
+          } else {
+            loadTasksForScreen(); // Atualiza tarefas na tela de tarefas
+          }
+          setAlert({ message: 'Tarefa excluída com sucesso!', type: 'success' });
+        } catch (error) {
+          setAlert({ message: 'Erro ao excluir tarefa: ' + error.message, type: 'error' });
+        }
+      },
+      'danger'
+    );
+  };
+
+  const [isEditingTask, setIsEditingTask] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+
+  const showEditTaskModal = (task) => {
+    setEditingTask(task);
+    setIsEditingTask(true);
+  };
+
+  const hideEditTaskModal = () => {
+    setIsEditingTask(false);
+    setEditingTask(null);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!editingTask) return;
+
+    try {
+      await taskAPI.updateTask(editingTask._id, {
+        title: editingTask.title,
+        subject: editingTask.subject,
+        description: editingTask.description,
+        due_date: editingTask.due_date,
+        priority: editingTask.priority,
+        attachments: editingTask.attachments
+      });
+
+      // Fechar o modal
+      hideEditTaskModal();
+
+      // Recarregar as tarefas
+      if (activeScreen !== 'tasks') {
+        loadStats(); // Atualiza as estatísticas e tarefas para outras telas
+      } else {
+        loadTasksForScreen(); // Atualiza tarefas na tela de tarefas
+      }
+
+      setAlert({ message: 'Tarefa atualizada com sucesso!', type: 'success' });
+    } catch (error) {
+      setAlert({ message: 'Erro ao atualizar tarefa: ' + error.message, type: 'error' });
+    }
+  };
+
   // Atualizar o manipulador de mudança para o novo formato de newTask
   const handleNewTaskChange = (field, value) => {
     setNewTask(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  // Função para manipular o upload de anexos
+  const handleAttachmentChange = (e) => {
+    const files = Array.from(e.target.files);
+    setNewTask(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...files]
+    }));
+  };
+
+  // Função para remover anexo
+  const removeAttachment = (indexToRemove) => {
+    setNewTask(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, index) => index !== indexToRemove)
     }));
   };
 
@@ -933,6 +1017,39 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                           className="add-task-input"
                         />
                       </div>
+                      <textarea
+                        value={newTask.description}
+                        onChange={(e) => handleNewTaskChange('description', e.target.value)}
+                        placeholder="Descrição da tarefa"
+                        className="add-task-input"
+                        rows="3"
+                        style={{marginBottom: '10px'}}
+                      />
+
+                      <div className="attachments-section">
+                        <label htmlFor="attachment-input" className="btn btn-outline">Anexar Arquivos</label>
+                        <input
+                          id="attachment-input"
+                          type="file"
+                          multiple
+                          onChange={handleAttachmentChange}
+                          style={{display: 'none'}}
+                        />
+
+                        {newTask.attachments && newTask.attachments.length > 0 && (
+                          <div className="attachments-list">
+                            {newTask.attachments.map((file, index) => (
+                              <div key={index} className="attachment-item">
+                                <span>{file.name}</span>
+                                <button type="button" onClick={() => removeAttachment(index)} className="btn-remove-attachment">
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="input-row">
                         <select
                           value={newTask.priority}
@@ -973,13 +1090,36 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                           />
                           <div className="task-content">
                             <div className="task-title">{task.title}</div>
+                            <div className="task-description">{task.description}</div>
                             <div className="task-details">
                               Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
                             </div>
+                            {task.attachments && task.attachments.length > 0 && (
+                              <div className="task-attachments">
+                                {task.attachments.map((attachment, index) => (
+                                  <div key={index} className="attachment-tag">
+                                    <i className="fas fa-paperclip"></i> {attachment.name || attachment.filename}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <button onClick={() => handleDeleteTask(task._id)} className="btn-delete-task">
-                            <i className="fas fa-trash-alt"></i>
-                          </button>
+                          <div className="task-actions">
+                            <button
+                              onClick={() => showEditTaskModal(task)}
+                              className="btn-edit-task"
+                              title="Editar Tarefa"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleArchiveTask(task._id)}
+                              className="btn-archive-task"
+                              title="Arquivar Tarefa"
+                            >
+                              Arquivar
+                            </button>
+                          </div>
                         </div>
                       )
                     })
@@ -1009,6 +1149,11 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                   <button onClick={resetTimer} className="btn btn-secondary">
                     Resetar
                   </button>
+                  {activeSession && (
+                    <button onClick={abandonSession} className="btn btn-danger">
+                      Parar Sessão
+                    </button>
+                  )}
                 </div>
 
                 {/* Exibir sessões recentes */}
@@ -1356,6 +1501,61 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 onClick={handleFlashcardCorrect}
               >
                 <i className="fas fa-check"></i> Acertei
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de edição de tarefa */}
+      {isEditingTask && editingTask && (
+        <div className="task-edit-modal">
+          <div className="task-edit-modal-content">
+            <h3>Editar Tarefa</h3>
+            <input
+              type="text"
+              value={editingTask.title || ''}
+              onChange={(e) => setEditingTask({...editingTask, title: e.target.value})}
+              className="task-edit-input"
+              placeholder="Título"
+            />
+            <input
+              type="text"
+              value={editingTask.subject || ''}
+              onChange={(e) => setEditingTask({...editingTask, subject: e.target.value})}
+              className="task-edit-input"
+              placeholder="Disciplina"
+            />
+            <textarea
+              value={editingTask.description || ''}
+              onChange={(e) => setEditingTask({...editingTask, description: e.target.value})}
+              className="task-edit-input"
+              placeholder="Descrição"
+              rows="3"
+            />
+            <input
+              type="date"
+              value={editingTask.due_date || ''}
+              onChange={(e) => setEditingTask({...editingTask, due_date: e.target.value})}
+              className="task-edit-input"
+            />
+            <select
+              value={editingTask.priority || 'medium'}
+              onChange={(e) => setEditingTask({...editingTask, priority: e.target.value})}
+              className="task-edit-input"
+            >
+              <option value="low">Baixa</option>
+              <option value="medium">Média</option>
+              <option value="high">Alta</option>
+              <option value="urgent">Urgente</option>
+            </select>
+
+            <div className="task-edit-actions">
+              <button className="btn btn-secondary" onClick={hideEditTaskModal}>
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={handleUpdateTask}>
+                Salvar
               </button>
             </div>
           </div>
@@ -1742,6 +1942,131 @@ styles.innerHTML = `
       margin-left: 240px;
       width: calc(100% - 240px);
     }
+  }
+
+  /* Estilos para os novos elementos de tarefa */
+  .task-description {
+    font-size: 0.9rem;
+    color: var(--text-light-color);
+    margin: 4px 0;
+    font-style: italic;
+  }
+
+  .task-attachments {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .attachment-tag {
+    background: rgba(229, 83, 69, 0.1);
+    color: #e55345;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .task-actions {
+    display: flex;
+    gap: 5px;
+    margin-left: 10px;
+  }
+
+  .btn-edit-task,
+  .btn-archive-task {
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+  }
+
+  .btn-edit-task:hover {
+    background: #e9ecef;
+    color: var(--primary-color);
+  }
+
+  .btn-archive-task {
+    color: #dc3545;
+    border-color: #dc3545;
+  }
+
+  .btn-archive-task:hover {
+    background: #dc3545;
+    color: white;
+  }
+
+  /* Estilos para o tema escuro */
+  .dark-theme .btn-edit-task {
+    background: #495057;
+    color: white;
+    border-color: #6c757d;
+  }
+
+  .dark-theme .btn-edit-task:hover {
+    background: #5a6268;
+  }
+
+  .dark-theme .btn-archive-task {
+    background: #dc3545;
+    color: white;
+  }
+
+  /* Estilos para o modal de edição de tarefa */
+  .task-edit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+
+  .task-edit-modal-content {
+    background: var(--card-background);
+    border-radius: 8px;
+    padding: 20px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .task-edit-input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-background);
+    color: var(--text-color);
+  }
+
+  .task-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+  }
+
+  .dark-theme .task-edit-input {
+    background: var(--input-background);
+    border-color: var(--border-color);
+    color: var(--text-color);
+  }
+
+  .dark-theme .task-edit-modal-content {
+    background: var(--card-background);
   }
 
   /* Estilo para popup de feedback do flashcard */
