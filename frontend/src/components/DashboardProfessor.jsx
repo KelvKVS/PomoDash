@@ -1562,6 +1562,7 @@ styles.innerHTML = `
     border-color: var(--border-color);
     color: var(--text-color);
   }
+
 `;
 
 document.head.appendChild(styles);

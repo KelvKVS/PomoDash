@@ -2972,6 +2972,7 @@ styles.innerHTML = `
       padding: 15px;
     }
   }
+
 `;
 
 document.head.appendChild(styles);

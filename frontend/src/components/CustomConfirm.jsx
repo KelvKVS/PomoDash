@@ -175,6 +175,49 @@ styles.innerHTML = `
       transform: scale(1) translateY(0);
     }
   }
+
+  /* Estilos para tema escuro */
+  .dark-theme .confirm-modal {
+    background: var(--card-background);
+  }
+
+  .dark-theme .confirm-icon {
+    color: var(--warning-color);
+  }
+
+  .dark-theme .confirm-btn-warning .confirm-icon {
+    color: var(--warning-color);
+  }
+
+  .dark-theme .confirm-btn-danger .confirm-icon {
+    color: var(--danger-color);
+  }
+
+  .dark-theme .confirm-btn-success .confirm-icon {
+    color: var(--success-color);
+  }
+
+  .dark-theme .confirm-btn-info .confirm-icon {
+    color: var(--info-color, #3b82f6);
+  }
+
+  .dark-theme .confirm-message {
+    color: var(--text-color);
+  }
+
+  .dark-theme .confirm-actions {
+    border-top: 1px solid var(--border-color);
+    background-color: var(--card-background-light, rgba(255,255,255,0.05));
+  }
+
+  .dark-theme .confirm-btn-cancel {
+    background-color: var(--border-color);
+    color: var(--text-color);
+  }
+
+  .dark-theme .confirm-btn-cancel:hover {
+    background-color: #495057;
+  }
 `;
 
 document.head.appendChild(styles);

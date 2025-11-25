@@ -87,7 +87,12 @@ function App() {
           }
         })
         .catch(error => {
-          console.error('Erro ao validar token:', error);
+          if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            // Erros de rede - apenas avisar brevemente
+            console.warn('Conexão com o servidor indisponível');
+          } else {
+            console.error('Erro ao validar token:', error);
+          }
           // Em caso de erro na validação, limpar os dados
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');

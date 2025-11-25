@@ -635,7 +635,14 @@ export const setupTokenInterceptor = () => {
       
       return response;
     } catch (error) {
-      console.error('Erro na requisição interceptada:', error);
+      // Verifica se é um erro de rede (não é um erro 401, 404, etc., mas falha de conexão)
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        // Erros de rede como "Failed to fetch", "NetworkError", etc.
+        // Não logar esses erros para reduzir o spam no console
+        console.warn('Erro de conexão com o servidor:', error.message);
+      } else {
+        console.error('Erro na requisição interceptada:', error);
+      }
       throw error;
     }
   };

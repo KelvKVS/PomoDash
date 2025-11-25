@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { authAPI, pomodoroAPI, taskAPI, flashcardAPI } from '../lib/api';
 import CustomAlert from './CustomAlert';
 import CustomConfirm from './CustomConfirm';
@@ -52,13 +52,16 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     updateFlashcardStats,
     getOverallAccuracy,
     getFlashcardStats,
-    stats: flashcardStats
   } = useFlashcardStats();
 
   // Confirmation Modal State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmCallback, setConfirmCallback] = useState(null);
   const [confirmMessage, setConfirmMessage] = useState('');
+
+  // Flashcard Feedback Modal State
+  const [showFlashcardFeedbackModal, setShowFlashcardFeedbackModal] = useState(false);
+  const [currentFlashcardId, setCurrentFlashcardId] = useState(null);
 
   const showScreen = (screenId) => {
     setActiveScreen(screenId);
@@ -79,6 +82,23 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
 
   const handleCancel = () => {
     setShowConfirmModal(false);
+  };
+
+  // Funções para a popup de feedback do flashcard
+  const handleFlashcardCorrect = () => {
+    if (currentFlashcardId) {
+      updateFlashcardStats(currentFlashcardId, true);
+    }
+    setShowFlashcardFeedbackModal(false);
+    setCurrentFlashcardId(null);
+  };
+
+  const handleFlashcardIncorrect = () => {
+    if (currentFlashcardId) {
+      updateFlashcardStats(currentFlashcardId, false);
+    }
+    setShowFlashcardFeedbackModal(false);
+    setCurrentFlashcardId(null);
   };
 
   const handleAddTask = async (e) => {
@@ -125,20 +145,24 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (window.confirm('Tem certeza que deseja arquivar esta tarefa?')) {
-      try {
-        await taskAPI.archiveTask(taskId);
-        // Recarregar as tarefas - evitar chamada duplicada quando na tela de tarefas
-        if (activeScreen !== 'tasks') {
-          loadStats(); // Atualiza as estatísticas e tarefas para outras telas
-        } else {
-          loadTasksForScreen(); // Atualiza tarefas na tela de tarefas
+    showConfirmation(
+      'Tem certeza que deseja arquivar esta tarefa?',
+      async () => {
+        try {
+          await taskAPI.archiveTask(taskId);
+          // Recarregar as tarefas - evitar chamada duplicada quando na tela de tarefas
+          if (activeScreen !== 'tasks') {
+            loadStats(); // Atualiza as estatísticas e tarefas para outras telas
+          } else {
+            loadTasksForScreen(); // Atualiza tarefas na tela de tarefas
+          }
+          setAlert({ message: 'Tarefa arquivada com sucesso!', type: 'success' });
+        } catch (error) {
+          setAlert({ message: 'Erro ao arquivar tarefa: ' + error.message, type: 'error' });
         }
-        setAlert({ message: 'Tarefa arquivada com sucesso!', type: 'success' });
-      } catch (error) {
-        setAlert({ message: 'Erro ao arquivar tarefa: ' + error.message, type: 'error' });
-      }
-    }
+      },
+      'warning'
+    );
   };
 
   // Atualizar o manipulador de mudança para o novo formato de newTask
@@ -160,7 +184,24 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       // Handle session end - complete the session
       handleCompleteSession();
     }
-    return () => clearInterval(interval);
+
+    // Adicionar listener para quando o usuário sair do site
+    const handleBeforeUnload = async (e) => {
+      if (activeSession && isActive) {
+        try {
+          await pomodoroAPI.pauseSession(activeSession._id);
+        } catch (error) {
+          console.error('Erro ao pausar sessão ao sair do site:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, time, activeSession]);
 
@@ -368,9 +409,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const flipCard = (cardId) => {
     // Mostrar a resposta e permitir que o usuário indique se acertou ou não
     if (selectedCard === cardId) {
-      // Se o card já está selecionado, perguntar ao usuário se acertou
-      const isCorrect = window.confirm('Você acertou este flashcard? Clique em "OK" se sim, "Cancelar" se não.');
-      updateFlashcardStats(cardId, isCorrect);
+      // Se o card já está selecionado, mostrar popup para perguntar se acertou
+      setCurrentFlashcardId(cardId);
+      setShowFlashcardFeedbackModal(true);
     }
     setSelectedCard(prev => prev === cardId ? null : cardId);
   };
@@ -469,7 +510,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       // Tratar erros de rede de forma mais graciosa
       if (error.message.includes('Falha na conexão com o servidor') ||
           error.message.includes('Failed to fetch')) {
-        console.log('Erro de conexão ao carregar sessões recentes (não exibido ao usuário)');
         // Não exibir alerta para erros de conexão, apenas manter sessões anteriores
       } else {
         setAlert({ message: 'Erro ao carregar sessões recentes: ' + error.message, type: 'error' });
@@ -500,14 +540,13 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             !error.message.includes('Failed to fetch')) {
           setAlert({ message: 'Erro ao carregar sessão ativa: ' + error.message, type: 'error' });
         } else {
-          console.log('Erro de conexão ao carregar sessão ativa (não exibido ao usuário)');
         }
       }
     }
   };
 
   // Função para carregar as estatísticas do aluno
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       // Carregar estatísticas de Pomodoro
       const pomodoroStats = await pomodoroAPI.getStats();
@@ -524,14 +563,11 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             !error.message.includes('Failed to fetch')) {
           setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
         } else {
-          console.log('Erro de conexão ao carregar tarefas (não exibido ao usuário)');
         }
         // Continuar com arrays vazios para evitar quebra de interface
       }
 
       // Calcular estatísticas de tarefas do usuário logado
-      console.log('Dados do usuário:', user);
-      console.log('Todas as tarefas recebidas:', allTasksResponse.data);
 
       let completedTasks = 0;
       let totalTasks = 0;
@@ -539,7 +575,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
 
       if (allTasksResponse.data && Array.isArray(allTasksResponse.data)) {
         allTasksResponse.data.forEach(task => {
-          console.log('Processando tarefa:', task._id, 'assigned_to:', task.assigned_to);
 
           if (task.assigned_to && Array.isArray(task.assigned_to)) {
             task.assigned_to.forEach(assignment => {
@@ -551,10 +586,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
               const assignmentIdStr = assignmentUserId ? assignmentUserId.toString() : null;
               const userIdStr = currentUserId ? currentUserId.toString() : null;
 
-              console.log('Comparando IDs:', assignmentIdStr, 'com', userIdStr, 'Resultado:', assignmentIdStr === userIdStr);
 
               if (assignmentIdStr && userIdStr && assignmentIdStr === userIdStr) {
-                console.log('Tarefa encontrada para o usuário:', task.title, 'Status:', assignment.status);
                 totalTasks++;
                 if (assignment.status === 'completed') {
                   completedTasks++;
@@ -566,7 +599,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         });
       }
 
-      console.log('Estatísticas calculadas - Total:', totalTasks, 'Concluídas:', completedTasks, 'Tarefas do usuário:', userTasksWithAssignments.length);
 
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
       let focusTime = 0;
@@ -598,40 +630,32 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     } catch (error) {
       setAlert({ message: 'Erro ao carregar estatísticas: ' + error.message, type: 'error' });
     }
-  };
+  }, [user, activeScreen, getOverallAccuracy]);
 
   // Função para carregar tarefas específicas para a tela de tarefas
-  const loadTasksForScreen = async () => {
+  const loadTasksForScreen = useCallback(async () => {
     try {
-      console.log('Iniciando loadTasksForScreen...');
-
       // Obter tarefas diretamente da API
       const tasksResponse = await taskAPI.getTasks();
-      console.log('Resposta da API de tarefas:', tasksResponse);
 
       // Verificar se há dados válidos
       if (!tasksResponse || !tasksResponse.data) {
-        console.log('Nenhum dado de tarefas recebido');
         setTasks([]);
         return;
       }
 
-      console.log(`Total de tarefas recebidas: ${tasksResponse.data.length}`);
 
       // Filtrar tarefas atribuídas ao usuário logado com verificação robusta de IDs
       const filteredTasks = tasksResponse.data.filter(task => {
-        console.log('Verificando tarefa:', task._id, 'Atribuída a:', task.assigned_to);
 
         if (!task.assigned_to || !Array.isArray(task.assigned_to)) {
-          console.log('Tarefa não tem assigned_to ou não é array');
           return false;
         }
 
         // Procurar por tarefa atribuída ao usuário atual com verificação robusta
         const isUserAssigned = task.assigned_to.some(assignment => {
           if (!assignment || !assignment.user) {
-            console.log('Assignment ou assignment.user inválido');
-            return false;
+              return false;
           }
 
           // Obter o ID do usuário - pode ser um objeto com _id, id ou uma string diretamente
@@ -643,21 +667,18 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
           } else if (assignment.user && typeof assignment.user.id !== 'undefined') {
             assignmentUserId = assignment.user.id;
           } else {
-            console.log('Formato de assignment.user desconhecido:', assignment.user);
             return false;
           }
 
           // Obter o ID do usuário logado (pode estar em user._id ou user.id)
           const currentUserId = user ? (user._id || user.id) : null;
 
-          console.log('Comparando IDs - Assignment:', assignmentUserId, 'Current:', currentUserId);
 
           // Comparar IDs convertendo ambos para string
           const match = assignmentUserId && currentUserId &&
                  assignmentUserId.toString() === currentUserId.toString();
 
           if (match) {
-            console.log('Match encontrado para tarefa:', task._id);
           }
 
           return match;
@@ -666,17 +687,12 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         return isUserAssigned;
       });
 
-      console.log(`Tarefas filtradas para o usuário: ${filteredTasks.length}`);
-      console.log('IDs das tarefas filtradas:', filteredTasks.map(t => t._id));
 
       // Atualizar o estado com as tarefas filtradas
       setTasks(filteredTasks);
 
-      // Caso as tarefas estiverem vazias, exibir mensagem de debug
+      // Caso as tarefas estiverem vazias
       if (filteredTasks.length === 0) {
-        console.log('AVISO: Nenhuma tarefa encontrada para o usuário atual');
-        console.log('Usuário logado:', user);
-        console.log('Verificando se o usuário tem ID:', user && (user._id || user.id));
       }
 
     } catch (error) {
@@ -684,11 +700,10 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
       setTasks([]); // Garantir que o estado seja limpo em caso de erro
     }
-  };
+  }, [user, taskAPI, setTasks, setAlert, getFlashcardStats]);
 
   useEffect(() => {
     // Carregar dados iniciais quando o componente montar
-    loadActiveSession();
     loadRecentSessions();
     loadStats();
     loadFlashcards();
@@ -700,30 +715,26 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       }, 100); // Pequeno delay para garantir que o estado esteja sincronizado
     }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Executar apenas uma vez quando o componente monta
 
   // Efeito para recarregar as tarefas quando a tela ativa mudar
   useEffect(() => {
-    console.log('activeScreen mudou para:', activeScreen);
     // Sempre recarregar tarefas quando a tela mudar para 'tasks'
     if (activeScreen === 'tasks') {
-      console.log('Carregando tarefas para a tela de tarefas');
       loadTasksForScreen();
     } else {
-      console.log('Carregando estatísticas para outras telas');
       loadStats();
     }
-  }, [activeScreen, user]); // Adicionando user como dependência para garantir atualização completa
+  }, [activeScreen, user, loadStats, loadTasksForScreen]); // Adicionando user como dependência para garantir atualização completa
 
   // Efeito para garantir que tarefas sejam carregadas imediatamente ao inicializar
   useEffect(() => {
     // Se estiver na tela de tarefas e o usuário estiver definido, carregar tarefas imediatamente
     if (activeScreen === 'tasks' && user && user._id) {
-      console.log('Forçando carregamento de tarefas na inicialização na tela de tarefas');
       loadTasksForScreen();
     }
-  }, [activeScreen, user]); // Carregar quando a tela ou o usuário mudar
+  }, [activeScreen, user, loadTasksForScreen]); // Carregar quando a tela ou o usuário mudar
 
   const pageTitles = {
     'dashboard': 'Dashboard',
@@ -1092,15 +1103,16 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
               <div className="flashcard-grid">
                 {flashcards.map(card => (
                   <div key={card._id} className={`flashcard ${selectedCard === card._id ? 'flipped' : ''}`} onClick={() => flipCard(card._id)}>
-                    <div className="flashcard-inner">
-                      <div className="flashcard-front">
-                        {card.question}
-                      </div>
-                      <div className="flashcard-back">
-                        {card.answer}
+                    <div className="flashcard-content">
+                      <div className="flashcard-inner">
+                        <div className="flashcard-front">
+                          {card.question}
+                        </div>
+                        <div className="flashcard-back">
+                          {card.answer}
+                        </div>
                       </div>
                     </div>
-                    {/* Estatísticas do flashcard */}
                     <div className="flashcard-stats">
                       <span className="accuracy-badge" title={`Aproveitamento: ${card.stats?.accuracy || 0}%`}>
                         {card.stats?.accuracy || 0}%
@@ -1325,6 +1337,29 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
           onCancel={handleCancel}
           type="warning"
         />
+      )}
+      {/* Popup de feedback do flashcard */}
+      {showFlashcardFeedbackModal && (
+        <div className="flashcard-feedback-modal">
+          <div className="flashcard-feedback-content">
+            <h3>Como foi este flashcard?</h3>
+            <p>Você acertou esta pergunta?</p>
+            <div className="flashcard-feedback-buttons">
+              <button
+                className="btn-flashcard-incorrect"
+                onClick={handleFlashcardIncorrect}
+              >
+                <i className="fas fa-times"></i> Errei
+              </button>
+              <button
+                className="btn-flashcard-correct"
+                onClick={handleFlashcardCorrect}
+              >
+                <i className="fas fa-check"></i> Acertei
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1708,6 +1743,132 @@ styles.innerHTML = `
       width: calc(100% - 240px);
     }
   }
+
+  /* Estilo para popup de feedback do flashcard */
+  .flashcard-feedback-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+
+  .flashcard-feedback-content {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: fadeInScale 0.3s ease;
+  }
+
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .flashcard-feedback-content h3 {
+    margin-top: 0;
+    color: var(--text-color);
+    font-size: 1.3rem;
+  }
+
+  .flashcard-feedback-content p {
+    margin: 15px 0;
+    color: var(--text-light-color);
+    font-size: 1rem;
+  }
+
+  .flashcard-feedback-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+  }
+
+  .btn-flashcard-incorrect, .btn-flashcard-correct {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-flashcard-incorrect {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .btn-flashcard-incorrect:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+  }
+
+  .btn-flashcard-correct {
+    background-color: #28a745;
+    color: white;
+  }
+
+  .btn-flashcard-correct:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    .flashcard-feedback-content {
+      width: 95%;
+      margin: 20px;
+      padding: 20px;
+    }
+
+    .flashcard-feedback-buttons {
+      flex-direction: column;
+    }
+  }
+
+  /* Estilos para tema escuro do popup de feedback do flashcard */
+  .dark-theme .flashcard-feedback-content {
+    background: var(--card-background);
+    color: var(--text-color);
+  }
+
+  .dark-theme .flashcard-feedback-content h3 {
+    color: var(--text-color);
+  }
+
+  .dark-theme .flashcard-feedback-content p {
+    color: var(--text-light-color);
+  }
+
+  .dark-theme .btn-flashcard-incorrect {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .dark-theme .btn-flashcard-correct {
+    background-color: #28a745;
+    color: white;
+  }
+
 `;
 
 document.head.appendChild(styles);

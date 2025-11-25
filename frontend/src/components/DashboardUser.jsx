@@ -14,7 +14,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   const [profileImage, setProfileImage] = useState(user?.profilePicture || 'https://i.pravatar.cc/40');
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+
   // Stats
   const [stats, setStats] = useState({
     focusTime: '0h 0m',
@@ -22,7 +22,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     totalTasks: 0,
     flashcardAccuracy: 0
   });
-  
+
   // Dados para tarefas vindos da API
   const [tasks, setTasks] = useState([]);
   const [professorTasks, setProfessorTasks] = useState([]); // Tarefas do professor
@@ -32,35 +32,39 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     due_date: '',
     priority: 'medium'
   });
-  
+
   // Pomodoro State
   const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
   const [isActive, setIsActive] = useState(false);
   const [sessionType, setSessionType] = useState('work'); // work, short_break, long_break
   const [activeSession, setActiveSession] = useState(null);
   const [recentSessions, setRecentSessions] = useState([]);
-  
+
   // Flashcards State
   const [flashcards, setFlashcards] = useState([]);
   const [professorFlashcards, setProfessorFlashcards] = useState([]); // Flashcards do professor
   const [newFlashcard, setNewFlashcard] = useState({ question: '', answer: '', tags: [] });
   const [selectedCard, setSelectedCard] = useState(null);
-  
+
   // Alert State
   const [alert, setAlert] = useState(null);
-  
+
   // Flashcard Stats
-  const { 
-    updateFlashcardStats, 
-    getOverallAccuracy, 
+  const {
+    updateFlashcardStats,
+    getOverallAccuracy,
     getFlashcardStats,
-    stats: flashcardStats 
+    stats: flashcardStats
   } = useFlashcardStats();
-  
+
   // Confirmation Modal State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmCallback, setConfirmCallback] = useState(null);
   const [confirmMessage, setConfirmMessage] = useState('');
+
+  // Flashcard Feedback Modal State
+  const [showFlashcardFeedbackModal, setShowFlashcardFeedbackModal] = useState(false);
+  const [currentFlashcardId, setCurrentFlashcardId] = useState(null);
 
   const showScreen = (screenId) => {
     setActiveScreen(screenId);
@@ -83,6 +87,23 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     setShowConfirmModal(false);
   };
 
+  // Funções para a popup de feedback do flashcard
+  const handleFlashcardCorrect = () => {
+    if (currentFlashcardId) {
+      updateFlashcardStats(currentFlashcardId, true);
+    }
+    setShowFlashcardFeedbackModal(false);
+    setCurrentFlashcardId(null);
+  };
+
+  const handleFlashcardIncorrect = () => {
+    if (currentFlashcardId) {
+      updateFlashcardStats(currentFlashcardId, false);
+    }
+    setShowFlashcardFeedbackModal(false);
+    setCurrentFlashcardId(null);
+  };
+
   // Função para atualizar o estado da tarefa
   const handleNewTaskChange = (field, value) => {
     setNewTask(prev => ({
@@ -94,7 +115,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   const handleAddTask = async (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
-    
+
     try {
       const taskData = {
         title: newTask.title,
@@ -103,7 +124,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
         priority: newTask.priority,
         assigned_to: [user._id] // Atribuir a tarefa a si mesmo
       };
-      
+
       await taskAPI.createTask(taskData);
       setNewTask({ title: '', subject: '', due_date: '', priority: 'medium' });
       // Recarregar as tarefas
@@ -143,7 +164,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   useEffect(() => {
     // Update document title when timer state changes
     updateDocumentTitle(time, isActive);
-    
+
     let interval = null;
     if (isActive && time > 0) {
       interval = setInterval(() => {
@@ -157,7 +178,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       // Handle session end - complete the session
       handleCompleteSession();
     }
-    
+
     return () => clearInterval(interval);
   }, [isActive, time, activeSession, updateDocumentTitle, handleCompleteSession]);
 
@@ -168,7 +189,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
         type,
         planned_duration: plannedDuration,
       };
-      
+
       const response = await pomodoroAPI.startSession(sessionData);
       setActiveSession(response.data);
       setIsActive(true);
@@ -212,7 +233,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
         setActiveSession(null);
         setIsActive(false);
         loadRecentSessions(); // Atualizar lista de sessões recentes
-        
+
         // Play completion sound
         playCompletionSound();
       } catch (error) {
@@ -325,19 +346,19 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
+
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
+
     oscillator.type = 'sine';
     oscillator.frequency.value = 800;
     gainNode.gain.value = 0.3;
-    
+
     oscillator.start();
-    
+
     // Adicionar efeito de fade out para soar melhor
     gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
-    
+
     setTimeout(() => {
       oscillator.stop();
     }, 500);
@@ -358,7 +379,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   useEffect(() => {
     // Atualiza o título quando o componente é montado
     updateDocumentTitle(time, isActive);
-    
+
     // Limpa o título quando o componente é desmontado
     return () => {
       document.title = "PomoDash";
@@ -417,9 +438,9 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   const flipCard = (cardId) => {
     // Mostrar a resposta e permitir que o usuário indique se acertou ou não
     if (selectedCard === cardId) {
-      // Se o card já está selecionado, perguntar ao usuário se acertou
-      const isCorrect = window.confirm('Você acertou este flashcard? Clique em "OK" se sim, "Cancelar" se não.');
-      updateFlashcardStats(cardId, isCorrect);
+      // Se o card já está selecionado, mostrar popup para perguntar se acertou
+      setCurrentFlashcardId(cardId);
+      setShowFlashcardFeedbackModal(true);
     }
     setSelectedCard(prev => prev === cardId ? null : cardId);
   };
@@ -441,14 +462,14 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
     try {
       // Verifica se temos um arquivo de imagem para upload
       const file = profileImageFile;
-      
+
       let response;
       if (file) {
         // Se houver um arquivo de imagem, usamos FormData para upload
         const formData = new FormData();
         formData.append('name', profileData.name);
         formData.append('profilePicture', file);
-        
+
         response = await authAPI.updateProfile(formData);
       } else {
         // Caso contrário, envia apenas os dados textuais
@@ -456,14 +477,14 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
           name: profileData.name
         });
       }
-      
+
       // Atualiza o localStorage com os novos dados do usuário
       const updatedUser = { ...user, name: response.data.user.name, profilePicture: response.data.user.profilePicture || user?.profilePicture };
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       // Atualiza o estado do usuário no componente pai
       // Aqui você pode chamar uma função passada como prop para atualizar o usuário globalmente
-      
+
       setEditProfile(false);
       // Limpa o arquivo de imagem após salvar
       setProfileImageFile(null);
@@ -499,7 +520,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
         setProfileImage(reader.result);
       };
       reader.readAsDataURL(file);
-      
+
       // Armazena o arquivo original para uso durante o salvamento
       setProfileImageFile(file);
     }
@@ -570,7 +591,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       console.error('Erro ao carregar tarefas:', error);
     }
   };
-  
+
   // Função para carregar as estatísticas do aluno
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadStats = async () => {
@@ -582,17 +603,12 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       const allTasksResponse = await taskAPI.getTasks();
 
       // Calcular estatísticas de tarefas do usuário logado
-      console.log('Dados do usuário (DashboardUser):', user);
-      console.log('Todas as tarefas recebidas (DashboardUser):', allTasksResponse.data);
-
       let completedTasks = 0;
       let totalTasks = 0;
       let userTasks = [];
 
       if (allTasksResponse.data && Array.isArray(allTasksResponse.data)) {
         allTasksResponse.data.forEach(task => {
-          console.log('Processando tarefa (DashboardUser):', task._id, 'assigned_to:', task.assigned_to);
-
           if (task.assigned_to && Array.isArray(task.assigned_to)) {
             task.assigned_to.forEach(assignment => {
               // Verificação robusta de IDs que lida com diferentes formatos
@@ -603,10 +619,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
               const assignmentIdStr = assignmentUserId ? assignmentUserId.toString() : null;
               const userIdStr = currentUserId ? currentUserId.toString() : null;
 
-              console.log('Comparando IDs (DashboardUser):', assignmentIdStr, 'com', userIdStr, 'Resultado:', assignmentIdStr === userIdStr);
-
               if (assignmentIdStr && userIdStr && assignmentIdStr === userIdStr) {
-                console.log('Tarefa encontrada para o usuário (DashboardUser):', task.title, 'Status:', assignment.status);
                 totalTasks++;
                 if (assignment.status === 'completed') {
                   completedTasks++;
@@ -617,8 +630,6 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
           }
         });
       }
-
-      console.log('Estatísticas calculadas (DashboardUser) - Total:', totalTasks, 'Concluídas:', completedTasks, 'Tarefas do usuário:', userTasks.length);
 
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
       let focusTime = 0;
@@ -694,7 +705,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   const loadProfessorTasks = async () => {
     try {
       // Obter tarefas criadas pelos professores da escola do aluno
-      const response = await taskAPI.getTasks({ 
+      const response = await taskAPI.getTasks({
         school_id: user.school_id,
         created_by_role: 'teacher'
       });
@@ -711,7 +722,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   const loadProfessorFlashcards = async () => {
     try {
       // Obter flashcards criados pelos professores da escola do aluno
-      const response = await flashcardAPI.getFlashcards({ 
+      const response = await flashcardAPI.getFlashcards({
         school_id: user.school_id,
         created_by_role: 'teacher'
       });
@@ -757,8 +768,8 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
         <div className="profile" onClick={() => {openProfileModal(); setSidebarOpen(false);}}>
           <div className="profile-img-container">
             <img src={profileImage} alt="Usuário" className="profile-img" />
-            <button 
-              className="profile-img-upload-btn" 
+            <button
+              className="profile-img-upload-btn"
               title="Alterar foto"
               onClick={triggerImageUpload}
               style={{ display: 'none' }}
@@ -816,32 +827,32 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                 <h3 className="card-title">Gerenciar Tarefas</h3>
                 <form onSubmit={handleAddTask} className="add-task-form">
                   <div className="input-group">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={newTask.title}
                       onChange={(e) => handleNewTaskChange('title', e.target.value)}
-                      placeholder="Título da tarefa" 
+                      placeholder="Título da tarefa"
                       className="add-task-input"
                       required
                     />
                   </div>
                   <div className="input-row">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={newTask.subject}
                       onChange={(e) => handleNewTaskChange('subject', e.target.value)}
-                      placeholder="Disciplina" 
+                      placeholder="Disciplina"
                       className="add-task-input"
                     />
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={newTask.due_date}
                       onChange={(e) => handleNewTaskChange('due_date', e.target.value)}
                       className="add-task-input"
                     />
                   </div>
                   <div className="input-row">
-                    <select 
+                    <select
                       value={newTask.priority}
                       onChange={(e) => handleNewTaskChange('priority', e.target.value)}
                       className="add-task-input"
@@ -859,12 +870,12 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                     tasks.map(task => {
                       const assignment = task.assigned_to?.find(a => a.user.toString() === user._id.toString());
                       const status = assignment ? assignment.status : 'pending';
-                      
+
                       return (
                         <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : ''}`}>
-                          <input 
-                            type="checkbox" 
-                            className="task-checkbox" 
+                          <input
+                            type="checkbox"
+                            className="task-checkbox"
                             checked={status === 'completed'}
                             onChange={() => toggleTaskCompletion(task._id, status)}
                           />
@@ -907,7 +918,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                     Resetar
                   </button>
                 </div>
-                
+
                 {/* Exibir sessões recentes */}
                 <div className="recent-sessions">
                   <h4>Sessões Recentes</h4>
@@ -926,9 +937,9 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                               {Math.round(session.timing.actual_duration / 60)} min
                             </div>
                             <div className={`session-status ${session.status}`}>
-                              {session.status === 'completed' ? 'Concluído' : 
-                               session.status === 'abandoned' ? 'Abandonado' : 
-                               session.status === 'paused' ? 'Pausado' : 
+                              {session.status === 'completed' ? 'Concluído' :
+                               session.status === 'abandoned' ? 'Abandonado' :
+                               session.status === 'paused' ? 'Pausado' :
                                session.status}
                             </div>
                           </div>
@@ -948,53 +959,54 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
             <h3 className="card-title">Criar Novo Flashcard</h3>
             <form onSubmit={handleCreateFlashcard} className="add-flashcard-form">
               <div className="input-group">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newFlashcard.question}
                   onChange={(e) => setNewFlashcard({...newFlashcard, question: e.target.value})}
-                  placeholder="Pergunta" 
+                  placeholder="Pergunta"
                   className="add-flashcard-input"
                   required
                 />
               </div>
               <div className="input-group">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newFlashcard.answer}
                   onChange={(e) => setNewFlashcard({...newFlashcard, answer: e.target.value})}
-                  placeholder="Resposta" 
+                  placeholder="Resposta"
                   className="add-flashcard-input"
                   required
                 />
               </div>
               <div className="input-group">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newFlashcard.tags.join(', ')}
                   onChange={(e) => setNewFlashcard({...newFlashcard, tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)})}
-                  placeholder="Tags (separadas por vírgula)" 
+                  placeholder="Tags (separadas por vírgula)"
                   className="add-flashcard-input"
                 />
               </div>
               <button type="submit" className="btn btn-primary">Adicionar Flashcard</button>
             </form>
           </div>
-          
+
           <div className="card">
             <h3 className="card-title">Seus Flashcards</h3>
             {flashcards && flashcards.length > 0 ? (
               <div className="flashcard-grid">
                 {flashcards.map(card => (
                   <div key={card._id} className={`flashcard ${selectedCard === card._id ? 'flipped' : ''}`} onClick={() => flipCard(card._id)}>
-                    <div className="flashcard-inner">
-                      <div className="flashcard-front">
-                        {card.question}
-                      </div>
-                      <div className="flashcard-back">
-                        {card.answer}
+                    <div className="flashcard-content">
+                      <div className="flashcard-inner">
+                        <div className="flashcard-front">
+                          {card.question}
+                        </div>
+                        <div className="flashcard-back">
+                          {card.answer}
+                        </div>
                       </div>
                     </div>
-                    {/* Estatísticas do flashcard */}
                     <div className="flashcard-stats">
                       <span className="accuracy-badge" title={`Aproveitamento: ${card.stats?.accuracy || 0}%`}>
                         {card.stats?.accuracy || 0}%
@@ -1003,8 +1015,8 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                         {card.stats?.attempts || 0}
                       </span>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDeleteFlashcard(card._id); }} 
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteFlashcard(card._id); }}
                       className="btn-delete-flashcard"
                     >
                       <i className="fas fa-trash-alt"></i>
@@ -1042,8 +1054,8 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                     </div>
                     <div className="task-meta">
                       <span className={`task-status ${task.status || 'pending'}`}>
-                        {task.status === 'completed' ? 'Concluída' : 
-                         task.status === 'in_progress' ? 'Em Progresso' : 
+                        {task.status === 'completed' ? 'Concluída' :
+                         task.status === 'in_progress' ? 'Em Progresso' :
                          'Pendente'}
                       </span>
                     </div>
@@ -1093,20 +1105,20 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
             <div className="profile-modal-header">
               <div className="profile-modal-img-container">
                 <img src={profileImage} alt="Usuário" className="profile-modal-img" />
-                <button 
-                  className="profile-img-upload-btn" 
+                <button
+                  className="profile-img-upload-btn"
                   title="Alterar foto"
                   onClick={triggerImageUpload}
                   style={{ display: editProfile ? 'block' : 'none' }}
                 >
                   <i className="fas fa-camera"></i>
                 </button>
-                <input 
+                <input
                   id="profile-image-upload"
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageChange} 
-                  style={{ display: 'none' }} 
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  style={{ display: 'none' }}
                 />
               </div>
               <div className="profile-modal-info">
@@ -1156,9 +1168,9 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
               </div>
             </div>
             <div className="profile-modal-actions">
-              <button 
-                onClick={toggleDarkMode} 
-                className="theme-toggle-btn" 
+              <button
+                onClick={toggleDarkMode}
+                className="theme-toggle-btn"
                 aria-label={darkMode ? "Alternar para modo claro" : "Alternar para modo escuro"}
               >
                 {darkMode ? (
@@ -1184,12 +1196,35 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       )}
       {alert && <CustomAlert message={alert.message} type={alert.type} onClose={() => setAlert(null)} />}
       {showConfirmModal && (
-        <CustomConfirm 
-          message={confirmMessage} 
-          onConfirm={handleConfirm} 
-          onCancel={handleCancel} 
-          type="warning" 
+        <CustomConfirm
+          message={confirmMessage}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+          type="warning"
         />
+      )}
+      {/* Popup de feedback do flashcard */}
+      {showFlashcardFeedbackModal && (
+        <div className="flashcard-feedback-modal">
+          <div className="flashcard-feedback-content">
+            <h3>Como foi este flashcard?</h3>
+            <p>Você acertou esta pergunta?</p>
+            <div className="flashcard-feedback-buttons">
+              <button
+                className="btn-flashcard-incorrect"
+                onClick={handleFlashcardIncorrect}
+              >
+                <i className="fas fa-times"></i> Errei
+              </button>
+              <button
+                className="btn-flashcard-correct"
+                onClick={handleFlashcardCorrect}
+              >
+                <i className="fas fa-check"></i> Acertei
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1640,6 +1675,7 @@ styles.innerHTML = `
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
+
   .task-content {
     flex: 1;
   }
@@ -1650,6 +1686,7 @@ styles.innerHTML = `
     margin-bottom: 4px;
   }
 
+
   .task-details {
     font-size: 0.9rem;
     color: var(--text-light-color);
@@ -1657,6 +1694,7 @@ styles.innerHTML = `
     flex-wrap: wrap;
     gap: 12px;
   }
+
 
   .task-meta {
     display: flex;
@@ -1682,8 +1720,8 @@ styles.innerHTML = `
   }
 
   .task-status.completed {
-    background-color: #d4edda;
-    color: #155724;
+    background-color: #28a745;
+    color: white;
   }
 
   .flashcard-grid {
@@ -1741,24 +1779,123 @@ styles.innerHTML = `
     font-size: 0.8rem;
   }
 
+  /* Estilo para popup de feedback do flashcard */
+  .flashcard-feedback-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+
+  .flashcard-feedback-content {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: fadeInScale 0.3s ease;
+  }
+
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .flashcard-feedback-content h3 {
+    margin-top: 0;
+    color: var(--text-color);
+    font-size: 1.3rem;
+  }
+
+  .flashcard-feedback-content p {
+    margin: 15px 0;
+    color: var(--text-light-color);
+    font-size: 1rem;
+  }
+
+  .flashcard-feedback-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+  }
+
+  .btn-flashcard-incorrect, .btn-flashcard-correct {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-flashcard-incorrect {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .btn-flashcard-incorrect:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+  }
+
+  .btn-flashcard-correct {
+    background-color: #28a745;
+    color: white;
+  }
+
+  .btn-flashcard-correct:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+  }
+
   @media (max-width: 768px) {
     .container-app {
       flex-direction: column;
     }
-    
+
     .sidebar {
       width: 100%;
       height: auto;
       max-height: 300px;
       transform: translateX(-100%);
     }
-    
+
     .sidebar.open {
       transform: translateX(0);
     }
-    
+
     .main-content {
       width: 100%;
+    }
+
+    .flashcard-feedback-content {
+      width: 95%;
+      margin: 20px;
+      padding: 20px;
+    }
+
+    .flashcard-feedback-buttons {
+      flex-direction: column;
     }
   }
 `;
