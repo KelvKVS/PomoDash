@@ -82,7 +82,6 @@ const corsOptions = {
     console.log('CORS allowed:', origin); // Log para debug
     return callback(null, true);
   },
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://pomo-dash-khaki.vercel.app' ],
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
