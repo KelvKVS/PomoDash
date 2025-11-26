@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { authAPI, pomodoroAPI, taskAPI, flashcardAPI } from '../lib/api';
+import { authAPI, pomodoroAPI, taskAPI, flashcardAPI, classAPI, performanceAPI } from '../lib/api';
+import { exportTasksToExcel, exportFlashcardsToExcel, exportClassesToExcel, exportPerformanceToExcel } from '../lib/excelExport';
 import CustomAlert from './CustomAlert';
 import CustomConfirm from './CustomConfirm';
 import useFlashcardStats from '../hooks/useFlashcardStats';
+import TeacherClassManagement from './TeacherClassManagement';
+import TeacherTaskManagement from './TeacherTaskManagement';
+import TeacherFlashcardManagement from './TeacherFlashcardManagement';
 
 function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -64,6 +68,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   // Flashcard Feedback Modal State
   const [showFlashcardFeedbackModal, setShowFlashcardFeedbackModal] = useState(false);
   const [currentFlashcardId, setCurrentFlashcardId] = useState(null);
+
+  // Estados para funcionalidades do professor
+  const [teacherPerformance, setTeacherPerformance] = useState(null);
 
   const showScreen = (screenId) => {
     setActiveScreen(screenId);
@@ -169,26 +176,6 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     );
   };
 
-  const handleDeleteTask = async (taskId) => {
-    showConfirmation(
-      'Tem certeza que deseja excluir permanentemente esta tarefa?',
-      async () => {
-        try {
-          await taskAPI.deleteTask(taskId); // Supondo que exista um endpoint para exclusão permanente
-          // Recarregar as tarefas - evitar chamada duplicada quando na tela de tarefas
-          if (activeScreen !== 'tasks') {
-            loadStats(); // Atualiza as estatísticas e tarefas para outras telas
-          } else {
-            loadTasksForScreen(); // Atualiza tarefas na tela de tarefas
-          }
-          setAlert({ message: 'Tarefa excluída com sucesso!', type: 'success' });
-        } catch (error) {
-          setAlert({ message: 'Erro ao excluir tarefa: ' + error.message, type: 'error' });
-        }
-      },
-      'danger'
-    );
-  };
 
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -270,7 +257,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     }
 
     // Adicionar listener para quando o usuário sair do site
-    const handleBeforeUnload = async (e) => {
+    const handleBeforeUnload = async () => {
       if (activeSession && isActive) {
         try {
           await pomodoroAPI.pauseSession(activeSession._id);
@@ -585,6 +572,58 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     document.getElementById('profile-image-upload').click();
   };
 
+  // Funções de exportação para professor
+  const exportTeacherData = async (dataType) => {
+    try {
+      let data = [];
+      let exportFunction;
+      let fileName;
+
+      switch(dataType) {
+        case 'tasks': {
+          const tasksResponse = await taskAPI.getTasksByTeacher(user._id);
+          data = tasksResponse.data;
+          exportFunction = exportTasksToExcel;
+          fileName = `tarefas_professor_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+          break;
+        }
+        case 'flashcards': {
+          const flashcardsResponse = await flashcardAPI.getFlashcardsByTeacher(user._id);
+          data = flashcardsResponse.data;
+          exportFunction = exportFlashcardsToExcel;
+          fileName = `flashcards_professor_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+          break;
+        }
+        case 'classes': {
+          const classesResponse = await classAPI.getClassesByTeacher(user._id);
+          data = classesResponse.data;
+          exportFunction = exportClassesToExcel;
+          fileName = `turmas_professor_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+          break;
+        }
+        case 'performance':
+          if (teacherPerformance) {
+            exportFunction = exportPerformanceToExcel;
+            fileName = `desempenho_professor_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+            exportPerformanceToExcel(teacherPerformance, fileName);
+            setAlert({ message: 'Desempenho exportado com sucesso!', type: 'success' });
+            return;
+          }
+          break;
+        default:
+          setAlert({ message: 'Tipo de dados inválido para exportação', type: 'error' });
+          return;
+      }
+
+      if (exportFunction && data) {
+        exportFunction(data, fileName);
+        setAlert({ message: `${dataType.charAt(0).toUpperCase() + dataType.slice(1)} exportado(s) com sucesso!`, type: 'success' });
+      }
+    } catch (error) {
+      setAlert({ message: `Erro ao exportar ${dataType}: ${error.message}`, type: 'error' });
+    }
+  };
+
   // Função para carregar sessões recentes
   const loadRecentSessions = async () => {
     try {
@@ -601,35 +640,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
-  // Função para carregar sessão ativa
-  const loadActiveSession = async () => {
-    try {
-      const response = await pomodoroAPI.getActiveSession();
-      if (response.data) {
-        setActiveSession(response.data);
-        // Atualizar o tempo restante com base na sessão ativa
-        const now = new Date();
-        const startedAt = new Date(response.data.timing.started_at);
-        const elapsed = Math.floor((now - startedAt) / 1000); // tempo decorrido em segundos
-        const plannedDurationSec = response.data.settings.planned_duration * 60; // duração planejada em segundos
-        const remaining = Math.max(0, plannedDurationSec - elapsed);
-        setTime(remaining);
-        setIsActive(true);
-      }
-    } catch (error) {
-      // Se não houver sessão ativa, é normal - não faz nada
-      if (!error.message.includes('Nenhuma sessão ativa encontrada')) {
-        // Verificar se é erro de conexão para não exibir alerta
-        if (!error.message.includes('Falha na conexão com o servidor') &&
-            !error.message.includes('Failed to fetch')) {
-          setAlert({ message: 'Erro ao carregar sessão ativa: ' + error.message, type: 'error' });
-        } else {
-        }
-      }
-    }
-  };
 
-  // Função para carregar as estatísticas do aluno
+  // Função para carregar as estatísticas do aluno ou professor
   const loadStats = useCallback(async () => {
     try {
       // Carregar estatísticas de Pomodoro
@@ -646,8 +658,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         if (!error.message.includes('Falha na conexão com o servidor') &&
             !error.message.includes('Failed to fetch')) {
           setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
-        } else {
-        }
+        } else { /* empty */ }
         // Continuar com arrays vazios para evitar quebra de interface
       }
 
@@ -683,6 +694,17 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         });
       }
 
+      // Se for professor, carregar desempenho adicional
+      let teacherPerf = null;
+      if (user.role === 'teacher') {
+        try {
+          const perfResponse = await performanceAPI.getTeacherPerformance(user._id);
+          teacherPerf = perfResponse.data;
+          setTeacherPerformance(teacherPerf);
+        } catch (perfError) {
+          console.error('Erro ao carregar desempenho do professor:', perfError.message);
+        }
+      }
 
       // Calcular tempo de foco (simplificado - usando minutos de sessões concluídas)
       let focusTime = 0;
@@ -704,7 +726,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         totalTasks,
         flashcardAccuracy: flashcardAcc,
         // Obter tarefas não concluídas para a dashboard (tarefas restantes)
-        upcomingTasks: userTasksWithAssignments.filter(task => task.currentAssignment?.status !== 'completed')
+        upcomingTasks: userTasksWithAssignments.filter(task => task.currentAssignment?.status !== 'completed'),
+        // Adicionar dados de desempenho do professor
+        teacherPerformance: teacherPerf
       });
 
       // Para exibir na tela de tarefas, carregar todas as tarefas do usuário
@@ -762,8 +786,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
           const match = assignmentUserId && currentUserId &&
                  assignmentUserId.toString() === currentUserId.toString();
 
-          if (match) {
-          }
+          if (match) { /* empty */ }
 
           return match;
         });
@@ -776,8 +799,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       setTasks(filteredTasks);
 
       // Caso as tarefas estiverem vazias
-      if (filteredTasks.length === 0) {
-      }
+      if (filteredTasks.length === 0) { /* empty */ }
 
     } catch (error) {
       console.error('Erro completo ao carregar tarefas:', error);
@@ -827,6 +849,10 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     'flashcards': 'Flashcards',
     'stats': 'Estatísticas',
     'settings': 'Configurações',
+    'teacher-classes': 'Minhas Turmas',
+    'teacher-tasks': 'Gerenciar Tarefas',
+    'teacher-flashcards': 'Gerenciar Flashcards',
+    'teacher-performance': 'Desempenho'
   };
 
   // Função para formatar data
@@ -861,6 +887,24 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
           <div className={`menu-item ${activeScreen === 'stats' ? 'active' : ''}`} onClick={() => {showScreen('stats'); setSidebarOpen(false);}}>
             <i className="fas fa-chart-bar"></i><span>Estatísticas</span>
           </div>
+
+          {/* Itens do menu para professores */}
+          {user?.role === 'teacher' && (
+            <>
+              <div className={`menu-item ${activeScreen === 'teacher-classes' ? 'active' : ''}`} onClick={() => {showScreen('teacher-classes'); setSidebarOpen(false);}}>
+                <i className="fas fa-chalkboard-teacher"></i><span>Minhas Turmas</span>
+              </div>
+              <div className={`menu-item ${activeScreen === 'teacher-tasks' ? 'active' : ''}`} onClick={() => {showScreen('teacher-tasks'); setSidebarOpen(false);}}>
+                <i className="fas fa-tasks"></i><span>Gerenciar Tarefas</span>
+              </div>
+              <div className={`menu-item ${activeScreen === 'teacher-flashcards' ? 'active' : ''}`} onClick={() => {showScreen('teacher-flashcards'); setSidebarOpen(false);}}>
+                <i className="fas fa-layer-group"></i><span>Gerenciar Flashcards</span>
+              </div>
+              <div className={`menu-item ${activeScreen === 'teacher-performance' ? 'active' : ''}`} onClick={() => {showScreen('teacher-performance'); setSidebarOpen(false);}}>
+                <i className="fas fa-chart-line"></i><span>Desempenho</span>
+              </div>
+            </>
+          )}
         </div>
         <div className="profile" onClick={() => {openProfileModal(); setSidebarOpen(false);}}>
           <div className="profile-img-container">
@@ -1370,6 +1414,158 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                     )}
                 </div>
             </div>
+        </div>
+
+        {/* Teacher Classes Screen */}
+        <div className={`screen ${activeScreen === 'teacher-classes' ? 'active' : ''}`} id="teacher-classes">
+          {user?.role === 'teacher' && (
+            <TeacherClassManagement user={user} darkMode={darkMode} />
+          )}
+        </div>
+
+        {/* Teacher Tasks Screen */}
+        <div className={`screen ${activeScreen === 'teacher-tasks' ? 'active' : ''}`} id="teacher-tasks">
+          {user?.role === 'teacher' && (
+            <TeacherTaskManagement user={user} darkMode={darkMode} />
+          )}
+        </div>
+
+        {/* Teacher Flashcards Screen */}
+        <div className={`screen ${activeScreen === 'teacher-flashcards' ? 'active' : ''}`} id="teacher-flashcards">
+          {user?.role === 'teacher' && (
+            <TeacherFlashcardManagement user={user} darkMode={darkMode} />
+          )}
+        </div>
+
+        {/* Teacher Performance Screen */}
+        <div className={`screen ${activeScreen === 'teacher-performance' ? 'active' : ''}`} id="teacher-performance">
+          {user?.role === 'teacher' && (
+            <div className={`teacher-performance ${darkMode ? 'dark-theme' : ''}`}>
+              <div className="header-section">
+                <h2>Desempenho dos Alunos</h2>
+                <div className="export-buttons">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => exportTeacherData('classes')}
+                  >
+                    Exportar Turmas
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => exportTeacherData('tasks')}
+                  >
+                    Exportar Tarefas
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => exportTeacherData('flashcards')}
+                  >
+                    Exportar Flashcards
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => exportTeacherData('performance')}
+                  >
+                    Exportar Desempenho
+                  </button>
+                </div>
+              </div>
+
+              {teacherPerformance ? (
+                <div className="performance-content">
+                  <div className="stats-grid">
+                    <div className="stat-item">
+                      <h4>Total de Turmas</h4>
+                      <p className="stat-value">{teacherPerformance.totalClasses || 0}</p>
+                    </div>
+                    <div className="stat-item">
+                      <h4>Total de Alunos</h4>
+                      <p className="stat-value">{teacherPerformance.totalStudents || 0}</p>
+                    </div>
+                    <div className="stat-item">
+                      <h4>Tarefas Criadas</h4>
+                      <p className="stat-value">{teacherPerformance.totalTasks || 0}</p>
+                    </div>
+                    <div className="stat-item">
+                      <h4>Flashcards Criados</h4>
+                      <p className="stat-value">{teacherPerformance.totalFlashcards || 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Gráficos e detalhes do desempenho */}
+                  <div className="performance-details">
+                    <h3>Detalhes do Desempenho</h3>
+                    {teacherPerformance.classes && teacherPerformance.classes.map(cls => (
+                      <div key={cls._id} className="class-performance">
+                        <h4>{cls.name}</h4>
+                        <div className="class-stats">
+                          <span>Média de foco: {cls.avgFocusTime || 0} min</span>
+                          <span>Conclusão de tarefas: {cls.completionRate || 0}%</span>
+                          <span>Aproveitamento de flashcards: {cls.flashcardAccuracy || 0}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p>Carregando dados de desempenho...</p>
+              )}
+
+              <style jsx>{`
+                .teacher-performance {
+                  padding: 20px;
+                  background: var(--background-color);
+                  min-height: 100vh;
+                }
+
+                .dark-theme .teacher-performance {
+                  background: var(--background-color);
+                }
+
+                .header-section {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 30px;
+                }
+
+                .export-buttons {
+                  display: flex;
+                  gap: 10px;
+                }
+
+                .performance-content {
+                  background: var(--card-background);
+                  padding: 20px;
+                  border-radius: 8px;
+                  border: 1px solid var(--border-color);
+                }
+
+                .dark-theme .performance-content {
+                  background: var(--card-background);
+                  border-color: var(--border-color);
+                }
+
+                .class-performance {
+                  margin-top: 20px;
+                  padding: 15px;
+                  border: 1px solid var(--border-color);
+                  border-radius: 8px;
+                }
+
+                .dark-theme .class-performance {
+                  border-color: var(--border-color);
+                }
+
+                .class-stats {
+                  display: flex;
+                  flex-wrap: wrap;
+                  gap: 15px;
+                  margin-top: 10px;
+                }
+              `}</style>
+            </div>
+          )}
         </div>
 
       </div>

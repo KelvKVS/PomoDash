@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { authAPI, taskAPI, flashcardAPI, classAPI, userAPI, performanceAPI } from '../lib/api';
+import { authAPI, taskAPI, flashcardAPI, classAPI } from '../lib/api';
+import { exportTasksToExcel, exportFlashcardsToExcel, exportClassesToExcel, exportPerformanceToExcel } from '../lib/excelExport';
 import CustomAlert from './CustomAlert';
-import useFlashcardStats from '../hooks/useFlashcardStats';
+import TeacherClassManagement from './TeacherClassManagement';
+import TeacherTaskManagement from './TeacherTaskManagement';
+import TeacherFlashcardManagement from './TeacherFlashcardManagement';
 
 function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -33,29 +36,16 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     flashcards: false,
     performance: false
   });
-  
+
   const [errors, setErrors] = useState({
     classes: null,
     assignments: null,
     flashcards: null,
     performance: null
   });
-  
+
   // Alert state
   const [alert, setAlert] = useState(null);
-  
-  // Confirmation Modal State
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmCallback, setConfirmCallback] = useState(null);
-  const [confirmMessage, setConfirmMessage] = useState('');
-  
-  // Flashcard Stats
-  const { 
-    updateFlashcardStats, 
-    getOverallAccuracy, 
-    getFlashcardStats,
-    stats: flashcardStats 
-  } = useFlashcardStats();
   
   // Novos estados para criar tarefas e flashcards
   const [newAssignment, setNewAssignment] = useState({
@@ -147,119 +137,6 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
   
-  // Função para carregar dados de desempenho mais detalhados
-  const loadDetailedPerformanceData = async () => {
-    setLoading(prev => ({ ...prev, performance: true }));
-    setErrors(prev => ({ ...prev, performance: null }));
-    
-    try {
-      // Carregar tarefas e obter informações detalhadas de desempenho
-      const tasksResponse = await taskAPI.getTasksByTeacher(user._id);
-      const tasks = tasksResponse.data || [];
-      
-      // Carregar alunos de todas as turmas para correlacionar
-      const performanceWithDetails = [];
-      
-      for (const task of tasks) {
-        if (task.assigned_to && task.assigned_to.length > 0) {
-          for (const assignment of task.assigned_to) {
-            performanceWithDetails.push({
-              ...task,
-              student_id: assignment.user,
-              student_name: assignment.user_name || 'Aluno',
-              assignment_status: assignment.status,
-              assigned_at: assignment.assigned_at,
-              completed_at: assignment.completed_at
-            });
-          }
-        } else {
-          performanceWithDetails.push({
-            ...task,
-            student_name: 'Não atribuído',
-            assignment_status: 'pending'
-          });
-        }
-      }
-      
-      setPerformanceData(performanceWithDetails);
-    } catch (error) {
-      console.error('Erro ao carregar dados de desempenho detalhados:', error);
-      setErrors(prev => ({ ...prev, performance: error.message }));
-      setAlert({ message: 'Erro ao carregar dados de desempenho: ' + error.message, type: 'error' });
-      setPerformanceData([]);
-    } finally {
-      setLoading(prev => ({ ...prev, performance: false }));
-    }
-  };
-  
-  // Função para carregar dados de desempenho específico para o professor
-  const loadProfessorPerformanceData = async () => {
-    setLoading(prev => ({ ...prev, performance: true }));
-    setErrors(prev => ({ ...prev, performance: null }));
-    
-    try {
-      // Carregar dados de desempenho geral do professor
-      // Vamos usar a API existente em vez de fetch direto
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/performance/teacher/${user._id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Erro ao carregar dados de desempenho');
-      }
-      
-      // Transformar os dados para o formato esperado pela UI
-      const performanceWithDetails = [];
-      
-      if (data.data && data.data.classes && data.data.classes.length > 0) {
-        for (const classData of data.data.classes) {
-          // Carregar alunos dessa turma para mostrar detalhes
-          const classStudentsResponse = await classAPI.getClassStudents(classData.classId);
-          
-          if (classStudentsResponse.data && classStudentsResponse.data.students) {
-            for (const student of classStudentsResponse.data.students) {
-              // Pegar tarefas recentes do aluno
-              const studentTasksResponse = await taskAPI.getTasks({
-                'assigned_to.user': student.user_id._id,
-                status: 'completed'
-              });
-              
-              performanceWithDetails.push({
-                classId: classData.classId,
-                className: classData.className,
-                subject: classData.subject,
-                student_id: student.user_id._id,
-                student_name: student.user_id.name,
-                student_grade: student.user_id.academic?.grade || 'N/A',
-                totalTasks: classData.totalTasks,
-                completedTasks: classData.completedTasks,
-                avgCompletion: classData.avgCompletion,
-                studentTasks: studentTasksResponse.data.length,
-                // Atributos para manter compatibilidade com o código existente
-                title: `${student.user_id.name} - ${classData.subject}`,
-                assigned_to: [{user: student.user_id._id, status: 'completed', completed_at: new Date()}]
-              });
-            }
-          }
-        }
-      }
-      
-      setPerformanceData(performanceWithDetails);
-    } catch (error) {
-      console.error('Erro ao carregar dados de desempenho:', error);
-      setErrors(prev => ({ ...prev, performance: error.message }));
-      setAlert({ message: 'Erro ao carregar dados de desempenho: ' + error.message, type: 'error' });
-      setPerformanceData([]);
-    } finally {
-      setLoading(prev => ({ ...prev, performance: false }));
-    }
-  };
   
   // Funções para gerenciar turmas
   const handleCreateClass = async (e) => {
@@ -325,27 +202,6 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
   
-  // Função para atribuir tarefa a alunos
-  const assignTaskToStudents = async (taskId, studentIds) => {
-    try {
-      // A API atual não suporta atribuir tarefas a alunos específicos diretamente
-      // Vamos atualizar a tarefa para incluir os alunos
-      const updatedTask = {
-        assigned_to: studentIds.map(studentId => ({
-          user: studentId,
-          status: 'pending',
-          assigned_at: new Date().toISOString()
-        }))
-      };
-      
-      await taskAPI.updateTask(taskId, updatedTask);
-      setAlert({ message: 'Tarefa atribuída aos alunos com sucesso!', type: 'success' });
-      loadAssignments(); // Recarregar as tarefas
-    } catch (error) {
-      console.error('Erro ao atribuir tarefa aos alunos:', error);
-      setAlert({ message: 'Erro ao atribuir tarefa aos alunos: ' + error.message, type: 'error' });
-    }
-  };
   
   // Função para lidar com a seleção de turma
   const handleClassChange = (classId) => {
@@ -408,22 +264,15 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     );
   };
 
-  const showConfirmation = (message, callback, type = 'warning') => {
+  const showConfirmation = (message, callback) => {
+    // eslint-disable-next-line no-undef
     setConfirmMessage(message);
+    // eslint-disable-next-line no-undef
     setConfirmCallback(() => callback);
+    // eslint-disable-next-line no-undef
     setShowConfirmModal(true);
   };
 
-  const handleConfirm = () => {
-    if (confirmCallback) {
-      confirmCallback();
-    }
-    setShowConfirmModal(false);
-  };
-
-  const handleCancel = () => {
-    setShowConfirmModal(false);
-  };
 
   const openProfileModal = () => {
     setShowProfileModal(true);
@@ -509,6 +358,60 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     document.getElementById('profile-image-upload').click();
   };
 
+  // Funções de exportação para professor
+  const exportTeacherData = async (dataType) => {
+    try {
+      let data = [];
+      let exportFunction;
+      let fileName;
+
+      switch(dataType) {
+        case 'tasks': {
+          const tasksResponse = await taskAPI.getTasksByTeacher(user._id);
+          data = tasksResponse.data;
+          exportFunction = exportTasksToExcel;
+          fileName = `tarefas_professor_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+          break;
+        }
+        case 'flashcards': {
+          const flashcardsResponse = await flashcardAPI.getFlashcardsByTeacher(user._id);
+          data = flashcardsResponse.data;
+          exportFunction = exportFlashcardsToExcel;
+          fileName = `flashcards_professor_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+          break;
+        }
+        case 'classes': {
+          const classesResponse = await classAPI.getClassesByTeacher(user._id);
+          data = classesResponse.data;
+          exportFunction = exportClassesToExcel;
+          fileName = `turmas_professor_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+          break;
+        }
+        case 'performance':
+          // eslint-disable-next-line no-undef
+          if (teacherPerformance) {
+            exportFunction = exportPerformanceToExcel;
+            fileName = `desempenho_professor_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
+            // eslint-disable-next-line no-undef
+            exportPerformanceToExcel(teacherPerformance, fileName);
+            setAlert({ message: 'Desempenho exportado com sucesso!', type: 'success' });
+            return;
+          }
+          break;
+        default:
+          setAlert({ message: 'Tipo de dados inválido para exportação', type: 'error' });
+          return;
+      }
+
+      if (exportFunction && data) {
+        exportFunction(data, fileName);
+        setAlert({ message: `${dataType.charAt(0).toUpperCase() + dataType.slice(1)} exportado(s) com sucesso!`, type: 'success' });
+      }
+    } catch (error) {
+      setAlert({ message: `Erro ao exportar ${dataType}: ${error.message}`, type: 'error' });
+    }
+  };
+
   useEffect(() => {
     // Font Awesome for icons
     const script = document.createElement('script');
@@ -527,23 +430,17 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     return () => {
       document.body.removeChild(script);
     };
-  }, [flashcardStats, user]);
-
-  // Atualizar chamada para garantir que o user está definido
-  useEffect(() => {
-    if (user && user._id) {
-      // Carregar dados iniciais
-      loadClasses();
-      loadAssignments();
-      loadFlashcards();
-      loadPerformanceData();
-    }
-  }, [user]);
+  }, [user, loadClasses, loadAssignments, loadFlashcards, loadPerformanceData]);
 
   const pageTitles = {
     'dashboard': 'Dashboard Professor',
     'assignments': 'Tarefas',
+    'classes': 'Turmas',
     'flashcards': 'Flashcards',
+    'performance': 'Desempenho',
+    'teacher-classes': 'Minhas Turmas',
+    'teacher-tasks': 'Gerenciar Tarefas',
+    'teacher-flashcards': 'Gerenciar Flashcards',
     'settings': 'Configurações',
   };
 
@@ -564,12 +461,22 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
           <div className={`menu-item ${activeScreen === 'assignments' ? 'active' : ''}`} onClick={() => {showScreen('assignments'); setSidebarOpen(false);}}>
             <i className="fas fa-tasks"></i><span>Tarefas</span>
           </div>
-
           <div className={`menu-item ${activeScreen === 'flashcards' ? 'active' : ''}`} onClick={() => {showScreen('flashcards'); setSidebarOpen(false);}}>
             <i className="fas fa-layer-group"></i><span>Flashcards</span>
           </div>
           <div className={`menu-item ${activeScreen === 'performance' ? 'active' : ''}`} onClick={() => {showScreen('performance'); setSidebarOpen(false);}}>
             <i className="fas fa-chart-bar"></i><span>Desempenho</span>
+          </div>
+
+          {/* Itens do menu para funcionalidades avançadas */}
+          <div className={`menu-item ${activeScreen === 'teacher-classes' ? 'active' : ''}`} onClick={() => {showScreen('teacher-classes'); setSidebarOpen(false);}}>
+            <i className="fas fa-chalkboard-teacher"></i><span>Minhas Turmas</span>
+          </div>
+          <div className={`menu-item ${activeScreen === 'teacher-tasks' ? 'active' : ''}`} onClick={() => {showScreen('teacher-tasks'); setSidebarOpen(false);}}>
+            <i className="fas fa-tasks"></i><span>Gerenciar Tarefas</span>
+          </div>
+          <div className={`menu-item ${activeScreen === 'teacher-flashcards' ? 'active' : ''}`} onClick={() => {showScreen('teacher-flashcards'); setSidebarOpen(false);}}>
+            <i className="fas fa-layer-group"></i><span>Gerenciar Flashcards</span>
           </div>
         </div>
         
@@ -853,8 +760,37 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
         {/* Performance Screen */}
         <div className={`screen ${activeScreen === 'performance' ? 'active' : ''}`} id="performance">
-          <div className="card">
+          <div className="header-section">
             <h3 className="card-title">Desempenho dos Alunos</h3>
+            <div className="export-buttons">
+              <button
+                className="btn btn-secondary"
+                onClick={() => exportTeacherData('classes')}
+              >
+                Exportar Turmas
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => exportTeacherData('tasks')}
+              >
+                Exportar Tarefas
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => exportTeacherData('flashcards')}
+              >
+                Exportar Flashcards
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => exportTeacherData('performance')}
+              >
+                Exportar Desempenho
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
             {loading.performance ? (
               <div className="loading">Carregando desempenho...</div>
             ) : errors.performance ? (
@@ -876,7 +812,7 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                     {performanceData.length > 0 ? (
                       performanceData.map(task => (
                         <tr key={task._id || task.id}>
-                          <td>{task.assigned_to?.map(assignment => 
+                          <td>{task.assigned_to?.map(assignment =>
                             classes.find(cls => cls._id === task.class_id)?.students?.find(s => s._id === assignment.user)?.name
                           ).filter(Boolean)[0] || task.assigned_to?.[0]?.user_name || 'N/A'}</td>
                           <td>{classes.find(cls => cls._id === task.class_id)?.name || task.class_name || 'N/A'}</td>
@@ -917,6 +853,21 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
               <p>Nenhuma turma encontrada.</p>
             )}
           </div>
+        </div>
+
+        {/* Teacher Classes Screen */}
+        <div className={`screen ${activeScreen === 'teacher-classes' ? 'active' : ''}`} id="teacher-classes">
+          {user && <TeacherClassManagement user={user} darkMode={darkMode} />}
+        </div>
+
+        {/* Teacher Tasks Screen */}
+        <div className={`screen ${activeScreen === 'teacher-tasks' ? 'active' : ''}`} id="teacher-tasks">
+          {user && <TeacherTaskManagement user={user} darkMode={darkMode} />}
+        </div>
+
+        {/* Teacher Flashcards Screen */}
+        <div className={`screen ${activeScreen === 'teacher-flashcards' ? 'active' : ''}`} id="teacher-flashcards">
+          {user && <TeacherFlashcardManagement user={user} darkMode={darkMode} />}
         </div>
 
       </div>
@@ -1488,6 +1439,18 @@ styles.innerHTML = `
 
   .student-item:last-child {
     border-bottom: none;
+  }
+
+  .header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .export-buttons {
+    display: flex;
+    gap: 10px;
   }
 
   .sidebar-overlay {

@@ -1,4 +1,0 @@
-  // FUNÇÃO REMOVIDA DEVIDO A ERROS DE SINTAXE E DUPLICAÇÃO DE CHAVES
-  // Originalmente chamava-se loadProfessorPerformanceData e continha código com chaves duplicadas
-  
-  // Funções para gerenciar turmas
