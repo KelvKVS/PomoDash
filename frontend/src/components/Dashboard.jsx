@@ -34,7 +34,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
   });
-  const [profileImage, setProfileImage] = useState(user?.profilePicture || 'https://i.pravatar.cc/40');
+  const [profileImage, setProfileImage] = useState(user?.profile?.avatar || user?.profilePicture || 'https://i.pravatar.cc/40');
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -626,12 +626,17 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         });
       }
 
+      // Obtém a nova URL do avatar
+      const newAvatarUrl = response.data.user.profile?.avatar || response.data.user.profilePicture || user?.profilePicture;
+
       // Atualiza o localStorage com os novos dados do usuário
-      const updatedUser = { ...user, name: response.data.user.name, profilePicture: response.data.user.profilePicture || user?.profilePicture };
+      const updatedUser = { ...user, name: response.data.user.name, profilePicture: newAvatarUrl };
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
-      // Atualiza o estado do usuário no componente pai
-      // Aqui você pode chamar uma função passada como prop para atualizar o usuário globalmente
+      // Atualiza a imagem de perfil na tela
+      if (newAvatarUrl) {
+        setProfileImage(newAvatarUrl);
+      }
 
       setEditProfile(false);
       // Limpa o arquivo de imagem após salvar
@@ -647,7 +652,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     setProfileData({
       name: user?.name || '',
     });
-    setProfileImage(user?.profilePicture || 'https://i.pravatar.cc/40');
+    setProfileImage(user?.profile?.avatar || user?.profilePicture || 'https://i.pravatar.cc/40');
     setProfileImageFile(null);
     setEditProfile(false);
   };

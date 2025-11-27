@@ -78,25 +78,46 @@ function App() {
         })
         .then(response => {
           if (response.ok) {
-            setUser(parsedUser);
+            return response.json();
           } else {
             // Token inválido ou incompatível, limpar
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
+            throw new Error('Token inválido');
+          }
+        })
+        .then(data => {
+          if (data && data.data && data.data.user) {
+            // Atualizar localStorage com os dados mais recentes do servidor
+            const serverUser = data.data.user;
+            const updatedUser = {
+              ...parsedUser,
+              name: serverUser.name,
+              email: serverUser.email,
+              role: serverUser.role,
+              profilePicture: serverUser.profile?.avatar || parsedUser.profilePicture,
+              profile: serverUser.profile
+            };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setUser(updatedUser);
+          } else {
+            setUser(parsedUser);
           }
         })
         .catch(error => {
           if (error.name === 'TypeError' && error.message.includes('fetch')) {
             // Erros de rede - apenas avisar brevemente
             console.warn('Conexão com o servidor indisponível');
-          } else {
+            // Em caso de erro de rede, usar dados do localStorage
+            setUser(parsedUser);
+          } else if (error.message !== 'Token inválido') {
             console.error('Erro ao validar token:', error);
+            // Em caso de erro na validação, limpar os dados
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
           }
-          // Em caso de erro na validação, limpar os dados
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('user');
         });
       } catch (error) {
         console.error('Erro ao parsear usuário do localStorage:', error);

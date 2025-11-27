@@ -39,7 +39,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   
   // Estado para aba de relatórios
   const [activeReportTab, setActiveReportTab] = useState('users'); // 'users', 'registrations', 'activities'
-  const [profileImage, setProfileImage] = useState(user?.profilePicture || 'https://i.pravatar.cc/40');
+  const [profileImage, setProfileImage] = useState(user?.profile?.avatar || user?.profilePicture || 'https://i.pravatar.cc/40');
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
@@ -458,7 +458,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     setProfileData({
       name: user?.name || '',
     });
-    setProfileImage(user?.profilePicture || 'https://i.pravatar.cc/40');
+    setProfileImage(user?.profile?.avatar || user?.profilePicture || 'https://i.pravatar.cc/40');
     setProfileImageFile(null);
     setEditProfile(false);
   };
@@ -479,6 +479,8 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
         setProfileImage(reader.result);
       };
       reader.readAsDataURL(file);
+      // Armazena o arquivo original para uso durante o salvamento
+      setProfileImageFile(file);
     }
   };
 
@@ -506,11 +508,17 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
         });
       }
       
+      // Obtém a nova URL do avatar
+      const newAvatarUrl = response.data.user.profile?.avatar || response.data.user.profilePicture || user?.profilePicture;
+      
       // Atualiza o localStorage com os novos dados do usuário
-      const updatedUser = { ...user, name: response.data.user.name, profilePicture: response.data.user.profile?.avatar || response.data.user.profilePicture || user?.profilePicture };
+      const updatedUser = { ...user, name: response.data.user.name, profilePicture: newAvatarUrl };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      // Atualiza o estado do usuário no componente pai
+      // Atualiza a imagem de perfil na tela
+      if (newAvatarUrl) {
+        setProfileImage(newAvatarUrl);
+      }
       
       setEditProfile(false);
       // Limpa o arquivo de imagem após salvar
@@ -660,7 +668,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Função para exportar relatório de usuários
-  const exportUsersReport = () => {
+  const exportUsersReport = async () => {
     const usersData = allUsers.map(user => ({
       'Nome': user.name,
       'Email': user.email,
@@ -674,10 +682,32 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     }));
     
     exportToExcel(usersData, 'relatorio_usuarios');
+    
+    // Registrar o relatório exportado no backend
+    try {
+      await reportAPI.createReport({
+        type: 'school-performance',
+        title: 'Relatório de Usuários',
+        description: `Exportação de ${allUsers.length} usuários da escola`,
+        data: {
+          totalUsers: allUsers.length,
+          exportedAt: new Date().toISOString(),
+          summary: {
+            students: allUsers.filter(u => u.role === 'student').length,
+            teachers: allUsers.filter(u => u.role === 'teacher').length,
+            admins: allUsers.filter(u => u.role === 'school_admin').length
+          }
+        }
+      });
+      // Recarregar relatórios para atualizar a lista
+      loadReports();
+    } catch (error) {
+      console.error('Erro ao registrar relatório:', error);
+    }
   };
 
   // Função para exportar relatório de distribuição de usuários
-  const exportDistributionReport = () => {
+  const exportDistributionReport = async () => {
     const distributionData = [{
       'Categoria': 'Alunos',
       'Quantidade': userDistribution.students
@@ -690,10 +720,34 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     }];
     
     exportToExcel(distributionData, 'relatorio_distribuicao_usuarios');
+    
+    // Registrar o relatório exportado no backend
+    try {
+      const total = userDistribution.students + userDistribution.teachers + userDistribution.admins;
+      await reportAPI.createReport({
+        type: 'school-performance',
+        title: 'Relatório de Distribuição de Usuários',
+        description: `Distribuição de ${total} usuários por categoria`,
+        data: {
+          distribution: userDistribution,
+          total: total,
+          exportedAt: new Date().toISOString(),
+          percentages: {
+            students: total > 0 ? Math.round((userDistribution.students / total) * 100) : 0,
+            teachers: total > 0 ? Math.round((userDistribution.teachers / total) * 100) : 0,
+            admins: total > 0 ? Math.round((userDistribution.admins / total) * 100) : 0
+          }
+        }
+      });
+      // Recarregar relatórios para atualizar a lista
+      loadReports();
+    } catch (error) {
+      console.error('Erro ao registrar relatório:', error);
+    }
   };
 
   // Função para exportar relatório de cadastros recentes
-  const exportRecentRegistrationsReport = () => {
+  const exportRecentRegistrationsReport = async () => {
     const registrationsData = [{
       'Período': 'Alunos (últimos 6 meses)',
       'Quantidade': recentRegistrations.students
@@ -703,6 +757,27 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     }];
     
     exportToExcel(registrationsData, 'relatorio_cadastros_recentes');
+    
+    // Registrar o relatório exportado no backend
+    try {
+      await reportAPI.createReport({
+        type: 'school-performance',
+        title: 'Relatório de Cadastros Recentes',
+        description: `Cadastros recentes: ${recentRegistrations.students} alunos (6 meses), ${recentRegistrations.teachers} professores (1 ano)`,
+        data: {
+          recentRegistrations: recentRegistrations,
+          exportedAt: new Date().toISOString(),
+          periods: {
+            students: 'últimos 6 meses',
+            teachers: 'último ano'
+          }
+        }
+      });
+      // Recarregar relatórios para atualizar a lista
+      loadReports();
+    } catch (error) {
+      console.error('Erro ao registrar relatório:', error);
+    }
   };
 
   // Componente de gráfico de pizza usando Chart.js
@@ -875,16 +950,6 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
         <div className="profile" onClick={() => {openProfileModal(); setSidebarOpen(false);}}>
           <div className="profile-img-container">
             <img src={profileImage} alt="Instituição" className="profile-img" />
-            <button 
-              className="profile-img-upload-btn" 
-              title="Alterar foto"
-              onClick={(e) => {
-                e.stopPropagation();
-                triggerImageUpload();
-              }}
-            >
-              <i className="fas fa-camera"></i>
-            </button>
           </div>
           <div className="profile-name">{user?.name || 'Instituição'}</div>
         </div>
@@ -3421,6 +3486,194 @@ styles.innerHTML = `
 
   .dark-theme .delete-modal-btn-cancel:hover:not(:disabled) {
     background-color: #555;
+  }
+
+  /* ==================== RESPONSIVE STYLES FOR REPORTS ==================== */
+  @media (max-width: 768px) {
+    /* Tabs de relatórios - empilhar verticalmente */
+    .report-tabs {
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .report-tab {
+      width: 100%;
+      text-align: center;
+      padding: 12px 15px;
+    }
+    
+    /* Header dos relatórios com botão de exportar */
+    .report-data > div:first-child {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    
+    .report-data h4 {
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+    }
+    
+    .export-button {
+      width: 100%;
+      justify-content: center;
+      padding: 12px 16px;
+    }
+    
+    /* Tabelas responsivas */
+    .report-table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 15px;
+    }
+    
+    .report-table th,
+    .report-table td {
+      padding: 10px 8px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      min-width: 100px;
+    }
+    
+    /* Container dos gráficos */
+    .chart-container,
+    .pie-chart-wrapper,
+    .bar-chart-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px 0;
+    }
+    
+    .pie-chart-container {
+      width: 100%;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+    
+    .pie-chart-svg {
+      width: 160px;
+      height: 160px;
+    }
+    
+    .pie-chart-legend {
+      width: 100%;
+      padding: 0 10px;
+    }
+    
+    .legend-item {
+      font-size: 0.85rem;
+      justify-content: center;
+    }
+    
+    .total-count {
+      font-size: 1.5rem;
+    }
+    
+    .total-label {
+      font-size: 0.75rem;
+    }
+    
+    /* Cadastros recentes */
+    .recent-registrations {
+      padding: 15px 0;
+    }
+    
+    .registration-item {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 5px;
+      padding: 12px 0;
+    }
+    
+    .registration-label {
+      font-size: 0.9rem;
+    }
+    
+    .registration-value {
+      font-size: 1.2rem;
+    }
+    
+    /* Cards de estatísticas */
+    .stats-container {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    
+    .stat-card {
+      padding: 15px 10px;
+    }
+    
+    .stat-card i {
+      font-size: 1.5rem !important;
+    }
+    
+    .stat-value {
+      font-size: 1.3rem;
+    }
+    
+    .stat-label {
+      font-size: 0.8rem;
+    }
+    
+    /* Performance reports table */
+    .performance-reports-table {
+      overflow-x: auto;
+    }
+    
+    .performance-reports-table table {
+      min-width: 600px;
+    }
+    
+    /* Formulário de geração de relatório */
+    .generate-report-form {
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .generate-report-form select,
+    .generate-report-form input[type="date"],
+    .generate-report-form button {
+      width: 100%;
+    }
+    
+    .performance-controls {
+      padding: 10px 0;
+    }
+  }
+  
+  /* Extra small screens */
+  @media (max-width: 480px) {
+    .stats-container {
+      grid-template-columns: 1fr;
+    }
+    
+    .report-table th,
+    .report-table td {
+      padding: 8px 6px;
+      font-size: 0.8rem;
+      min-width: 80px;
+    }
+    
+    .pie-chart-svg {
+      width: 140px;
+      height: 140px;
+    }
+    
+    .total-count {
+      font-size: 1.3rem;
+    }
+    
+    .card {
+      padding: 15px;
+    }
+    
+    .card-title {
+      font-size: 1.1rem;
+    }
   }
 
 `;

@@ -8,6 +8,25 @@ const reportSchema = new mongoose.Schema({
     enum: ['student-performance', 'class-performance', 'school-performance', 'pomodoro-analytics', 'task-completion', 'flashcard-progress']
   },
 
+  // Título do relatório (para relatórios exportados)
+  title: {
+    type: String,
+    default: ''
+  },
+
+  // Descrição do relatório
+  description: {
+    type: String,
+    default: ''
+  },
+
+  // Status do relatório
+  status: {
+    type: String,
+    enum: ['pending', 'generated', 'exported', 'archived'],
+    default: 'generated'
+  },
+
   // Multi-tenant
   school_id: {
     type: mongoose.Schema.Types.ObjectId,

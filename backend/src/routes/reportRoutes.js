@@ -135,6 +135,45 @@ router.post('/generate/student/:studentId', auth, [
   }
 });
 
+// @route   POST /api/reports
+// @desc    Criar um novo relatório (para registrar exportações)
+// @access  Private (school_admin)
+router.post('/', auth, [
+  body('type').isIn(['student-performance', 'class-performance', 'school-performance', 'pomodoro-analytics', 'task-completion', 'flashcard-progress']),
+  body('title').trim().notEmpty(),
+  body('data').notEmpty(),
+], validateRequest, async (req, res) => {
+  try {
+    const { type, title, data, description } = req.body;
+
+    // Criar o relatório
+    const report = new Report({
+      type: type,
+      title: title,
+      description: description || '',
+      school_id: req.user.school_id,
+      generated_by: req.user._id,
+      data: data,
+      period: {
+        startDate: new Date(),
+        endDate: new Date()
+      },
+      status: 'exported'
+    });
+
+    await report.save();
+
+    res.status(201).json({ 
+      status: 'success', 
+      data: report,
+      message: 'Relatório registrado com sucesso' 
+    });
+  } catch (error) {
+    console.error('Erro ao criar relatório:', error);
+    res.status(500).json({ status: 'error', message: 'Erro interno do servidor' });
+  }
+});
+
 // @route   GET /api/reports/student/:studentId
 // @desc    Obter relatórios de um aluno específico
 // @access  Private (admin/teacher)

@@ -9,7 +9,7 @@ import {
   BarElement,
   Title
 } from 'chart.js';
-import { Pie } from 'react-chartjs-2';
+import { Pie, Bar } from 'react-chartjs-2';
 import { authAPI, taskAPI, flashcardAPI, classAPI, userAPI } from '../lib/api';
 import CustomAlert from './CustomAlert';
 
@@ -151,7 +151,7 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editProfile, setEditProfile] = useState(false);
   const [profileData, setProfileData] = useState({ name: user?.name || 'Professor Demo' });
-  const [profileImage, setProfileImage] = useState(user?.profilePicture || 'https://i.pravatar.cc/40?u=professor');
+  const [profileImage, setProfileImage] = useState(user?.profile?.avatar || user?.profilePicture || 'https://i.pravatar.cc/40?u=professor');
   const [profileImageFile, setProfileImageFile] = useState(null);
 
   // Turmas - Inicializado com dados mock
@@ -635,8 +635,17 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
         response = await authAPI.updateProfile({ name: profileData.name });
       }
 
-      const updatedUser = { ...user, name: response.data.user.name, profilePicture: response.data.user.profilePicture };
+      // Obtém a nova URL do avatar
+      const newAvatarUrl = response.data.user.profile?.avatar || response.data.user.profilePicture || user?.profilePicture;
+
+      const updatedUser = { ...user, name: response.data.user.name, profilePicture: newAvatarUrl };
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Atualiza a imagem de perfil na tela
+      if (newAvatarUrl) {
+        setProfileImage(newAvatarUrl);
+      }
+      
       setEditProfile(false);
       setProfileImageFile(null);
       setAlert({ message: 'Perfil atualizado!', type: 'success' });
@@ -651,6 +660,7 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
       const reader = new FileReader();
       reader.onloadend = () => setProfileImage(reader.result);
       reader.readAsDataURL(file);
+      // Armazena o arquivo original para uso durante o salvamento
       setProfileImageFile(file);
     }
   };
@@ -669,20 +679,123 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
   // ==================== COMPONENTES ====================
 
-  const PieChartComponent = ({ data }) => (
-    <div style={{ height: '200px', width: '100%' }}>
-      <Pie 
-        data={data} 
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { padding: 10, usePointStyle: true } }
+  // Componente de gráfico de pizza melhorado
+  const PieChartComponent = ({ data, total }) => {
+    const chartData = {
+      labels: data.map(item => item.label),
+      datasets: [
+        {
+          data: data.map(item => item.value),
+          backgroundColor: data.map(item => item.color),
+          borderColor: data.map(item => item.color),
+          borderWidth: 1,
+          hoverOffset: 4
+        }
+      ]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 10,
+            usePointStyle: true,
+            pointStyle: 'circle',
+            font: {
+              size: 12
+            }
           }
-        }} 
-      />
-    </div>
-  );
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.raw || 0;
+              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      },
+      animation: {
+        animateRotate: true,
+        animateScale: true,
+        duration: 1000
+      }
+    };
+
+    return (
+      <div style={{ position: 'relative', height: '220px', width: '100%' }}>
+        <Pie data={chartData} options={options} />
+      </div>
+    );
+  };
+
+  // Componente de gráfico de barras
+  const BarChartComponent = ({ data }) => {
+    const chartData = {
+      labels: data.map(item => item.label),
+      datasets: [
+        {
+          label: 'Quantidade',
+          data: data.map(item => item.value),
+          backgroundColor: data.map(item => item.color),
+          borderColor: data.map(item => item.borderColor || item.color),
+          borderWidth: 1,
+          borderRadius: 4,
+          hoverBackgroundColor: data.map(item => item.hoverColor || item.color)
+        }
+      ]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `Quantidade: ${context.raw}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            font: {
+              size: 10
+            }
+          }
+        },
+        x: {
+          ticks: {
+            font: {
+              size: 10
+            }
+          }
+        }
+      },
+      animation: {
+        duration: 1000,
+        easing: 'easeOutQuart'
+      }
+    };
+
+    return (
+      <div style={{ position: 'relative', height: '200px', width: '100%' }}>
+        <Bar data={chartData} options={options} />
+      </div>
+    );
+  };
 
   const menuItems = [
     { id: 'dashboard', title: 'Dashboard', icon: 'fas fa-tachometer-alt' },
@@ -766,17 +879,105 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
             </div>
 
             <div className="dashboard-grid">
-              <div className="card">
-                <h3 className="card-title">Distribuição de Alunos</h3>
-                {chartData.classDistribution.labels.length > 0 ? (
-                  <PieChartComponent data={chartData.classDistribution} />
+              <div className="card animated" style={{ animationDelay: '0.1s' }}>
+                <h3 className="card-title">
+                  <i className="fas fa-chart-pie" style={{ marginRight: '8px', color: '#d9534f' }}></i>
+                  Distribuição de Alunos por Turma
+                </h3>
+                {classes.length > 0 ? (
+                  <PieChartComponent 
+                    data={classes.map((cls, index) => ({
+                      label: cls.name,
+                      value: cls.students?.length || 0,
+                      color: ['#5cb85c', '#0275d8', '#d9534f', '#f0ad4e', '#5bc0de', '#6f42c1'][index % 6]
+                    }))}
+                    total={classes.reduce((sum, cls) => sum + (cls.students?.length || 0), 0)}
+                  />
                 ) : (
-                  <p className="chart-placeholder">Nenhum dado disponível</p>
+                  <p className="chart-placeholder">Nenhuma turma cadastrada</p>
                 )}
               </div>
-              <div className="card">
-                <h3 className="card-title">Bem-vindo!</h3>
-                <p>Gerencie suas turmas, tarefas e flashcards pelo menu lateral.</p>
+              
+              <div className="card animated" style={{ animationDelay: '0.2s' }}>
+                <h3 className="card-title">
+                  <i className="fas fa-tasks" style={{ marginRight: '8px', color: '#0275d8' }}></i>
+                  Tarefas por Prioridade
+                </h3>
+                {tasks.length > 0 ? (
+                  <BarChartComponent 
+                    data={[
+                      { 
+                        label: 'Alta', 
+                        value: tasks.filter(t => t.priority === 'high').length,
+                        color: 'rgba(217, 83, 79, 0.7)',
+                        borderColor: 'rgba(217, 83, 79, 1)',
+                        hoverColor: 'rgba(217, 83, 79, 0.9)'
+                      },
+                      { 
+                        label: 'Média', 
+                        value: tasks.filter(t => t.priority === 'medium').length,
+                        color: 'rgba(240, 173, 78, 0.7)',
+                        borderColor: 'rgba(240, 173, 78, 1)',
+                        hoverColor: 'rgba(240, 173, 78, 0.9)'
+                      },
+                      { 
+                        label: 'Baixa', 
+                        value: tasks.filter(t => t.priority === 'low').length,
+                        color: 'rgba(92, 184, 92, 0.7)',
+                        borderColor: 'rgba(92, 184, 92, 1)',
+                        hoverColor: 'rgba(92, 184, 92, 0.9)'
+                      }
+                    ]}
+                  />
+                ) : (
+                  <p className="chart-placeholder">Nenhuma tarefa cadastrada</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Segunda linha de gráficos */}
+            <div className="dashboard-grid" style={{ marginTop: '20px' }}>
+              <div className="card animated" style={{ animationDelay: '0.3s' }}>
+                <h3 className="card-title">
+                  <i className="fas fa-clone" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
+                  Flashcards Criados
+                </h3>
+                <div className="quick-stats">
+                  <div className="quick-stat-item">
+                    <span className="quick-stat-value" style={{ color: '#6f42c1' }}>{flashcards.length}</span>
+                    <span className="quick-stat-label">Total de Flashcards</span>
+                  </div>
+                  <div className="quick-stat-item">
+                    <span className="quick-stat-value" style={{ color: '#5cb85c' }}>{classes.length}</span>
+                    <span className="quick-stat-label">Turmas Ativas</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="card animated" style={{ animationDelay: '0.4s' }}>
+                <h3 className="card-title">
+                  <i className="fas fa-calendar-alt" style={{ marginRight: '8px', color: '#f0ad4e' }}></i>
+                  Próximas Entregas
+                </h3>
+                <div className="upcoming-tasks">
+                  {tasks
+                    .filter(t => new Date(t.due_date) >= new Date())
+                    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+                    .slice(0, 3)
+                    .map(task => (
+                      <div key={task._id} className="upcoming-task-item">
+                        <div className="upcoming-task-title">{task.title}</div>
+                        <div className="upcoming-task-date">
+                          <i className="fas fa-clock"></i>
+                          {new Date(task.due_date).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                    ))
+                  }
+                  {tasks.filter(t => new Date(t.due_date) >= new Date()).length === 0 && (
+                    <p className="no-upcoming">Nenhuma entrega próxima</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -2212,6 +2413,142 @@ styles.innerHTML = `
 
   .dark-theme .theme-toggle-btn:hover {
     background: #3d3d3d;
+  }
+
+  /* ==================== ESTILOS DOS NOVOS GRÁFICOS ==================== */
+  
+  .card.animated {
+    animation: slideInUp 0.5s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .card-title i {
+    font-size: 1rem;
+  }
+
+  .chart-placeholder {
+    text-align: center;
+    color: #999;
+    padding: 40px 20px;
+    font-style: italic;
+  }
+
+  /* Quick Stats */
+  .quick-stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px 0;
+  }
+
+  .quick-stat-item {
+    text-align: center;
+    padding: 15px;
+  }
+
+  .quick-stat-value {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .quick-stat-label {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 5px;
+  }
+
+  /* Upcoming Tasks */
+  .upcoming-tasks {
+    padding: 10px 0;
+  }
+
+  .upcoming-task-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+  }
+
+  .upcoming-task-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+  }
+
+  .upcoming-task-title {
+    font-weight: 500;
+    color: #333;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .upcoming-task-date {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+    color: #666;
+    background: #fff;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+  }
+
+  .upcoming-task-date i {
+    color: #f0ad4e;
+  }
+
+  .no-upcoming {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+  }
+
+  /* Dark Theme - Novos elementos */
+  .dark-theme .quick-stat-label {
+    color: #aaa;
+  }
+
+  .dark-theme .upcoming-task-item {
+    background: #2d2d2d;
+  }
+
+  .dark-theme .upcoming-task-item:hover {
+    background: #3d3d3d;
+  }
+
+  .dark-theme .upcoming-task-title {
+    color: #e0e0e0;
+  }
+
+  .dark-theme .upcoming-task-date {
+    background: #1e1e1e;
+    border-color: #444;
+    color: #aaa;
+  }
+
+  .dark-theme .chart-placeholder,
+  .dark-theme .no-upcoming {
+    color: #777;
   }
 `;
 document.head.appendChild(styles);

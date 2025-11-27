@@ -79,33 +79,66 @@ export const authAPI = {
   updateProfile: async (profileData) => {
     // Verifica se os dados incluem um arquivo para upload
     if (profileData instanceof FormData) {
-      // Para upload de arquivos, precisamos construir a configuração manualmente
-      // sem definir Content-Type para que o navegador defina automaticamente com o boundary
-      const config = {
-        method: 'PUT',
-        body: profileData,
-      };
-
-      // Adiciona o token de autenticação
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers = {
-          Authorization: `Bearer ${token}`
-        };
-      }
-
       try {
-        const url = `${API_BASE_URL}/auth/profile`;
-        const response = await fetch(url, config);
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || `Erro ${response.status}: ${response.statusText}`);
+        let avatarUrl = null;
+        
+        // Verifica se há uma imagem para upload
+        const imageFile = profileData.get('profilePicture');
+        console.log('📸 Arquivo de imagem:', imageFile);
+        
+        if (imageFile && imageFile instanceof File) {
+          // Primeiro faz o upload da imagem
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', imageFile);
+          
+          const token = localStorage.getItem('token');
+          console.log('🔑 Token presente:', !!token);
+          console.log('📤 Enviando upload para:', `${API_BASE_URL}/upload`);
+          
+          const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+            body: uploadFormData,
+          });
+          
+          console.log('📥 Status do upload:', uploadResponse.status);
+          
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            console.error('❌ Erro no upload:', errorData);
+            throw new Error(errorData.message || 'Erro ao fazer upload da imagem');
+          }
+          
+          const uploadResult = await uploadResponse.json();
+          console.log('✅ Resultado do upload:', uploadResult);
+          avatarUrl = uploadResult.data.url;
+          console.log('🔗 URL do avatar:', avatarUrl);
         }
-
-        return data;
+        
+        // Agora atualiza o perfil com a URL da imagem (se houver)
+        const updateData = {
+          name: profileData.get('name'),
+        };
+        
+        if (avatarUrl) {
+          updateData.profile = {
+            avatar: avatarUrl
+          };
+        }
+        
+        console.log('📝 Dados para atualizar perfil:', updateData);
+        
+        const result = await request('/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify(updateData),
+        });
+        
+        console.log('✅ Resultado da atualização do perfil:', result);
+        return result;
       } catch (error) {
-        console.error('Erro na requisição:', error.message);
+        console.error('❌ Erro na requisição:', error.message);
         throw error;
       }
     } else {
@@ -192,6 +225,14 @@ export const reportAPI = {
   getReportById: async (reportId) => {
     return request(`/reports/${reportId}`, {
       method: 'GET',
+    });
+  },
+
+  // Criar/registrar um relatório exportado
+  createReport: async (reportData) => {
+    return request('/reports', {
+      method: 'POST',
+      body: JSON.stringify(reportData),
     });
   },
 

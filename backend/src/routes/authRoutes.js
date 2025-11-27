@@ -278,6 +278,12 @@ router.post('/login', loginValidation, async (req, res) => {
           school: {
             id: user.school_id._id,
             name: user.school_id.name
+          },
+          school_id: user.school_id._id,
+          profile: {
+            avatar: user.profile?.avatar || null,
+            phone: user.profile?.phone || null,
+            bio: user.profile?.bio || null
           }
         },
         access: {
@@ -666,7 +672,7 @@ router.get('/access-info', auth, (req, res) => {
 // @access  Private
 router.put('/profile', auth, [
   body('name').optional().trim().isLength({ min: 2, max: 100 }).withMessage('Nome deve ter entre 2 e 100 caracteres'),
-  body('profile.avatar').optional().isURL().withMessage('URL de avatar inválida'),
+  body('profile.avatar').optional().isString().withMessage('URL de avatar deve ser uma string'),
   body('profile.phone').optional().matches(/^(\(\d{2}\)\s\d{4,5}-\d{4})?$/).withMessage('Telefone deve estar no formato (XX) XXXXX-XXXX'),
   body('profile.dateOfBirth').optional().isISO8601().withMessage('Data de nascimento inválida'),
   body('profile.bio').optional().isLength({ max: 500 }).withMessage('Bio não pode exceder 500 caracteres')
@@ -698,14 +704,31 @@ router.put('/profile', auth, [
     }
     
     if (profile) {
+      // Inicializar profile se não existir
+      if (!user.profile) {
+        user.profile = {};
+      }
       // Atualizar campos específicos do profile, mantendo os existentes
-      user.profile.avatar = profile.avatar || user.profile.avatar;
-      user.profile.phone = profile.phone || user.profile.phone;
-      user.profile.dateOfBirth = profile.dateOfBirth || user.profile.dateOfBirth;
-      user.profile.bio = profile.bio || user.profile.bio;
+      if (profile.avatar) {
+        user.profile.avatar = profile.avatar;
+      }
+      if (profile.phone) {
+        user.profile.phone = profile.phone;
+      }
+      if (profile.dateOfBirth) {
+        user.profile.dateOfBirth = profile.dateOfBirth;
+      }
+      if (profile.bio) {
+        user.profile.bio = profile.bio;
+      }
     }
 
+    // Marcar o campo profile como modificado para garantir que o Mongoose salve
+    user.markModified('profile');
+    
     await user.save();
+    
+    console.log('✅ Perfil atualizado:', { avatar: user.profile?.avatar });
 
     res.json({
       status: 'success',
@@ -716,7 +739,12 @@ router.put('/profile', auth, [
           name: user.name,
           email: user.email,
           role: user.role,
-          school_id: user.school_id
+          school_id: user.school_id,
+          profile: {
+            avatar: user.profile?.avatar || null,
+            phone: user.profile?.phone || null,
+            bio: user.profile?.bio || null
+          }
         }
       }
     });

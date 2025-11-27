@@ -363,8 +363,12 @@ router.get('/:id/stats', [
   try {
     const { id } = req.params;
 
-    // Verificar permissão
-    if (req.user.role === 'school_admin' && req.user.school_id.toString() !== id) {
+    // Obter o school_id do usuário (pode ser objeto ou string)
+    const userSchoolId = req.user.school_id?._id?.toString() || req.user.school_id?.toString();
+    
+    // Verificar permissão - school_admin só pode ver sua própria escola
+    // global_admin pode ver qualquer escola
+    if (req.user.role !== 'global_admin' && req.user.role === 'school_admin' && userSchoolId !== id) {
       return res.status(403).json({
         status: 'error',
         message: 'Acesso negado'

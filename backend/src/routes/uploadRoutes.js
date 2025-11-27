@@ -64,6 +64,8 @@ const upload = multer({
 // @access  Private
 router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
+    console.log('📤 Upload recebido:', req.file ? 'Arquivo presente' : 'Nenhum arquivo');
+    
     if (!req.file) {
       return res.status(400).json({
         status: 'error',
@@ -72,8 +74,15 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     }
 
     // Construir URL do arquivo
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    // Em produção, usar a URL do backend configurada no env
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const fileUrl = `${backendUrl}/uploads/${req.file.filename}`;
+
+    console.log('✅ Arquivo salvo:', {
+      filename: req.file.filename,
+      url: fileUrl,
+      size: req.file.size
+    });
 
     res.json({
       status: 'success',
@@ -87,7 +96,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erro no upload:', error);
+    console.error('❌ Erro no upload:', error);
     res.status(500).json({
       status: 'error',
       message: 'Erro ao fazer upload do arquivo'

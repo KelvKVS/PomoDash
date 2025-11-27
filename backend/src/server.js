@@ -40,7 +40,10 @@ connectDB().catch(err => {
 });
 
 // Middleware de segurança
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -110,8 +113,15 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Servir arquivos estáticos da pasta uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Servir arquivos estáticos da pasta uploads com CORS habilitado
+app.use('/uploads', (req, res, next) => {
+  // Permitir acesso de qualquer origem para arquivos estáticos
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
 
 // Rotas da API
 app.use('/api/auth', authRoutes);
