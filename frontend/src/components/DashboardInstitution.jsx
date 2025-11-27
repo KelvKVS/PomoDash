@@ -96,7 +96,9 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   // estados para alertas e confirmações
   const [alert, setAlert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [confirmCallback, setConfirmCallback] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [confirmMessage, setConfirmMessage] = useState('');
   
   // Estado para modal de exclusão com confirmação de senha
@@ -126,11 +128,6 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Função para mostrar confirmação
-  const showConfirmation = (message, callback, type = 'warning') => {
-    setConfirmMessage(message);
-    setConfirmCallback(() => callback);
-    setShowConfirmModal(true);
-  };
 
   const handleConfirm = () => {
     if (confirmCallback) {
@@ -2040,20 +2037,7 @@ styles.innerHTML = `
     transform: rotateY(180deg);
   }
 
-  .flashcard-front, .flashcard-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 15px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: var(--card-background);
-    color: var(--text-color);
-  }
+    background-color: #1c1c1c;
 
   .flashcard-back {
     transform: rotateY(180deg);
@@ -2175,7 +2159,7 @@ styles.innerHTML = `
   }
 
   .flashcard-item {
-    background: var(--card-background);
+    background: #1c1c1c;
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 16px;
@@ -3674,6 +3658,12 @@ styles.innerHTML = `
     .card-title {
       font-size: 1.1rem;
     }
+  }
+
+  /* Force background color for table rows within user and report tables */
+  .users-table tbody tr,
+  .report-table tbody tr {
+    background-color: var(--card-background);
   }
 
 `;

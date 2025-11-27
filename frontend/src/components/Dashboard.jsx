@@ -2389,12 +2389,12 @@ styles.innerHTML = `
     --attachment-btn-border: rgba(255,255,255,0.15);
     --attachment-btn-color: #aaa;
     --attachment-btn-hover-bg: rgba(255,255,255,0.12);
-    --attachment-item-bg: rgba(2, 117, 216, 0.25);
+    --attachment-item-bg: rgba(255,255,255,0.12);
     --attachment-item-color: #7bb8eb;
     --btn-remove-color: #ff6b6b;
     
     /* Cards & Components */
-    --card-bg: linear-gradient(135deg, rgba(30,30,47,0.95) 0%, rgba(22,33,62,0.9) 100%);
+    --card-bg: linear-gradient(135deg, rgba(30,30,47,0.95) 0%, rgba(255,255,255,0.12) 100%);
     --card-border: rgba(255,255,255,0.08);
     --card-shadow: 0 4px 20px rgba(0,0,0,0.4);
     
@@ -2576,12 +2576,12 @@ styles.innerHTML = `
 
   /* Flashcards Dark Mode */
   body.dark-theme .flashcard-front-student {
-    background: linear-gradient(145deg, #2a2a4a 0%, #1e1e3e 100%);
+    background: linear-gradient(145deg, #281c1cff 0%, #281c1cff 100%);
     color: var(--text-primary);
   }
 
   body.dark-theme .flashcard-back-student {
-    background: linear-gradient(145deg, #1e3a5f 0%, #163050 100%);
+    background: linear-gradient(145deg, #281c1cff 0%, #281c1cff 100%);
     color: var(--text-primary);
   }
 
@@ -2742,7 +2742,7 @@ styles.innerHTML = `
 
   .beautiful-form .input:focus {
     outline: none;
-    border-color: #0275d8;
+    border-color: #d9534f;
     box-shadow: 0 0 0 3px rgba(2, 117, 216, 0.15);
   }
 
@@ -3701,7 +3701,7 @@ styles.innerHTML = `
 
   .student-class-card .class-subject {
     display: inline-block;
-    background: #0275d8;
+    background: #8c3636ff;
     color: white;
     padding: 3px 10px;
     border-radius: 15px;

@@ -630,7 +630,7 @@
 }
 
 .task-item.in_progress .task-pending-badge {
-    background: #17a2b8;
+    background: #e55345;
     color: white;
 }
 
@@ -1719,7 +1719,7 @@ textarea.add-task-input {
 }
 
 .dark-theme .task-item.in_progress .task-pending-badge {
-    background: #4299e1;
+    background: #e55345;
     color: white;
 }
 

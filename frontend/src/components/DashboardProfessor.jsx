@@ -1205,6 +1205,7 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                   {classes.map(cls => (
                     <div key={cls._id} className="class-students-group">
                       <h4>{cls.name}</h4>
+                      <span className="class-subject-badge">{cls.subject}</span>
                       {classStudents[cls._id] ? (
                         classStudents[cls._id].map(s => s.user_id && (
                           <label key={s.user_id._id} className="checkbox-label">
@@ -2212,8 +2213,8 @@ styles.innerHTML = `
 
   .input:focus {
     outline: none;
-    border-color: #0275d8;
-    box-shadow: 0 0 0 3px rgba(2, 117, 216, 0.15);
+    border-color: #d9534f;
+    box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.15);
   }
 
   /* Buttons */
@@ -2517,7 +2518,7 @@ styles.innerHTML = `
   }
 
   .class-action-btn.edit:hover {
-    background: #0275d8;
+    background: #ff6b6b;
     color: white;
   }
 
@@ -2566,7 +2567,7 @@ styles.innerHTML = `
   }
 
   .task-form .input:focus {
-    border-color: #0275d8 !important;
+    border-color: #d9534f !important;
     box-shadow: 0 0 0 3px rgba(2, 117, 216, 0.2);
   }
 
@@ -2637,9 +2638,9 @@ styles.innerHTML = `
   }
 
   .attachment-btn:hover {
-    border-color: #0275d8;
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    color: #0275d8;
+    border-color: #d9534f;
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    color: #d9534f;
     transform: translateY(-2px);
   }
 
@@ -2854,13 +2855,13 @@ styles.innerHTML = `
   }
 
   .flashcard-front {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    color: #333;
+    background: white;
+    color: black;
   }
 
   .flashcard-back {
-    background: linear-gradient(135deg, #4361ee, #3a0ca3);
-    color: white;
+    background: white;
+    color: black;
     transform: rotateY(180deg);
   }
 
@@ -3221,7 +3222,12 @@ styles.innerHTML = `
   }
 
   .dark-theme .flashcard-front {
-    background: linear-gradient(135deg, #2d2d2d, #1e1e1e);
+    background: #1e1e1e;
+    color: #e0e0e0;
+  }
+
+  .dark-theme .flashcard-back {
+    background: #1e1e1e;
     color: #e0e0e0;
   }
 

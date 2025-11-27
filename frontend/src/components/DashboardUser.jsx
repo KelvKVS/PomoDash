@@ -1628,8 +1628,8 @@ styles.innerHTML = `
   }
 
   .task-status.in_progress {
-    background-color: #cce5ff;
-    color: #004085;
+    background-color: #ffcdd2;
+    color: #c62828;
   }
 
   .task-status.completed {
@@ -1943,8 +1943,8 @@ styles.innerHTML = `
   }
 
   .task-status.in_progress {
-    background-color: #cce5ff;
-    color: #004085;
+    background-color: #ffcdd2;
+    color: #c62828;
   }
 
   .task-status.completed {
@@ -2007,7 +2007,7 @@ styles.innerHTML = `
   }
 
   .task-item.in_progress .task-pending-badge {
-    background: #17a2b8;
+    background: #e55345;
     color: white;
   }
 
