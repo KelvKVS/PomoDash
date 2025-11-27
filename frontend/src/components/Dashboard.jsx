@@ -73,6 +73,16 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   // Estados para funcionalidades do professor
   const [teacherPerformance, setTeacherPerformance] = useState(null);
 
+  // Estados para turmas do aluno
+  const [studentClasses, setStudentClasses] = useState([]);
+  const [classTasks, setClassTasks] = useState([]); // Tarefas da turma
+  const [classFlashcards, setClassFlashcards] = useState([]); // Flashcards da turma
+  const [loadingClasses, setLoadingClasses] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState(null);
+
+  // Normalizar IDs - localStorage usa "id", backend usa "_id"
+  const userId = user?._id || user?.id;
+
   const showScreen = (screenId) => {
     setActiveScreen(screenId);
   };
@@ -548,6 +558,93 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
+  // Função para carregar turmas do aluno
+  const loadStudentClasses = useCallback(async () => {
+    if (!userId || user?.role !== 'student') return;
+    
+    setLoadingClasses(true);
+    try {
+      const response = await classAPI.getClassesByStudent(userId);
+      const classesData = response.data?.classes || [];
+      setStudentClasses(classesData);
+      console.log('Turmas do aluno carregadas:', classesData.length);
+    } catch (error) {
+      console.error('Erro ao carregar turmas do aluno:', error);
+    } finally {
+      setLoadingClasses(false);
+    }
+  }, [userId, user?.role]);
+
+  // Função para carregar flashcards de uma turma específica
+  const loadClassFlashcards = useCallback(async (classId) => {
+    if (!classId) return;
+    
+    try {
+      const response = await flashcardAPI.getFlashcardsByClass(classId);
+      setClassFlashcards(response.data || []);
+      console.log('Flashcards da turma carregados:', response.data?.length || 0);
+    } catch (error) {
+      console.error('Erro ao carregar flashcards da turma:', error);
+      setClassFlashcards([]);
+    }
+  }, []);
+
+  // Função para carregar tarefas de uma turma (tarefas criadas pelo professor da turma)
+  const loadClassTasks = useCallback(async (classId) => {
+    if (!classId || !userId) return;
+    
+    try {
+      // Encontrar a turma selecionada para obter o teacher_id
+      const selectedClass = studentClasses.find(c => c._id === classId);
+      const teacherId = selectedClass?.teacher_id?._id || selectedClass?.teacher_id;
+      
+      if (!teacherId) {
+        console.log('Professor da turma não encontrado');
+        setClassTasks([]);
+        return;
+      }
+
+      const response = await taskAPI.getTasks();
+      const allTasks = response.data || [];
+      
+      // Filtrar tarefas criadas pelo professor da turma E atribuídas ao aluno
+      const tasksFromTeacher = allTasks.filter(task => {
+        // Verificar se a tarefa foi criada pelo professor da turma
+        const creatorId = task.created_by?._id || task.created_by;
+        const isFromTeacher = creatorId?.toString() === teacherId?.toString();
+        
+        // Verificar se o aluno está atribuído a esta tarefa
+        const isAssigned = task.assigned_to?.some(a => {
+          const assignedUserId = a.user?._id || a.user;
+          return assignedUserId?.toString() === userId?.toString();
+        });
+        
+        return isFromTeacher && isAssigned;
+      });
+      
+      setClassTasks(tasksFromTeacher);
+      console.log('Tarefas do professor da turma carregadas:', tasksFromTeacher.length);
+    } catch (error) {
+      console.error('Erro ao carregar tarefas da turma:', error);
+      setClassTasks([]);
+    }
+  }, [userId, studentClasses]);
+
+  // Efeito para carregar turmas do aluno quando a tela mudar para my-classes
+  useEffect(() => {
+    if (activeScreen === 'my-classes' && user?.role === 'student') {
+      loadStudentClasses();
+    }
+  }, [activeScreen, user?.role, loadStudentClasses]);
+
+  // Efeito para carregar dados da turma selecionada
+  useEffect(() => {
+    if (selectedClassId) {
+      loadClassFlashcards(selectedClassId);
+      loadClassTasks(selectedClassId);
+    }
+  }, [selectedClassId, loadClassFlashcards, loadClassTasks]);
+
   // Função para criar novo flashcard
   const handleCreateFlashcard = async (e) => {
     e.preventDefault();
@@ -1013,6 +1110,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     'flashcards': 'Flashcards',
     'stats': 'Estatísticas',
     'settings': 'Configurações',
+    'my-classes': 'Minhas Turmas',
     'teacher-classes': 'Minhas Turmas',
     'teacher-tasks': 'Gerenciar Tarefas',
     'teacher-flashcards': 'Gerenciar Flashcards',
@@ -1052,6 +1150,13 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
           <div className={`menu-item ${activeScreen === 'stats' ? 'active' : ''}`} onClick={() => {showScreen('stats'); setSidebarOpen(false);}}>
             <i className="fas fa-chart-bar"></i><span>Estatísticas</span>
           </div>
+
+          {/* Item do menu para alunos - Minhas Turmas */}
+          {user?.role === 'student' && (
+            <div className={`menu-item ${activeScreen === 'my-classes' ? 'active' : ''}`} onClick={() => {showScreen('my-classes'); setSidebarOpen(false);}}>
+              <i className="fas fa-users"></i><span>Minhas Turmas</span>
+            </div>
+          )}
 
           {/* Itens do menu para professores */}
           {user?.role === 'teacher' && (
@@ -1681,6 +1786,127 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             </div>
         </div>
 
+        {/* Student My Classes Screen */}
+        {activeScreen === 'my-classes' && user?.role === 'student' && (
+          <div className="screen active" id="my-classes">
+            <div className="card">
+              <h3 className="card-title">
+                <i className="fas fa-users" style={{ marginRight: '8px', color: '#5cb85c' }}></i>
+                Minhas Turmas
+              </h3>
+              
+              {loadingClasses ? (
+                <p className="loading-text"><i className="fas fa-spinner fa-spin"></i> Carregando turmas...</p>
+              ) : studentClasses.length > 0 ? (
+                <div className="student-classes-grid">
+                  {studentClasses.map(cls => (
+                    <div 
+                      key={cls._id} 
+                      className={`student-class-card ${selectedClassId === cls._id ? 'selected' : ''}`}
+                      onClick={() => setSelectedClassId(cls._id === selectedClassId ? null : cls._id)}
+                    >
+                      <div className="class-header">
+                        <h4>{cls.name}</h4>
+                        <span className="class-subject">{cls.subject}</span>
+                      </div>
+                      <div className="class-info">
+                        <p><i className="fas fa-chalkboard-teacher"></i> {cls.teacher_id?.name || 'Professor'}</p>
+                        <p><i className="fas fa-calendar"></i> {cls.academic_year}</p>
+                      </div>
+                      {selectedClassId === cls._id && (
+                        <div className="class-selected-indicator">
+                          <i className="fas fa-check-circle"></i> Selecionada
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-message">
+                  <i className="fas fa-info-circle"></i> Você ainda não está matriculado em nenhuma turma.
+                </p>
+              )}
+            </div>
+
+            {/* Conteúdo da Turma Selecionada */}
+            {selectedClassId && (
+              <>
+                {/* Tarefas da Turma */}
+                <div className="card" style={{ marginTop: '20px' }}>
+                  <h3 className="card-title">
+                    <i className="fas fa-tasks" style={{ marginRight: '8px', color: '#0275d8' }}></i>
+                    Tarefas da Turma
+                  </h3>
+                  
+                  {classTasks.length > 0 ? (
+                    <div className="class-tasks-list">
+                      {classTasks.map(task => (
+                        <div key={task._id} className="class-task-item">
+                          <div className="task-info">
+                            <h4>{task.title}</h4>
+                            <p>{task.description?.substring(0, 100) || 'Sem descrição'}</p>
+                          </div>
+                          <div className="task-meta">
+                            <span className={`priority-badge priority-${task.priority}`}>
+                              {task.priority === 'urgent' ? 'Urgente' : task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
+                            </span>
+                            {task.due_date && (
+                              <span className="due-date">
+                                <i className="fas fa-clock"></i>
+                                {new Date(task.due_date).toLocaleDateString('pt-BR')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="empty-message">Nenhuma tarefa encontrada para esta turma.</p>
+                  )}
+                </div>
+
+                {/* Flashcards da Turma */}
+                <div className="card" style={{ marginTop: '20px' }}>
+                  <h3 className="card-title">
+                    <i className="fas fa-clone" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
+                    Flashcards da Turma
+                  </h3>
+                  
+                  {classFlashcards.length > 0 ? (
+                    <div className="class-flashcards-grid">
+                      {classFlashcards.map(card => (
+                        <div 
+                          key={card._id} 
+                          className="class-flashcard-item"
+                          onClick={() => setSelectedCard(selectedCard?._id === card._id ? null : card)}
+                        >
+                          <div className="flashcard-question">
+                            <strong>P:</strong> {card.question.substring(0, 80)}{card.question.length > 80 ? '...' : ''}
+                          </div>
+                          {selectedCard?._id === card._id && (
+                            <div className="flashcard-answer">
+                              <strong>R:</strong> {card.answer}
+                            </div>
+                          )}
+                          {card.tags?.length > 0 && (
+                            <div className="flashcard-tags">
+                              {card.tags.map((tag, i) => (
+                                <span key={i} className="tag">{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="empty-message">Nenhum flashcard encontrado para esta turma.</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Teacher Classes Screen */}
         <div className={`screen ${activeScreen === 'teacher-classes' ? 'active' : ''}`} id="teacher-classes">
           {user?.role === 'teacher' && (
@@ -1913,11 +2139,11 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
               >
                 <div className="theme-toggle-switch">
                   <div className={`theme-toggle-slider ${darkMode ? 'dark' : 'light'}`}>
-                    <i className={`theme-toggle-icon ${darkMode ? 'fas fa-sun' : 'fas fa-moon'}`}></i>
+                    <i className={`theme-toggle-icon ${darkMode ? 'fas fa-moon' : 'fas fa-sun'}`}></i>
                   </div>
                 </div>
                 <span className="theme-toggle-label">
-                  {darkMode ? "Modo Claro" : "Modo Escuro"}
+                  {darkMode ? "Modo Escuro" : "Modo Claro"}
                 </span>
               </button>
               {editProfile ? (
@@ -2690,6 +2916,274 @@ styles.innerHTML = `
   .dark-theme .btn-flashcard-correct {
     background-color: #28a745;
     color: white;
+  }
+
+  /* ==================== ESTILOS MINHAS TURMAS (ALUNO) ==================== */
+  
+  .loading-text {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+  }
+
+  .student-classes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+  }
+
+  .student-class-card {
+    background: #f8f9fa;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .student-class-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .student-class-card.selected {
+    border-color: #5cb85c;
+    background: rgba(92, 184, 92, 0.1);
+  }
+
+  .student-class-card .class-header {
+    margin-bottom: 12px;
+  }
+
+  .student-class-card .class-header h4 {
+    margin: 0 0 5px 0;
+    font-size: 1.1rem;
+    color: #333;
+  }
+
+  .student-class-card .class-subject {
+    display: inline-block;
+    background: #0275d8;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+  }
+
+  .student-class-card .class-info {
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .student-class-card .class-info p {
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .student-class-card .class-info i {
+    width: 18px;
+    color: #5cb85c;
+  }
+
+  .class-selected-indicator {
+    margin-top: 10px;
+    padding: 8px;
+    background: #5cb85c;
+    color: white;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .empty-message {
+    text-align: center;
+    padding: 30px;
+    color: #999;
+    font-style: italic;
+  }
+
+  .empty-message i {
+    margin-right: 8px;
+  }
+
+  /* Tarefas da Turma */
+  .class-tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .class-task-item {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    transition: all 0.2s ease;
+  }
+
+  .class-task-item:hover {
+    background: #e9ecef;
+  }
+
+  .class-task-item .task-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 1rem;
+    color: #333;
+  }
+
+  .class-task-item .task-info p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #666;
+  }
+
+  .class-task-item .task-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .class-task-item .priority-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .class-task-item .priority-badge.priority-urgent {
+    background: rgba(128, 0, 128, 0.15);
+    color: purple;
+  }
+
+  .class-task-item .priority-badge.priority-high {
+    background: rgba(217, 83, 79, 0.15);
+    color: #d9534f;
+  }
+
+  .class-task-item .priority-badge.priority-medium {
+    background: rgba(240, 173, 78, 0.15);
+    color: #f0ad4e;
+  }
+
+  .class-task-item .priority-badge.priority-low {
+    background: rgba(92, 184, 92, 0.15);
+    color: #5cb85c;
+  }
+
+  .class-task-item .due-date {
+    font-size: 0.8rem;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .class-task-item .due-date i {
+    color: #f0ad4e;
+  }
+
+  /* Flashcards da Turma */
+  .class-flashcards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+  }
+
+  .class-flashcard-item {
+    background: linear-gradient(135deg, #6f42c1 0%, #563d7c 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .class-flashcard-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(111, 66, 193, 0.3);
+  }
+
+  .class-flashcard-item .flashcard-question {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+  }
+
+  .class-flashcard-item .flashcard-answer {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+  }
+
+  .class-flashcard-item .flashcard-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+  }
+
+  .class-flashcard-item .tag {
+    background: rgba(255, 255, 255, 0.3);
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+  }
+
+  /* Dark Theme - Minhas Turmas */
+  .dark-theme .student-class-card {
+    background: #2d2d2d;
+  }
+
+  .dark-theme .student-class-card .class-header h4 {
+    color: #e0e0e0;
+  }
+
+  .dark-theme .student-class-card .class-info {
+    color: #aaa;
+  }
+
+  .dark-theme .class-task-item {
+    background: #2d2d2d;
+  }
+
+  .dark-theme .class-task-item:hover {
+    background: #3d3d3d;
+  }
+
+  .dark-theme .class-task-item .task-info h4 {
+    color: #e0e0e0;
+  }
+
+  .dark-theme .class-task-item .task-info p,
+  .dark-theme .class-task-item .due-date {
+    color: #aaa;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .student-classes-grid,
+    .class-flashcards-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .class-task-item {
+      flex-direction: column;
+    }
+
+    .class-task-item .task-meta {
+      flex-direction: row;
+      justify-content: flex-start;
+      width: 100%;
+    }
   }
 
 `;

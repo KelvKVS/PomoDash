@@ -11,6 +11,12 @@ const flashcardSchema = new mongoose.Schema({
     ref: 'School',
     required: true
   },
+  // Turma associada (opcional - se não definido, é flashcard pessoal)
+  class_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Class',
+    default: null
+  },
   question: {
     type: String,
     required: [true, 'A pergunta é obrigatória.'],
@@ -41,5 +47,7 @@ const flashcardSchema = new mongoose.Schema({
 });
 
 flashcardSchema.index({ user_id: 1, school_id: 1 });
+flashcardSchema.index({ class_id: 1 });
+flashcardSchema.index({ school_id: 1, class_id: 1 });
 
 module.exports = mongoose.model('Flashcard', flashcardSchema);

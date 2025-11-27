@@ -146,8 +146,15 @@ router.post('/', auth, [
   body('teacher_id').optional().isMongoId().withMessage('ID do professor inválido')
 ], async (req, res) => {
   try {
+    console.log('=== POST /classes - Criar turma ===');
+    console.log('Body recebido:', req.body);
+    console.log('user._id:', req.user._id);
+    console.log('user.role:', req.user.role);
+    console.log('user.school_id:', req.user.school_id);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Erros de validação:', errors.array());
       return res.status(400).json({
         status: 'error',
         message: 'Dados de entrada inválidos',
@@ -159,12 +166,15 @@ router.post('/', auth, [
 
     // Verificar permissões
     let finalTeacherId = teacher_id || req.user._id;
+    console.log('finalTeacherId inicial:', finalTeacherId);
     
     if (req.user.role === 'school_admin') {
+      console.log('Usuário é school_admin');
       // Se for admin da escola, pode criar turma para qualquer professor da mesma escola
       if (teacher_id) {
         const teacher = await User.findById(teacher_id);
         if (!teacher || teacher.school_id.toString() !== req.user.school_id.toString() || teacher.role !== 'teacher') {
+          console.log('Professor inválido para admin');
           return res.status(400).json({
             status: 'error',
             message: 'Professor inválido ou não pertence à escola'
@@ -172,13 +182,19 @@ router.post('/', auth, [
         }
       }
     } else if (req.user.role === 'teacher') {
+      console.log('Usuário é teacher');
       // Professor só pode criar turmas para si mesmo
       finalTeacherId = req.user._id;
     }
 
+    console.log('finalTeacherId após verificação:', finalTeacherId);
+
     // Verificar se o professor existe e é realmente um professor
     const teacher = await User.findById(finalTeacherId);
+    console.log('Teacher encontrado:', teacher ? { _id: teacher._id, role: teacher.role } : 'NÃO');
+    
     if (!teacher || (teacher.role !== 'teacher' && req.user.role !== 'global_admin')) {
+      console.log('Falha na verificação do professor');
       return res.status(400).json({
         status: 'error',
         message: 'Professor inválido'
@@ -206,6 +222,7 @@ router.post('/', auth, [
     });
 
     await newClass.save();
+    console.log('Turma salva com sucesso:', newClass._id, 'teacher_id:', newClass.teacher_id);
 
     // Atualizar o professor para incluir esta turma
     await User.findByIdAndUpdate(finalTeacherId, {
@@ -222,7 +239,8 @@ router.post('/', auth, [
     console.error('Erro ao criar turma:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Erro interno do servidor'
+      message: 'Erro interno do servidor',
+      details: error.message
     });
   }
 });
@@ -577,8 +595,15 @@ router.get('/teacher/:teacherId', auth, async (req, res) => {
   try {
     const teacherId = req.params.teacherId;
 
+    console.log('=== GET /classes/teacher/:teacherId ===');
+    console.log('teacherId recebido:', teacherId);
+    console.log('user._id:', req.user._id);
+    console.log('user.role:', req.user.role);
+    console.log('user.school_id:', req.user.school_id);
+
     // Validar ID
     if (!mongoose.Types.ObjectId.isValid(teacherId)) {
+      console.log('ID inválido');
       return res.status(400).json({
         status: 'error',
         message: 'ID do professor inválido'
@@ -587,6 +612,7 @@ router.get('/teacher/:teacherId', auth, async (req, res) => {
 
     // Verificar permissões
     if (req.user.role === 'teacher' && req.user._id.toString() !== teacherId.toString()) {
+      console.log('Permissão negada: IDs não correspondem');
       return res.status(403).json({
         status: 'error',
         message: 'Permissão negada: só pode acessar suas próprias turmas'
@@ -596,6 +622,7 @@ router.get('/teacher/:teacherId', auth, async (req, res) => {
     if (req.user.role === 'school_admin') {
       const teacher = await User.findById(teacherId);
       if (!teacher || teacher.school_id.toString() !== req.user.school_id.toString()) {
+        console.log('School admin: professor não pertence à escola');
         return res.status(403).json({
           status: 'error',
           message: 'Professor não pertence à sua escola'
@@ -611,6 +638,9 @@ router.get('/teacher/:teacherId', auth, async (req, res) => {
       .populate('students.user_id', 'name email academic.grade')
       .sort({ createdAt: -1 });
 
+    console.log('Turmas encontradas:', classes.length);
+    classes.forEach(c => console.log('- Turma:', c.name, 'ID:', c._id, 'teacher_id:', c.teacher_id));
+
     res.json({
       status: 'success',
       data: { classes }
@@ -618,6 +648,53 @@ router.get('/teacher/:teacherId', auth, async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao buscar turmas do professor:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+// @route   GET /api/classes/student/:studentId
+// @desc    Obter turmas onde um aluno está matriculado
+// @access  Private - o próprio aluno ou admins
+router.get('/student/:studentId', auth, async (req, res) => {
+  try {
+    const studentId = req.params.studentId;
+
+    // Validar ID
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'ID do aluno inválido'
+      });
+    }
+
+    // Verificar permissões - aluno só pode ver suas próprias turmas
+    if (req.user.role === 'student' && req.user._id.toString() !== studentId.toString()) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Permissão negada: só pode acessar suas próprias turmas'
+      });
+    }
+
+    // Buscar turmas onde o aluno está matriculado
+    const classes = await Class.find({ 
+      'students.user_id': studentId,
+      'students.status': 'active',
+      status: { $ne: 'archived' }
+    })
+      .populate('teacher_id', 'name email')
+      .populate('school_id', 'name')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      status: 'success',
+      data: { classes }
+    });
+
+  } catch (error) {
+    console.error('Erro ao buscar turmas do aluno:', error);
     res.status(500).json({
       status: 'error',
       message: 'Erro interno do servidor'

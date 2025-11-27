@@ -1758,11 +1758,11 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
               >
                 <div className="theme-toggle-switch">
                   <div className={`theme-toggle-slider ${darkMode ? 'dark' : 'light'}`}>
-                    <i className={`theme-toggle-icon ${darkMode ? 'fas fa-sun' : 'fas fa-moon'}`}></i>
+                    <i className={`theme-toggle-icon ${darkMode ? 'fas fa-moon' : 'fas fa-sun'}`}></i>
                   </div>
                 </div>
                 <span className="theme-toggle-label">
-                  {darkMode ? "Modo Claro" : "Modo Escuro"}
+                  {darkMode ? "Modo Escuro" : "Modo Claro"}
                 </span>
               </button>
               {editProfile ? (

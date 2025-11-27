@@ -16,132 +16,12 @@ import CustomAlert from './CustomAlert';
 // Registrar componentes do Chart.js
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
-// ==================== DADOS MOCKADOS ====================
-const MOCK_CLASSES = [
-  {
-    _id: 'class1',
-    name: 'Turma A - Manhã',
-    subject: 'Matemática',
-    description: 'Turma do 3º ano do ensino médio, período matutino',
-    academic_year: '2025',
-    students: [{ status: 'active' }, { status: 'active' }, { status: 'active' }]
-  },
-  {
-    _id: 'class2',
-    name: 'Turma B - Tarde',
-    subject: 'Física',
-    description: 'Turma do 2º ano, foco em mecânica e termodinâmica',
-    academic_year: '2025',
-    students: [{ status: 'active' }, { status: 'active' }]
-  },
-  {
-    _id: 'class3',
-    name: 'Turma C - Noite',
-    subject: 'Química',
-    description: 'EJA - Educação de Jovens e Adultos',
-    academic_year: '2025',
-    students: [{ status: 'active' }, { status: 'active' }, { status: 'active' }, { status: 'active' }]
-  }
-];
-
-const MOCK_STUDENTS = [
-  { _id: 'student1', name: 'Ana Silva', email: 'ana.silva@escola.com', grade: '3º Ano' },
-  { _id: 'student2', name: 'Bruno Santos', email: 'bruno.santos@escola.com', grade: '3º Ano' },
-  { _id: 'student3', name: 'Carla Oliveira', email: 'carla.oliveira@escola.com', grade: '2º Ano' },
-  { _id: 'student4', name: 'Daniel Costa', email: 'daniel.costa@escola.com', grade: '2º Ano' },
-  { _id: 'student5', name: 'Elena Ferreira', email: 'elena.ferreira@escola.com', grade: '3º Ano' },
-  { _id: 'student6', name: 'Felipe Almeida', email: 'felipe.almeida@escola.com', grade: 'EJA' },
-  { _id: 'student7', name: 'Gabriela Lima', email: 'gabriela.lima@escola.com', grade: 'EJA' },
-  { _id: 'student8', name: 'Hugo Pereira', email: 'hugo.pereira@escola.com', grade: 'EJA' },
-  { _id: 'student9', name: 'Isabela Rocha', email: 'isabela.rocha@escola.com', grade: 'EJA' }
-];
-
-const MOCK_CLASS_STUDENTS = {
-  'class1': [
-    { user_id: { _id: 'student1', name: 'Ana Silva', email: 'ana.silva@escola.com' }, status: 'active' },
-    { user_id: { _id: 'student2', name: 'Bruno Santos', email: 'bruno.santos@escola.com' }, status: 'active' },
-    { user_id: { _id: 'student5', name: 'Elena Ferreira', email: 'elena.ferreira@escola.com' }, status: 'active' }
-  ],
-  'class2': [
-    { user_id: { _id: 'student3', name: 'Carla Oliveira', email: 'carla.oliveira@escola.com' }, status: 'active' },
-    { user_id: { _id: 'student4', name: 'Daniel Costa', email: 'daniel.costa@escola.com' }, status: 'active' }
-  ],
-  'class3': [
-    { user_id: { _id: 'student6', name: 'Felipe Almeida', email: 'felipe.almeida@escola.com' }, status: 'active' },
-    { user_id: { _id: 'student7', name: 'Gabriela Lima', email: 'gabriela.lima@escola.com' }, status: 'active' },
-    { user_id: { _id: 'student8', name: 'Hugo Pereira', email: 'hugo.pereira@escola.com' }, status: 'active' },
-    { user_id: { _id: 'student9', name: 'Isabela Rocha', email: 'isabela.rocha@escola.com' }, status: 'active' }
-  ]
-};
-
-const MOCK_TASKS = [
-  {
-    _id: 'task1',
-    title: 'Lista de Exercícios - Equações do 2º Grau',
-    subject: 'Matemática',
-    due_date: '2025-12-05',
-    priority: 'high',
-    description: 'Resolver os exercícios 1 a 20 da página 145 do livro',
-    assigned_to: ['student1', 'student2', 'student5']
-  },
-  {
-    _id: 'task2',
-    title: 'Relatório de Laboratório - Queda Livre',
-    subject: 'Física',
-    due_date: '2025-12-10',
-    priority: 'medium',
-    description: 'Elaborar relatório do experimento realizado em aula',
-    assigned_to: ['student3', 'student4']
-  },
-  {
-    _id: 'task3',
-    title: 'Trabalho em Grupo - Tabela Periódica',
-    subject: 'Química',
-    due_date: '2025-12-15',
-    priority: 'low',
-    description: 'Apresentação sobre elementos químicos e suas aplicações',
-    assigned_to: ['student6', 'student7', 'student8', 'student9']
-  },
-  {
-    _id: 'task4',
-    title: 'Prova Bimestral',
-    subject: 'Matemática',
-    due_date: '2025-12-20',
-    priority: 'urgent',
-    description: 'Conteúdo: Trigonometria, Funções e Geometria Analítica',
-    assigned_to: ['student1', 'student2', 'student5']
-  }
-];
-
-const MOCK_FLASHCARDS = [
-  { _id: 'flash1', question: 'Qual é a fórmula de Bhaskara?', answer: 'x = (-b ± √(b²-4ac)) / 2a', tags: ['matemática', 'equações'] },
-  { _id: 'flash2', question: 'O que é a 2ª Lei de Newton?', answer: 'F = m × a (Força = massa × aceleração)', tags: ['física', 'mecânica'] },
-  { _id: 'flash3', question: 'Qual é o número atômico do Carbono?', answer: '6', tags: ['química', 'tabela periódica'] },
-  { _id: 'flash4', question: 'O que é um logaritmo?', answer: 'O expoente ao qual uma base deve ser elevada para produzir um número dado', tags: ['matemática', 'logaritmos'] },
-  { _id: 'flash5', question: 'Qual a velocidade da luz no vácuo?', answer: '299.792.458 m/s (aproximadamente 3×10⁸ m/s)', tags: ['física', 'óptica'] },
-  { _id: 'flash6', question: 'O que é uma ligação covalente?', answer: 'Ligação química onde átomos compartilham pares de elétrons', tags: ['química', 'ligações'] }
-];
-
-const MOCK_STATS = {
-  totalClasses: 3,
-  totalStudents: 9,
-  totalTasks: 4,
-  totalFlashcards: 6
-};
-
-const MOCK_CHART_DATA = {
-  classDistribution: {
-    labels: ['Turma A - Manhã', 'Turma B - Tarde', 'Turma C - Noite'],
-    datasets: [{
-      label: 'Alunos por Turma',
-      data: [3, 2, 4],
-      backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56']
-    }]
-  }
-};
-
 // ==================== COMPONENTE ====================
 function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
+  // Normalizar IDs - localStorage usa "id", backend usa "_id"
+  const userId = user?._id || user?.id;
+  const schoolId = user?.school_id?._id || user?.school_id;
+
   // ==================== ESTADOS ====================
   // Navegação
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -150,12 +30,12 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   // Perfil
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editProfile, setEditProfile] = useState(false);
-  const [profileData, setProfileData] = useState({ name: user?.name || 'Professor Demo' });
+  const [profileData, setProfileData] = useState({ name: user?.name || 'Professor' });
   const [profileImage, setProfileImage] = useState(user?.profile?.avatar || user?.profilePicture || 'https://i.pravatar.cc/40?u=professor');
   const [profileImageFile, setProfileImageFile] = useState(null);
 
-  // Turmas - Inicializado com dados mock
-  const [classes, setClasses] = useState(MOCK_CLASSES);
+  // Turmas - Array vazio, será carregado do backend
+  const [classes, setClasses] = useState([]);
   const [newClass, setNewClass] = useState({
     name: '',
     subject: '',
@@ -166,35 +46,38 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   const [editingClass, setEditingClass] = useState(null);
   const [studentEmailInputs, setStudentEmailInputs] = useState({});
 
-  // Alunos - Inicializado com dados mock
-  const [allStudents, setAllStudents] = useState(MOCK_STUDENTS);
-  const [classStudents, setClassStudents] = useState(MOCK_CLASS_STUDENTS);
+  // Alunos - Array vazio, será carregado do backend
+  const [allStudents, setAllStudents] = useState([]);
+  const [classStudents, setClassStudents] = useState({});
 
-  // Tarefas - Inicializado com dados mock
-  const [tasks, setTasks] = useState(MOCK_TASKS);
+  // Tarefas - Array vazio, será carregado do backend
+  const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState({
     title: '',
     subject: '',
     due_date: '',
     priority: 'medium',
     description: '',
-    assigned_to: []
+    assigned_to: [],
+    attachments: []
   });
   const [showEditTaskModal, setShowEditTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
-  // Flashcards - Inicializado com dados mock
-  const [flashcards, setFlashcards] = useState(MOCK_FLASHCARDS);
+  // Flashcards - Array vazio, será carregado do backend
+  const [flashcards, setFlashcards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
-  const [newFlashcard, setNewFlashcard] = useState({ question: '', answer: '', tags: [] });
+  const [newFlashcard, setNewFlashcard] = useState({ question: '', answer: '', tags: [], class_id: '' });
   const [showEditFlashcardModal, setShowEditFlashcardModal] = useState(false);
   const [editingFlashcard, setEditingFlashcard] = useState(null);
 
-  // Estatísticas - Inicializado com dados mock
-  const [stats, setStats] = useState(MOCK_STATS);
-
-  // Gráficos - Inicializado com dados mock
-  const [chartData, setChartData] = useState(MOCK_CHART_DATA);
+  // Estatísticas - Valores iniciais zerados
+  const [stats, setStats] = useState({
+    totalClasses: 0,
+    totalStudents: 0,
+    totalTasks: 0,
+    totalFlashcards: 0
+  });
 
   // Loading
   const [loading, setLoading] = useState({
@@ -204,6 +87,9 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     flashcards: false
   });
 
+  // Relatórios
+  const [activeReportTab, setActiveReportTab] = useState('classes');
+
   // Alert
   const [alert, setAlert] = useState(null);
 
@@ -211,12 +97,18 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
   
   // Carregar turmas do professor
   const loadClasses = useCallback(async () => {
-    if (!user?._id) return;
+    if (!userId) {
+      console.log('loadClasses: userId não definido');
+      return;
+    }
     
+    console.log('Carregando turmas para professor:', userId);
     setLoading(prev => ({ ...prev, classes: true }));
     try {
-      const response = await classAPI.getClassesByTeacher(user._id);
+      const response = await classAPI.getClassesByTeacher(userId);
+      console.log('Resposta de turmas:', response);
       const classesData = response.data?.classes || [];
+      console.log('Turmas encontradas:', classesData.length, classesData);
       setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (error) {
       console.error('Erro ao carregar turmas:', error);
@@ -224,29 +116,52 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
     } finally {
       setLoading(prev => ({ ...prev, classes: false }));
     }
-  }, [user?._id]);
+  }, [userId]);
 
-  // Carregar todos os alunos da escola
+  // Extrair alunos das turmas do professor (apenas seus alunos)
   const loadAllStudents = useCallback(async () => {
-    if (!user?.school_id) return;
+    if (!classes || classes.length === 0) {
+      console.log('loadAllStudents: Nenhuma turma carregada ainda');
+      setAllStudents([]);
+      return;
+    }
     
+    console.log('Extraindo alunos das turmas do professor...');
     setLoading(prev => ({ ...prev, students: true }));
     try {
-      const response = await userAPI.getUsers({ role: 'student', school_id: user.school_id });
-      const students = response.data || [];
-      setAllStudents(students.map(s => ({
-        _id: s._id,
-        name: s.name,
-        email: s.email,
-        grade: s.academic?.grade || 'N/A',
-        studentId: s.academic?.studentId || 'N/A'
-      })));
+      // Coletar todos os alunos únicos de todas as turmas
+      const studentsMap = new Map();
+      
+      for (const cls of classes) {
+        if (cls.students && cls.students.length > 0) {
+          for (const student of cls.students) {
+            // Cada student pode ter user_id como objeto populado ou apenas ID
+            const studentData = student.user_id || student;
+            const studentId = studentData._id || studentData.id || studentData;
+            
+            if (studentId && !studentsMap.has(studentId.toString())) {
+              studentsMap.set(studentId.toString(), {
+                _id: studentId,
+                name: studentData.name || 'Aluno',
+                email: studentData.email || '',
+                grade: studentData.academic?.grade || 'N/A',
+                studentId: studentData.academic?.studentId || 'N/A',
+                className: cls.name // Adiciona a turma do aluno
+              });
+            }
+          }
+        }
+      }
+      
+      const uniqueStudents = Array.from(studentsMap.values());
+      console.log('Alunos únicos do professor:', uniqueStudents.length);
+      setAllStudents(uniqueStudents);
     } catch (error) {
-      console.error('Erro ao carregar alunos:', error);
+      console.error('Erro ao extrair alunos:', error);
     } finally {
       setLoading(prev => ({ ...prev, students: false }));
     }
-  }, [user?.school_id]);
+  }, [classes]);
 
   // Carregar alunos de uma turma específica
   const loadClassStudents = useCallback(async (classId) => {
@@ -263,18 +178,20 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
   // Carregar tarefas do professor
   const loadTasks = useCallback(async () => {
-    if (!user?._id) return;
+    if (!userId) return;
     
+    console.log('Carregando tarefas do professor:', userId);
     setLoading(prev => ({ ...prev, tasks: true }));
     try {
-      const response = await taskAPI.getTasksByTeacher(user._id);
+      const response = await taskAPI.getTasksByTeacher(userId);
+      console.log('Tarefas encontradas:', response.data?.length || 0);
       setTasks(response.data || []);
     } catch (error) {
       console.error('Erro ao carregar tarefas:', error);
     } finally {
       setLoading(prev => ({ ...prev, tasks: false }));
     }
-  }, [user?._id]);
+  }, [userId]);
 
   // Carregar flashcards
   const loadFlashcards = useCallback(async () => {
@@ -291,11 +208,11 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
   // Carregar estatísticas
   const loadStats = useCallback(async () => {
-    if (!user?._id) return;
+    if (!userId) return;
     
     try {
       const [classesRes, tasksRes, flashcardsRes] = await Promise.allSettled([
-        classAPI.getClassesByTeacher(user._id),
+        classAPI.getClassesByTeacher(userId),
         taskAPI.getTasks(),
         flashcardAPI.getFlashcards()
       ]);
@@ -309,7 +226,7 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
       // Filtrar tarefas criadas pelo professor
       const teacherTasks = tasksData.filter(t => 
-        t.created_by?._id === user._id || t.created_by === user._id
+        t.created_by?._id === userId || t.created_by === userId || t.created_by?.id === userId
       );
 
       // Contar alunos total
@@ -326,24 +243,10 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
         totalTasks: teacherTasks.length,
         totalFlashcards: flashcardsData.length
       });
-
-      // Dados para gráfico
-      if (classesData.length > 0) {
-        setChartData({
-          classDistribution: {
-            labels: classesData.map(c => c.name),
-            datasets: [{
-              label: 'Alunos por Turma',
-              data: classesData.map(c => c.students?.filter(s => s.status === 'active' || !s.status).length || 0),
-              backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
-            }]
-          }
-        });
-      }
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     }
-  }, [user?._id]);
+  }, [userId]);
 
   // ==================== FUNÇÕES DE TURMAS ====================
 
@@ -355,23 +258,45 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
       return;
     }
 
+    // Garantir que o ano acadêmico está no formato correto (YYYY)
+    const academicYear = newClass.academic_year?.trim() || new Date().getFullYear().toString();
+    if (!/^\d{4}$/.test(academicYear) && !/^\d{4}-\d{2}$/.test(academicYear)) {
+      setAlert({ message: 'Ano acadêmico deve estar no formato YYYY ou YYYY-YY', type: 'error' });
+      return;
+    }
+
     try {
-      const response = await classAPI.createClass({
+      console.log('Criando turma com dados:', {
         name: newClass.name,
         subject: newClass.subject,
         description: newClass.description,
-        academic_year: newClass.academic_year,
-        teacher_id: user._id,
-        school_id: user.school_id
+        academic_year: academicYear,
+        teacher_id: userId
+      });
+
+      const response = await classAPI.createClass({
+        name: newClass.name.trim(),
+        subject: newClass.subject.trim(),
+        description: newClass.description?.trim() || '',
+        academic_year: academicYear
       });
       
+      console.log('Resposta da criação:', response);
+      
       const createdClass = response.data?.class || response.data;
-      setClasses(prev => [...prev, createdClass]);
-      setNewClass({ name: '', subject: '', description: '', academic_year: new Date().getFullYear().toString() });
-      setAlert({ message: 'Turma criada com sucesso!', type: 'success' });
-      loadStats();
+      if (createdClass && createdClass._id) {
+        // Recarregar todas as turmas para garantir sincronização
+        await loadClasses();
+        setNewClass({ name: '', subject: '', description: '', academic_year: new Date().getFullYear().toString() });
+        setAlert({ message: 'Turma criada com sucesso!', type: 'success' });
+        loadStats();
+      } else {
+        console.error('Turma criada sem ID:', response);
+        setAlert({ message: 'Erro: turma criada mas sem dados retornados', type: 'error' });
+      }
     } catch (error) {
-      setAlert({ message: 'Erro ao criar turma: ' + error.message, type: 'error' });
+      console.error('Erro ao criar turma:', error);
+      setAlert({ message: 'Erro ao criar turma: ' + (error.message || 'Erro desconhecido'), type: 'error' });
     }
   };
 
@@ -425,7 +350,7 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
     try {
       // Buscar aluno pelo email
-      const usersResponse = await userAPI.getUsers({ email, school_id: user.school_id });
+      const usersResponse = await userAPI.getUsers({ email, school_id: schoolId });
       const students = usersResponse.data || [];
       
       if (students.length === 0) {
@@ -491,12 +416,12 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
         due_date: newTask.due_date || undefined,
         priority: newTask.priority,
         description: newTask.description,
-        created_by: user._id,
-        school_id: user.school_id,
+        created_by: userId,
+        school_id: schoolId,
         assigned_to: newTask.assigned_to
       });
       
-      setNewTask({ title: '', subject: '', due_date: '', priority: 'medium', description: '', assigned_to: [] });
+      setNewTask({ title: '', subject: '', due_date: '', priority: 'medium', description: '', assigned_to: [], attachments: [] });
       await loadTasks();
       setAlert({ message: 'Tarefa criada!', type: 'success' });
       loadStats();
@@ -570,12 +495,13 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
         question: newFlashcard.question,
         answer: newFlashcard.answer,
         tags: newFlashcard.tags,
-        user_id: user._id,
-        school_id: user.school_id
+        user_id: userId,
+        school_id: schoolId,
+        class_id: newFlashcard.class_id || null
       });
       
       setFlashcards(prev => [...prev, response.data]);
-      setNewFlashcard({ question: '', answer: '', tags: [] });
+      setNewFlashcard({ question: '', answer: '', tags: [], class_id: '' });
       setAlert({ message: 'Flashcard criado!', type: 'success' });
       loadStats();
     } catch (error) {
@@ -667,15 +593,27 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
   // ==================== EFFECT ====================
   
+  // Carregar dados iniciais
   useEffect(() => {
-    if (user?._id && user?.school_id) {
+    console.log('useEffect - userId:', userId, 'schoolId:', schoolId);
+    
+    if (userId && schoolId) {
+      console.log('Iniciando carregamento de dados do professor...');
       loadClasses();
-      loadAllStudents();
       loadTasks();
       loadFlashcards();
       loadStats();
+    } else {
+      console.log('useEffect - Condições não atendidas para carregar dados');
     }
-  }, [user, loadClasses, loadAllStudents, loadTasks, loadFlashcards, loadStats]);
+  }, [userId, schoolId, loadClasses, loadTasks, loadFlashcards, loadStats]);
+
+  // Carregar alunos quando as turmas forem carregadas
+  useEffect(() => {
+    if (classes.length > 0) {
+      loadAllStudents();
+    }
+  }, [classes, loadAllStudents]);
 
   // ==================== COMPONENTES ====================
 
@@ -799,16 +737,18 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
   const menuItems = [
     { id: 'dashboard', title: 'Dashboard', icon: 'fas fa-tachometer-alt' },
-    { id: 'classes', title: 'Minhas Turmas', icon: 'fas fa-users' },
-    { id: 'tasks', title: 'Minhas Tarefas', icon: 'fas fa-tasks' },
-    { id: 'flashcards', title: 'Meus Flashcards', icon: 'fas fa-clone' }
+    { id: 'classes', title: 'Turmas', icon: 'fas fa-users' },
+    { id: 'tasks', title: 'Tarefas', icon: 'fas fa-tasks' },
+    { id: 'flashcards', title: 'Flashcards', icon: 'fas fa-clone' },
+    { id: 'reports', title: 'Relatórios', icon: 'fas fa-chart-bar' }
   ];
 
   const pageTitles = {
     dashboard: 'Dashboard Professor',
-    classes: 'Minhas Turmas',
-    tasks: 'Minhas Tarefas',
-    flashcards: 'Meus Flashcards'
+    classes: 'Turmas',
+    tasks: 'Tarefas',
+    flashcards: 'Flashcards',
+    reports: 'Relatórios'
   };
 
   // ==================== RENDER ====================
@@ -884,14 +824,16 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                   <i className="fas fa-chart-pie" style={{ marginRight: '8px', color: '#d9534f' }}></i>
                   Distribuição de Alunos por Turma
                 </h3>
-                {classes.length > 0 ? (
+                {loading.classes ? (
+                  <p className="chart-placeholder"><i className="fas fa-spinner fa-spin"></i> Carregando...</p>
+                ) : classes.length > 0 ? (
                   <PieChartComponent 
                     data={classes.map((cls, index) => ({
                       label: cls.name,
-                      value: cls.students?.length || 0,
+                      value: cls.students?.filter(s => s.status === 'active' || !s.status).length || 0,
                       color: ['#5cb85c', '#0275d8', '#d9534f', '#f0ad4e', '#5bc0de', '#6f42c1'][index % 6]
                     }))}
-                    total={classes.reduce((sum, cls) => sum + (cls.students?.length || 0), 0)}
+                    total={classes.reduce((sum, cls) => sum + (cls.students?.filter(s => s.status === 'active' || !s.status).length || 0), 0)}
                   />
                 ) : (
                   <p className="chart-placeholder">Nenhuma turma cadastrada</p>
@@ -903,9 +845,18 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                   <i className="fas fa-tasks" style={{ marginRight: '8px', color: '#0275d8' }}></i>
                   Tarefas por Prioridade
                 </h3>
-                {tasks.length > 0 ? (
+                {loading.tasks ? (
+                  <p className="chart-placeholder"><i className="fas fa-spinner fa-spin"></i> Carregando...</p>
+                ) : tasks.length > 0 ? (
                   <BarChartComponent 
                     data={[
+                      { 
+                        label: 'Urgente', 
+                        value: tasks.filter(t => t.priority === 'urgent').length,
+                        color: 'rgba(128, 0, 128, 0.7)',
+                        borderColor: 'rgba(128, 0, 128, 1)',
+                        hoverColor: 'rgba(128, 0, 128, 0.9)'
+                      },
                       { 
                         label: 'Alta', 
                         value: tasks.filter(t => t.priority === 'high').length,
@@ -940,18 +891,26 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
               <div className="card animated" style={{ animationDelay: '0.3s' }}>
                 <h3 className="card-title">
                   <i className="fas fa-clone" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
-                  Flashcards Criados
+                  Resumo de Atividades
                 </h3>
-                <div className="quick-stats">
-                  <div className="quick-stat-item">
-                    <span className="quick-stat-value" style={{ color: '#6f42c1' }}>{flashcards.length}</span>
-                    <span className="quick-stat-label">Total de Flashcards</span>
+                {loading.flashcards || loading.classes ? (
+                  <p className="chart-placeholder"><i className="fas fa-spinner fa-spin"></i> Carregando...</p>
+                ) : (
+                  <div className="quick-stats">
+                    <div className="quick-stat-item">
+                      <span className="quick-stat-value" style={{ color: '#6f42c1' }}>{flashcards.length}</span>
+                      <span className="quick-stat-label">Flashcards</span>
+                    </div>
+                    <div className="quick-stat-item">
+                      <span className="quick-stat-value" style={{ color: '#5cb85c' }}>{classes.length}</span>
+                      <span className="quick-stat-label">Turmas</span>
+                    </div>
+                    <div className="quick-stat-item">
+                      <span className="quick-stat-value" style={{ color: '#0275d8' }}>{tasks.length}</span>
+                      <span className="quick-stat-label">Tarefas</span>
+                    </div>
                   </div>
-                  <div className="quick-stat-item">
-                    <span className="quick-stat-value" style={{ color: '#5cb85c' }}>{classes.length}</span>
-                    <span className="quick-stat-label">Turmas Ativas</span>
-                  </div>
-                </div>
+                )}
               </div>
               
               <div className="card animated" style={{ animationDelay: '0.4s' }}>
@@ -1026,46 +985,70 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 
             {/* Lista de Turmas */}
             <div className="card">
-              <h3 className="card-title">Suas Turmas ({classes.length})</h3>
+              <h3 className="card-title">
+                <i className="fas fa-chalkboard-teacher" style={{ marginRight: '10px', color: '#5cb85c' }}></i>
+                Suas Turmas ({classes.length})
+              </h3>
               {loading.classes ? (
-                <p>Carregando...</p>
+                <p className="loading-text"><i className="fas fa-spinner fa-spin"></i> Carregando turmas...</p>
               ) : classes.length > 0 ? (
-                <div className="list">
-                  {classes.map(cls => (
-                    <div key={cls._id} className="list-item">
-                      <div className="list-item-content">
-                        <div className="list-item-title">{cls.name}</div>
-                        <div className="list-item-subtitle">
-                          {cls.subject} • {cls.academic_year} • {cls.students?.length || 0} alunos
+                <div className="teacher-classes-grid">
+                  {classes.map((cls, index) => (
+                    <div key={cls._id} className="teacher-class-card" style={{ animationDelay: `${index * 0.1}s` }}>
+                      <div className="class-card-header">
+                        <div className="class-icon" style={{ background: ['#5cb85c', '#0275d8', '#d9534f', '#f0ad4e', '#6f42c1', '#5bc0de'][index % 6] }}>
+                          <i className="fas fa-users"></i>
                         </div>
-                        {cls.description && <p className="list-item-desc">{cls.description}</p>}
-                        
-                        {/* Adicionar aluno por email */}
-                        <div className="add-student-row">
+                        <div className="class-title-section">
+                          <h4 className="class-title">{cls.name}</h4>
+                          <span className="class-subject-badge">{cls.subject}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="class-card-stats">
+                        <div className="class-stat">
+                          <i className="fas fa-user-graduate"></i>
+                          <span>{cls.students?.filter(s => s.status === 'active' || !s.status).length || 0} alunos</span>
+                        </div>
+                        <div className="class-stat">
+                          <i className="fas fa-calendar-alt"></i>
+                          <span>{cls.academic_year}</span>
+                        </div>
+                      </div>
+                      
+                      {cls.description && (
+                        <p className="class-description">{cls.description}</p>
+                      )}
+                      
+                      {/* Adicionar aluno por email */}
+                      <div className="add-student-section">
+                        <div className="add-student-input-group">
                           <input
                             type="email"
                             value={studentEmailInputs[cls._id] || ''}
                             onChange={e => setStudentEmailInputs(prev => ({ ...prev, [cls._id]: e.target.value }))}
                             placeholder="Email do aluno"
-                            className="input input-sm"
+                            className="input add-student-input"
                           />
                           <button 
-                            className="btn btn-secondary btn-sm"
+                            className="btn-add-student"
                             onClick={() => handleAddStudentByEmail(cls._id)}
+                            title="Adicionar aluno"
                           >
-                            + Aluno
+                            <i className="fas fa-user-plus"></i>
                           </button>
                         </div>
                       </div>
-                      <div className="list-item-actions">
-                        <button className="btn btn-secondary btn-sm" onClick={() => { setEditingClass(cls); setShowEditClassModal(true); }}>
-                          Editar
+                      
+                      <div className="class-card-actions">
+                        <button className="class-action-btn edit" onClick={() => { setEditingClass(cls); setShowEditClassModal(true); }}>
+                          <i className="fas fa-edit"></i> Editar
                         </button>
-                        <button className="btn btn-secondary btn-sm" onClick={() => loadClassStudents(cls._id)}>
-                          Ver Alunos
+                        <button className="class-action-btn view" onClick={() => loadClassStudents(cls._id)}>
+                          <i className="fas fa-eye"></i> Ver Alunos
                         </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => handleArchiveClass(cls._id)}>
-                          Arquivar
+                        <button className="class-action-btn archive" onClick={() => handleArchiveClass(cls._id)}>
+                          <i className="fas fa-archive"></i> Arquivar
                         </button>
                       </div>
                       
@@ -1101,9 +1084,12 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
               )}
             </div>
 
-            {/* Todos os Alunos da Escola */}
+            {/* Todos os Alunos do Professor */}
             <div className="card">
-              <h3 className="card-title">Alunos da Escola ({allStudents.length})</h3>
+              <h3 className="card-title">
+                <i className="fas fa-users" style={{ marginRight: '8px', color: '#5cb85c' }}></i>
+                Meus Alunos ({allStudents.length})
+              </h3>
               {loading.students ? (
                 <p>Carregando...</p>
               ) : allStudents.length > 0 ? (
@@ -1112,11 +1098,20 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                     <div key={student._id} className="student-card">
                       <div className="student-name">{student.name}</div>
                       <div className="student-email">{student.email}</div>
+                      {student.className && (
+                        <div className="student-class">
+                          <i className="fas fa-chalkboard" style={{ marginRight: '5px' }}></i>
+                          {student.className}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p>Nenhum aluno encontrado</p>
+                <p className="empty-message">
+                  <i className="fas fa-info-circle" style={{ marginRight: '5px' }}></i>
+                  Adicione alunos às suas turmas para visualizá-los aqui.
+                </p>
               )}
             </div>
           </div>
@@ -1127,48 +1122,112 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
           <div className="screen active">
             {/* Criar Tarefa */}
             <div className="card">
-              <h3 className="card-title">Criar Nova Tarefa</h3>
-              <form onSubmit={handleCreateTask} className="form-grid">
-                <input
-                  type="text"
-                  value={newTask.title}
-                  onChange={e => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Título da tarefa"
-                  className="input"
-                  required
-                />
-                <div className="input-row">
+              <h3 className="card-title">
+                <i className="fas fa-plus-circle" style={{ marginRight: '8px', color: '#0275d8' }}></i>
+                Criar Nova Tarefa
+              </h3>
+              <form onSubmit={handleCreateTask} className="task-form">
+                <div className="form-group">
+                  <label className="form-label">Título da Tarefa *</label>
                   <input
                     type="text"
-                    value={newTask.subject}
-                    onChange={e => setNewTask(prev => ({ ...prev, subject: e.target.value }))}
-                    placeholder="Disciplina"
+                    value={newTask.title}
+                    onChange={e => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Ex: Lista de exercícios - Capítulo 5"
                     className="input"
+                    required
                   />
-                  <input
-                    type="date"
-                    value={newTask.due_date}
-                    onChange={e => setNewTask(prev => ({ ...prev, due_date: e.target.value }))}
-                    className="input"
-                  />
-                  <select
-                    value={newTask.priority}
-                    onChange={e => setNewTask(prev => ({ ...prev, priority: e.target.value }))}
-                    className="input"
-                  >
-                    <option value="low">Baixa</option>
-                    <option value="medium">Média</option>
-                    <option value="high">Alta</option>
-                    <option value="urgent">Urgente</option>
-                  </select>
                 </div>
-                <textarea
-                  value={newTask.description}
-                  onChange={e => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Descrição"
-                  className="input"
-                  rows="2"
-                />
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Disciplina</label>
+                    <input
+                      type="text"
+                      value={newTask.subject}
+                      onChange={e => setNewTask(prev => ({ ...prev, subject: e.target.value }))}
+                      placeholder="Ex: Matemática"
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Data de Entrega</label>
+                    <input
+                      type="date"
+                      value={newTask.due_date}
+                      onChange={e => setNewTask(prev => ({ ...prev, due_date: e.target.value }))}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Prioridade</label>
+                    <select
+                      value={newTask.priority}
+                      onChange={e => setNewTask(prev => ({ ...prev, priority: e.target.value }))}
+                      className="input"
+                    >
+                      <option value="low">🟢 Baixa</option>
+                      <option value="medium">🟡 Média</option>
+                      <option value="high">🔴 Alta</option>
+                      <option value="urgent">🟣 Urgente</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Descrição</label>
+                  <textarea
+                    value={newTask.description}
+                    onChange={e => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Descreva os detalhes da tarefa, instruções, materiais necessários..."
+                    className="input task-description"
+                    rows="4"
+                    style={{ resize: 'none', minHeight: '100px' }}
+                  />
+                </div>
+
+                {/* Campo de Anexos */}
+                <div className="form-group">
+                  <label className="form-label">Anexos</label>
+                  <div className="attachments-section">
+                    <label className="attachment-btn">
+                      <i className="fas fa-paperclip"></i>
+                      <span>Adicionar arquivo</span>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={e => {
+                          const files = Array.from(e.target.files);
+                          setNewTask(prev => ({
+                            ...prev,
+                            attachments: [...prev.attachments, ...files.map(f => ({ name: f.name, file: f }))]
+                          }));
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    {newTask.attachments.length > 0 && (
+                      <div className="attachments-list">
+                        {newTask.attachments.map((att, index) => (
+                          <div key={index} className="attachment-item">
+                            <i className="fas fa-file"></i>
+                            <span>{att.name}</span>
+                            <button
+                              type="button"
+                              className="btn-remove-attachment"
+                              onClick={() => setNewTask(prev => ({
+                                ...prev,
+                                attachments: prev.attachments.filter((_, i) => i !== index)
+                              }))}
+                            >
+                              <i className="fas fa-times"></i>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 
                 {/* Seleção de Alunos por Turma */}
                 <div className="students-selection">
@@ -1260,6 +1319,16 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                   className="input"
                   required
                 />
+                <select
+                  value={newFlashcard.class_id}
+                  onChange={e => setNewFlashcard(prev => ({ ...prev, class_id: e.target.value }))}
+                  className="input"
+                >
+                  <option value="">Flashcard Pessoal (sem turma)</option>
+                  {classes.map(cls => (
+                    <option key={cls._id} value={cls._id}>{cls.name} - {cls.subject}</option>
+                  ))}
+                </select>
                 <input
                   type="text"
                   value={newFlashcard.tags.join(', ')}
@@ -1307,6 +1376,389 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                 <p>Nenhum flashcard</p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Reports Screen */}
+        {activeScreen === 'reports' && (
+          <div className="screen active">
+            <div className="card">
+              <div className="report-header-main">
+                <div className="report-tabs">
+                  <button 
+                    className={`report-tab ${activeReportTab === 'classes' ? 'active' : ''}`}
+                    onClick={() => setActiveReportTab('classes')}
+                  >
+                    <i className="fas fa-users"></i> Turmas
+                  </button>
+                  <button 
+                    className={`report-tab ${activeReportTab === 'tasks' ? 'active' : ''}`}
+                    onClick={() => setActiveReportTab('tasks')}
+                  >
+                    <i className="fas fa-tasks"></i> Tarefas
+                  </button>
+                  <button 
+                    className={`report-tab ${activeReportTab === 'flashcards' ? 'active' : ''}`}
+                    onClick={() => setActiveReportTab('flashcards')}
+                  >
+                    <i className="fas fa-clone"></i> Flashcards
+                  </button>
+                  <button 
+                    className={`report-tab ${activeReportTab === 'students' ? 'active' : ''}`}
+                    onClick={() => setActiveReportTab('students')}
+                  >
+                    <i className="fas fa-user-graduate"></i> Alunos
+                  </button>
+                </div>
+                
+                {/* Botão Exportar Relatório Completo */}
+                <button 
+                  className="export-complete-btn"
+                  onClick={() => {
+                    import('xlsx').then((XLSX) => {
+                      // Criar workbook
+                      const wb = XLSX.utils.book_new();
+                      
+                      // Aba de Turmas
+                      const turmasData = classes.map(cls => ({
+                        'Nome': cls.name,
+                        'Disciplina': cls.subject,
+                        'Ano Letivo': cls.academic_year,
+                        'Alunos': cls.students?.filter(s => s.status === 'active' || !s.status).length || 0,
+                        'Status': cls.status || 'active'
+                      }));
+                      const wsTurmas = XLSX.utils.json_to_sheet(turmasData);
+                      XLSX.utils.book_append_sheet(wb, wsTurmas, 'Turmas');
+                      
+                      // Aba de Tarefas
+                      const tarefasData = tasks.map(task => ({
+                        'Título': task.title,
+                        'Disciplina': task.subject || '-',
+                        'Prioridade': task.priority === 'urgent' ? 'Urgente' : task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa',
+                        'Data de Entrega': task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : '-',
+                        'Alunos Atribuídos': task.assigned_to?.length || 0
+                      }));
+                      const wsTarefas = XLSX.utils.json_to_sheet(tarefasData);
+                      XLSX.utils.book_append_sheet(wb, wsTarefas, 'Tarefas');
+                      
+                      // Aba de Flashcards
+                      const flashcardsData = flashcards.map(card => ({
+                        'Pergunta': card.question,
+                        'Resposta': card.answer,
+                        'Tags': card.tags?.join(', ') || '-',
+                        'Turma': classes.find(c => c._id === card.class_id)?.name || 'Pessoal'
+                      }));
+                      const wsFlashcards = XLSX.utils.json_to_sheet(flashcardsData);
+                      XLSX.utils.book_append_sheet(wb, wsFlashcards, 'Flashcards');
+                      
+                      // Aba de Alunos
+                      const alunosData = allStudents.map(student => ({
+                        'Nome': student.name,
+                        'Email': student.email,
+                        'Turma': student.className || '-'
+                      }));
+                      const wsAlunos = XLSX.utils.json_to_sheet(alunosData);
+                      XLSX.utils.book_append_sheet(wb, wsAlunos, 'Alunos');
+                      
+                      // Aba Resumo
+                      const resumoData = [{
+                        'Métrica': 'Total de Turmas',
+                        'Valor': classes.length
+                      }, {
+                        'Métrica': 'Total de Alunos',
+                        'Valor': allStudents.length
+                      }, {
+                        'Métrica': 'Total de Tarefas',
+                        'Valor': tasks.length
+                      }, {
+                        'Métrica': 'Tarefas Urgentes',
+                        'Valor': tasks.filter(t => t.priority === 'urgent').length
+                      }, {
+                        'Métrica': 'Total de Flashcards',
+                        'Valor': flashcards.length
+                      }, {
+                        'Métrica': 'Flashcards em Turmas',
+                        'Valor': flashcards.filter(f => f.class_id).length
+                      }, {
+                        'Métrica': 'Flashcards Pessoais',
+                        'Valor': flashcards.filter(f => !f.class_id).length
+                      }, {
+                        'Métrica': 'Data do Relatório',
+                        'Valor': new Date().toLocaleDateString('pt-BR')
+                      }];
+                      const wsResumo = XLSX.utils.json_to_sheet(resumoData);
+                      XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+                      
+                      // Salvar arquivo
+                      XLSX.writeFile(wb, `relatorio_completo_${new Date().toISOString().split('T')[0]}.xlsx`);
+                      
+                      setAlert({ message: 'Relatório completo exportado com sucesso!', type: 'success' });
+                    });
+                  }}
+                >
+                  <i className="fas fa-file-download"></i>
+                  Exportar Relatório Completo
+                </button>
+              </div>
+            </div>
+
+            {/* Relatório de Turmas */}
+            {activeReportTab === 'classes' && (
+              <div className="report-content">
+                <div className="card animated">
+                  <div className="report-header">
+                    <h3 className="card-title">
+                      <i className="fas fa-users" style={{ marginRight: '8px', color: '#5cb85c' }}></i>
+                      Relatório de Turmas
+                    </h3>
+                    <button className="export-button" onClick={() => {
+                      // Exportar para Excel
+                      const data = classes.map(cls => ({
+                        'Nome': cls.name,
+                        'Disciplina': cls.subject,
+                        'Ano Letivo': cls.academic_year,
+                        'Alunos': cls.students?.filter(s => s.status === 'active' || !s.status).length || 0,
+                        'Status': cls.status || 'active'
+                      }));
+                      import('../lib/excelExport').then(({ exportToExcel }) => {
+                        exportToExcel(data, 'relatorio_turmas');
+                      });
+                    }}>
+                      <i className="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                  </div>
+                  
+                  <div className="chart-container" style={{ marginBottom: '20px' }}>
+                    <PieChartComponent 
+                      data={classes.map((cls, index) => ({
+                        label: cls.name,
+                        value: cls.students?.filter(s => s.status === 'active' || !s.status).length || 0,
+                        color: ['#5cb85c', '#0275d8', '#d9534f', '#f0ad4e', '#5bc0de', '#6f42c1'][index % 6]
+                      }))}
+                      total={classes.reduce((sum, cls) => sum + (cls.students?.filter(s => s.status === 'active' || !s.status).length || 0), 0)}
+                    />
+                  </div>
+
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Turma</th>
+                        <th>Disciplina</th>
+                        <th>Ano Letivo</th>
+                        <th>Alunos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classes.map(cls => (
+                        <tr key={cls._id}>
+                          <td>{cls.name}</td>
+                          <td>{cls.subject}</td>
+                          <td>{cls.academic_year}</td>
+                          <td>{cls.students?.filter(s => s.status === 'active' || !s.status).length || 0}</td>
+                        </tr>
+                      ))}
+                      {classes.length === 0 && (
+                        <tr><td colSpan="4" style={{ textAlign: 'center' }}>Nenhuma turma encontrada</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Relatório de Tarefas */}
+            {activeReportTab === 'tasks' && (
+              <div className="report-content">
+                <div className="card animated">
+                  <div className="report-header">
+                    <h3 className="card-title">
+                      <i className="fas fa-tasks" style={{ marginRight: '8px', color: '#0275d8' }}></i>
+                      Relatório de Tarefas
+                    </h3>
+                    <button className="export-button" onClick={() => {
+                      const data = tasks.map(task => ({
+                        'Título': task.title,
+                        'Disciplina': task.subject || '-',
+                        'Prioridade': task.priority,
+                        'Data de Entrega': task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : '-',
+                        'Alunos Atribuídos': task.assigned_to?.length || 0
+                      }));
+                      import('../lib/excelExport').then(({ exportToExcel }) => {
+                        exportToExcel(data, 'relatorio_tarefas');
+                      });
+                    }}>
+                      <i className="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                  </div>
+                  
+                  <div className="chart-container" style={{ marginBottom: '20px' }}>
+                    <BarChartComponent 
+                      data={[
+                        { label: 'Urgente', value: tasks.filter(t => t.priority === 'urgent').length, color: 'rgba(128, 0, 128, 0.7)', borderColor: 'rgba(128, 0, 128, 1)' },
+                        { label: 'Alta', value: tasks.filter(t => t.priority === 'high').length, color: 'rgba(217, 83, 79, 0.7)', borderColor: 'rgba(217, 83, 79, 1)' },
+                        { label: 'Média', value: tasks.filter(t => t.priority === 'medium').length, color: 'rgba(240, 173, 78, 0.7)', borderColor: 'rgba(240, 173, 78, 1)' },
+                        { label: 'Baixa', value: tasks.filter(t => t.priority === 'low').length, color: 'rgba(92, 184, 92, 0.7)', borderColor: 'rgba(92, 184, 92, 1)' }
+                      ]}
+                    />
+                  </div>
+
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Título</th>
+                        <th>Disciplina</th>
+                        <th>Prioridade</th>
+                        <th>Data de Entrega</th>
+                        <th>Alunos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tasks.map(task => (
+                        <tr key={task._id}>
+                          <td>{task.title}</td>
+                          <td>{task.subject || '-'}</td>
+                          <td>
+                            <span className={`priority-badge priority-${task.priority}`}>
+                              {task.priority === 'urgent' ? 'Urgente' : task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
+                            </span>
+                          </td>
+                          <td>{task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : '-'}</td>
+                          <td>{task.assigned_to?.length || 0}</td>
+                        </tr>
+                      ))}
+                      {tasks.length === 0 && (
+                        <tr><td colSpan="5" style={{ textAlign: 'center' }}>Nenhuma tarefa encontrada</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Relatório de Flashcards */}
+            {activeReportTab === 'flashcards' && (
+              <div className="report-content">
+                <div className="card animated">
+                  <div className="report-header">
+                    <h3 className="card-title">
+                      <i className="fas fa-clone" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
+                      Relatório de Flashcards
+                    </h3>
+                    <button className="export-button" onClick={() => {
+                      const data = flashcards.map(card => ({
+                        'Pergunta': card.question,
+                        'Resposta': card.answer,
+                        'Tags': card.tags?.join(', ') || '-',
+                        'Turma': classes.find(c => c._id === card.class_id)?.name || 'Pessoal',
+                        'Tentativas': card.stats?.attempts || 0,
+                        'Acertos': card.stats?.correct || 0
+                      }));
+                      import('../lib/excelExport').then(({ exportToExcel }) => {
+                        exportToExcel(data, 'relatorio_flashcards');
+                      });
+                    }}>
+                      <i className="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                  </div>
+                  
+                  <div className="quick-stats" style={{ marginBottom: '20px' }}>
+                    <div className="quick-stat-item">
+                      <span className="quick-stat-value" style={{ color: '#6f42c1' }}>{flashcards.length}</span>
+                      <span className="quick-stat-label">Total de Flashcards</span>
+                    </div>
+                    <div className="quick-stat-item">
+                      <span className="quick-stat-value" style={{ color: '#5cb85c' }}>{flashcards.filter(f => f.class_id).length}</span>
+                      <span className="quick-stat-label">Em Turmas</span>
+                    </div>
+                    <div className="quick-stat-item">
+                      <span className="quick-stat-value" style={{ color: '#0275d8' }}>{flashcards.filter(f => !f.class_id).length}</span>
+                      <span className="quick-stat-label">Pessoais</span>
+                    </div>
+                  </div>
+
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Pergunta</th>
+                        <th>Turma</th>
+                        <th>Tags</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {flashcards.map(card => (
+                        <tr key={card._id}>
+                          <td>{card.question.substring(0, 50)}{card.question.length > 50 ? '...' : ''}</td>
+                          <td>{classes.find(c => c._id === card.class_id)?.name || 'Pessoal'}</td>
+                          <td>{card.tags?.join(', ') || '-'}</td>
+                        </tr>
+                      ))}
+                      {flashcards.length === 0 && (
+                        <tr><td colSpan="3" style={{ textAlign: 'center' }}>Nenhum flashcard encontrado</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Relatório de Alunos */}
+            {activeReportTab === 'students' && (
+              <div className="report-content">
+                <div className="card animated">
+                  <div className="report-header">
+                    <h3 className="card-title">
+                      <i className="fas fa-user-graduate" style={{ marginRight: '8px', color: '#f0ad4e' }}></i>
+                      Relatório de Alunos
+                    </h3>
+                    <button className="export-button" onClick={() => {
+                      const data = allStudents.map(student => ({
+                        'Nome': student.name,
+                        'Email': student.email,
+                        'Turma': student.className || '-'
+                      }));
+                      import('../lib/excelExport').then(({ exportToExcel }) => {
+                        exportToExcel(data, 'relatorio_alunos');
+                      });
+                    }}>
+                      <i className="fas fa-file-excel"></i> Exportar Excel
+                    </button>
+                  </div>
+                  
+                  <div className="quick-stats" style={{ marginBottom: '20px' }}>
+                    <div className="quick-stat-item">
+                      <span className="quick-stat-value" style={{ color: '#f0ad4e' }}>{allStudents.length}</span>
+                      <span className="quick-stat-label">Total de Alunos</span>
+                    </div>
+                    <div className="quick-stat-item">
+                      <span className="quick-stat-value" style={{ color: '#5cb85c' }}>{classes.length}</span>
+                      <span className="quick-stat-label">Turmas</span>
+                    </div>
+                  </div>
+
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Turma</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allStudents.map(student => (
+                        <tr key={student._id}>
+                          <td>{student.name}</td>
+                          <td>{student.email}</td>
+                          <td>{student.className || '-'}</td>
+                        </tr>
+                      ))}
+                      {allStudents.length === 0 && (
+                        <tr><td colSpan="3" style={{ textAlign: 'center' }}>Nenhum aluno encontrado</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1517,11 +1969,11 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
               >
                 <div className="theme-toggle-switch">
                   <div className={`theme-toggle-slider ${darkMode ? 'dark' : 'light'}`}>
-                    <i className={`theme-toggle-icon ${darkMode ? 'fas fa-sun' : 'fas fa-moon'}`}></i>
+                    <i className={`theme-toggle-icon ${darkMode ? 'fas fa-moon' : 'fas fa-sun'}`}></i>
                   </div>
                 </div>
                 <span className="theme-toggle-label">
-                  {darkMode ? "Modo Claro" : "Modo Escuro"}
+                  {darkMode ? "Modo Escuro" : "Modo Claro"}
                 </span>
               </button>
               {editProfile ? (
@@ -1911,6 +2363,359 @@ styles.innerHTML = `
     font-size: 0.85rem;
   }
 
+  /* ==================== ESTILOS TURMAS DO PROFESSOR ==================== */
+  
+  .loading-text {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+  }
+
+  .teacher-classes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .teacher-class-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.5s ease forwards;
+    opacity: 0;
+    border: 1px solid #e9ecef;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .teacher-class-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  }
+
+  .class-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+
+  .class-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .class-title-section {
+    flex: 1;
+  }
+
+  .class-title {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .class-subject-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #0275d8 0%, #025aa5 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .class-card-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 12px;
+    padding: 12px 0;
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+  }
+
+  .class-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #555;
+  }
+
+  .class-stat i {
+    color: #5cb85c;
+    width: 18px;
+  }
+
+  .class-description {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0 0 15px 0;
+    line-height: 1.5;
+  }
+
+  .add-student-section {
+    margin-bottom: 15px;
+  }
+
+  .add-student-input-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .add-student-input {
+    flex: 1;
+    font-size: 0.85rem !important;
+    padding: 8px 12px !important;
+  }
+
+  .btn-add-student {
+    background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-add-student:hover {
+    transform: scale(1.05);
+    box-shadow: 0 3px 10px rgba(92, 184, 92, 0.3);
+  }
+
+  .class-card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .class-action-btn {
+    flex: 1;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .class-action-btn.edit {
+    background: #f0f0f0;
+    color: #555;
+  }
+
+  .class-action-btn.edit:hover {
+    background: #0275d8;
+    color: white;
+  }
+
+  .class-action-btn.view {
+    background: #f0f0f0;
+    color: #555;
+  }
+
+  .class-action-btn.view:hover {
+    background: #5cb85c;
+    color: white;
+  }
+
+  .class-action-btn.archive {
+    background: #f0f0f0;
+    color: #555;
+  }
+
+  .class-action-btn.archive:hover {
+    background: #d9534f;
+    color: white;
+  }
+
+  /* ==================== ESTILOS FORMULÁRIO DE TAREFAS ==================== */
+
+  .task-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+  }
+
+  .task-description {
+    font-family: inherit;
+    line-height: 1.5;
+  }
+
+  .attachments-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .attachment-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #666;
+    font-weight: 500;
+  }
+
+  .attachment-btn:hover {
+    border-color: #0275d8;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #0275d8;
+  }
+
+  .attachment-btn i {
+    font-size: 1.2rem;
+  }
+
+  .attachments-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #1976d2;
+  }
+
+  .attachment-item i {
+    color: #1976d2;
+  }
+
+  .btn-remove-attachment {
+    background: none;
+    border: none;
+    color: #d9534f;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .btn-remove-attachment:hover {
+    background: #ffebee;
+  }
+
+  /* Dark Theme - Turmas e Formulário */
+  .dark-theme .teacher-class-card {
+    background: linear-gradient(145deg, #2d2d2d 0%, #252525 100%);
+    border-color: #444;
+  }
+
+  .dark-theme .class-title {
+    color: #e0e0e0;
+  }
+
+  .dark-theme .class-stat,
+  .dark-theme .class-description {
+    color: #aaa;
+  }
+
+  .dark-theme .class-card-stats {
+    border-color: #444;
+  }
+
+  .dark-theme .class-action-btn.edit,
+  .dark-theme .class-action-btn.view,
+  .dark-theme .class-action-btn.archive {
+    background: #3d3d3d;
+    color: #ccc;
+  }
+
+  .dark-theme .form-label {
+    color: #e0e0e0;
+  }
+
+  .dark-theme .attachment-btn {
+    background: linear-gradient(135deg, #2d2d2d 0%, #3d3d3d 100%);
+    border-color: #555;
+    color: #aaa;
+  }
+
+  .dark-theme .attachment-btn:hover {
+    border-color: #0275d8;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+    color: #64b5f6;
+  }
+
+  .dark-theme .attachment-item {
+    background: #1e3a5f;
+    color: #64b5f6;
+  }
+
+  @media (max-width: 768px) {
+    .teacher-classes-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .class-card-actions {
+      flex-direction: column;
+    }
+
+    .class-action-btn {
+      width: 100%;
+    }
+  }
+
   .students-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -1925,6 +2730,21 @@ styles.innerHTML = `
 
   .student-name {
     font-weight: 500;
+  }
+
+  .student-class {
+    font-size: 0.8rem;
+    color: #5cb85c;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  .empty-message {
+    color: #999;
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
   }
 
   /* Students Selection */
@@ -2468,6 +3288,220 @@ styles.innerHTML = `
     font-size: 0.85rem;
     color: #666;
     margin-top: 5px;
+  }
+
+  /* Report Styles */
+  .report-header-main {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .export-complete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #6f42c1 0%, #563d7c 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);
+  }
+
+  .export-complete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(111, 66, 193, 0.4);
+  }
+
+  .export-complete-btn i {
+    font-size: 1.1rem;
+  }
+
+  .report-tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .report-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #f5f5f5;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .report-tab:hover {
+    background: #e9ecef;
+  }
+
+  .report-tab.active {
+    background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+    color: white;
+    border-color: #d9534f;
+  }
+
+  .report-tab i {
+    font-size: 1rem;
+  }
+
+  .report-content {
+    margin-top: 20px;
+  }
+
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .export-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .export-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(92, 184, 92, 0.3);
+  }
+
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+
+  .report-table th,
+  .report-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+
+  .report-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .report-table tr:hover {
+    background: #f8f9fa;
+  }
+
+  .priority-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .priority-badge.priority-urgent {
+    background: rgba(128, 0, 128, 0.15);
+    color: purple;
+  }
+
+  .priority-badge.priority-high {
+    background: rgba(217, 83, 79, 0.15);
+    color: #d9534f;
+  }
+
+  .priority-badge.priority-medium {
+    background: rgba(240, 173, 78, 0.15);
+    color: #f0ad4e;
+  }
+
+  .priority-badge.priority-low {
+    background: rgba(92, 184, 92, 0.15);
+    color: #5cb85c;
+  }
+
+  .chart-container {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  /* Dark Theme - Reports */
+  .dark-theme .export-complete-btn {
+    background: linear-gradient(135deg, #7c4dff 0%, #651fff 100%);
+  }
+
+  .dark-theme .report-tab {
+    background: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .dark-theme .report-tab:hover {
+    background: #3d3d3d;
+  }
+
+  .dark-theme .report-tab.active {
+    background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+    color: white;
+  }
+
+  .dark-theme .report-table th {
+    background: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .dark-theme .report-table td {
+    border-color: #444;
+  }
+
+  .dark-theme .report-table tr:hover {
+    background: #2d2d2d;
+  }
+
+  /* Responsive Reports */
+  @media (max-width: 768px) {
+    .report-tabs {
+      flex-direction: column;
+    }
+
+    .report-tab {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .report-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .export-button {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .report-table {
+      display: block;
+      overflow-x: auto;
+    }
   }
 
   /* Upcoming Tasks */

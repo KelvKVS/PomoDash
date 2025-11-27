@@ -38,15 +38,17 @@ router.post(
     auth,
     body('question').notEmpty().withMessage('Pergunta é obrigatória').trim(),
     body('answer').notEmpty().withMessage('Resposta é obrigatória').trim(),
-    body('tags').optional().isArray().withMessage('Tags deve ser um array')
+    body('tags').optional().isArray().withMessage('Tags deve ser um array'),
+    body('class_id').optional().isMongoId().withMessage('ID de turma inválido')
   ],
   validateRequest,
   async (req, res) => {
     try {
-      const { question, answer, tags } = req.body;
+      const { question, answer, tags, class_id } = req.body;
       const flashcard = new Flashcard({
         user_id: req.user._id,
         school_id: req.user.school_id,
+        class_id: class_id || null,
         question,
         answer,
         tags
@@ -266,6 +268,26 @@ router.get('/stats/aggregate', auth, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: 'Erro ao obter estatísticas agregadas' });
+  }
+});
+
+// @route   GET /api/flashcards/class/:classId
+// @desc    Obter flashcards de uma turma específica
+// @access  Private
+router.get('/class/:classId', auth, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    
+    // Buscar flashcards da turma
+    const flashcards = await Flashcard.find({
+      class_id: classId,
+      school_id: req.user.school_id
+    }).populate('user_id', 'name email');
+
+    res.json({ status: 'success', data: flashcards });
+  } catch (error) {
+    console.error('Erro ao buscar flashcards da turma:', error);
+    res.status(500).json({ status: 'error', message: 'Erro ao buscar flashcards da turma' });
   }
 });
 

@@ -1320,9 +1320,9 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                 aria-label={darkMode ? "Alternar para modo claro" : "Alternar para modo escuro"}
               >
                 {darkMode ? (
-                  <><i className="fas fa-sun"></i> Modo Claro</>
-                ) : (
                   <><i className="fas fa-moon"></i> Modo Escuro</>
+                ) : (
+                  <><i className="fas fa-sun"></i> Modo Claro</>
                 )}
               </button>
               {editProfile ? (

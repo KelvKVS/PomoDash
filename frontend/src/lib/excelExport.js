@@ -1,5 +1,23 @@
 import * as XLSX from 'xlsx';
 
+// Função genérica para exportar qualquer dado para Excel
+export const exportToExcel = (data, fileName = 'relatorio') => {
+  try {
+    // Criar uma nova planilha
+    const ws = XLSX.utils.json_to_sheet(data);
+    
+    // Criar um novo workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Dados');
+
+    // Exportar o arquivo
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
+  } catch (error) {
+    console.error('Erro ao exportar para Excel:', error);
+    throw error;
+  }
+};
+
 // Função para exportar dados de turmas para Excel
 export const exportClassesToExcel = (classes, fileName = 'turmas_professor.xlsx') => {
   try {

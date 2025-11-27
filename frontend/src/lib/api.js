@@ -518,6 +518,13 @@ export const classAPI = {
     });
   },
 
+  // Obter turmas por aluno
+  getClassesByStudent: async (studentId) => {
+    return request(`/classes/student/${studentId}`, {
+      method: 'GET',
+    });
+  },
+
   // Obter turma específica
   getClassById: async (classId) => {
     return request(`/classes/${classId}`, {
