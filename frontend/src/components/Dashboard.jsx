@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { authAPI, pomodoroAPI, taskAPI, flashcardAPI, classAPI, performanceAPI } from '../lib/api';
+import { authAPI, pomodoroAPI, taskAPI, flashcardAPI, classAPI, performanceAPI, uploadAPI } from '../lib/api';
 import { exportTasksToExcel, exportFlashcardsToExcel, exportClassesToExcel, exportPerformanceToExcel } from '../lib/excelExport';
 import CustomAlert from './CustomAlert';
 import CustomConfirm from './CustomConfirm';
@@ -17,7 +17,8 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     totalTasks: 0,
     flashcardAccuracy: 0,
     recentSessions: [],
-    upcomingTasks: []
+    recentCompletedTasks: [], // Últimas tarefas concluídas (para estatísticas)
+    pendingTasks: [] // Tarefas pendentes (para dashboard)
   });
   const [newTask, setNewTask] = useState({
     title: '',
@@ -94,20 +95,89 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Funções para a popup de feedback do flashcard
-  const handleFlashcardCorrect = () => {
+  const handleFlashcardCorrect = async () => {
     if (currentFlashcardId) {
-      updateFlashcardStats(currentFlashcardId, true);
+      await updateFlashcardStats(currentFlashcardId, true);
+      
+      // Atualizar estatísticas do flashcard na UI imediatamente
+      setFlashcards(prev => prev.map(card => {
+        if (card._id === currentFlashcardId) {
+          const newAttempts = (card.stats?.attempts || 0) + 1;
+          const newCorrect = (card.stats?.correct || 0) + 1;
+          const newAccuracy = Math.round((newCorrect / newAttempts) * 100);
+          return {
+            ...card,
+            stats: {
+              ...card.stats,
+              attempts: newAttempts,
+              correct: newCorrect,
+              accuracy: newAccuracy,
+              streak: (card.stats?.streak || 0) + 1
+            }
+          };
+        }
+        return card;
+      }));
+      
+      // Atualizar o aproveitamento geral na UI
+      setTimeout(async () => {
+        try {
+          const flashcardStatsResponse = await flashcardAPI.getAggregateFlashcardStats();
+          if (flashcardStatsResponse.data?.overallAccuracy !== undefined) {
+            setStats(prev => ({ ...prev, flashcardAccuracy: flashcardStatsResponse.data.overallAccuracy }));
+          }
+        } catch {
+          const newAccuracy = getOverallAccuracy();
+          setStats(prev => ({ ...prev, flashcardAccuracy: newAccuracy }));
+        }
+      }, 200);
     }
     setShowFlashcardFeedbackModal(false);
     setCurrentFlashcardId(null);
+    setSelectedCard(null);
   };
 
-  const handleFlashcardIncorrect = () => {
+  const handleFlashcardIncorrect = async () => {
     if (currentFlashcardId) {
-      updateFlashcardStats(currentFlashcardId, false);
+      await updateFlashcardStats(currentFlashcardId, false);
+      
+      // Atualizar estatísticas do flashcard na UI imediatamente
+      setFlashcards(prev => prev.map(card => {
+        if (card._id === currentFlashcardId) {
+          const newAttempts = (card.stats?.attempts || 0) + 1;
+          const newIncorrect = (card.stats?.incorrect || 0) + 1;
+          const newCorrect = card.stats?.correct || 0;
+          const newAccuracy = Math.round((newCorrect / newAttempts) * 100);
+          return {
+            ...card,
+            stats: {
+              ...card.stats,
+              attempts: newAttempts,
+              incorrect: newIncorrect,
+              accuracy: newAccuracy,
+              streak: 0
+            }
+          };
+        }
+        return card;
+      }));
+      
+      // Atualizar o aproveitamento geral na UI
+      setTimeout(async () => {
+        try {
+          const flashcardStatsResponse = await flashcardAPI.getAggregateFlashcardStats();
+          if (flashcardStatsResponse.data?.overallAccuracy !== undefined) {
+            setStats(prev => ({ ...prev, flashcardAccuracy: flashcardStatsResponse.data.overallAccuracy }));
+          }
+        } catch {
+          const newAccuracy = getOverallAccuracy();
+          setStats(prev => ({ ...prev, flashcardAccuracy: newAccuracy }));
+        }
+      }, 200);
     }
     setShowFlashcardFeedbackModal(false);
     setCurrentFlashcardId(null);
+    setSelectedCard(null);
   };
 
   const handleAddTask = async (e) => {
@@ -115,18 +185,40 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     if (!newTask.title.trim()) return;
 
     try {
+      // Upload dos arquivos anexados
+      let uploadedAttachments = [];
+      if (newTask.attachments && newTask.attachments.length > 0) {
+        setAlert({ message: 'Enviando arquivos...', type: 'info' });
+        
+        for (const file of newTask.attachments) {
+          try {
+            const uploadResult = await uploadAPI.uploadFile(file);
+            uploadedAttachments.push({
+              name: uploadResult.data.originalName,
+              url: uploadResult.data.url,
+              type: file.type.startsWith('image/') ? 'image' : 'file',
+              size: uploadResult.data.size
+            });
+          } catch (uploadError) {
+            console.error('Erro ao fazer upload de arquivo:', uploadError);
+            setAlert({ message: `Erro ao enviar arquivo ${file.name}: ${uploadError.message}`, type: 'error' });
+            return;
+          }
+        }
+      }
+
       const taskData = {
         title: newTask.title,
         subject: newTask.subject,
         description: newTask.description,
-        attachments: newTask.attachments,
+        attachments: uploadedAttachments,
         due_date: newTask.due_date || undefined,
         priority: newTask.priority,
         assigned_to: user._id // Enviar apenas o ID do usuário como string
       };
 
       await taskAPI.createTask(taskData);
-      setNewTask({ title: '', subject: '', due_date: '', priority: 'medium' });
+      setNewTask({ title: '', subject: '', description: '', attachments: [], due_date: '', priority: 'medium' });
       setShowTaskForm(false); // Fechar o formulário após criar a tarefa
       // Recarregar as tarefas - evitar chamada duplicada quando na tela de tarefas
       if (activeScreen !== 'tasks') {
@@ -232,7 +324,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     const files = Array.from(e.target.files);
     setNewTask(prev => ({
       ...prev,
-      attachments: [...prev.attachments, ...files]
+      attachments: [...(prev.attachments || []), ...files]
     }));
   };
 
@@ -240,7 +332,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const removeAttachment = (indexToRemove) => {
     setNewTask(prev => ({
       ...prev,
-      attachments: prev.attachments.filter((_, index) => index !== indexToRemove)
+      attachments: (prev.attachments || []).filter((_, index) => index !== indexToRemove)
     }));
   };
 
@@ -432,10 +524,24 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
   const loadFlashcards = async () => {
     try {
       const response = await flashcardAPI.getFlashcards();
-      const flashcardsWithStats = response.data.map(card => ({
-        ...card,
-        stats: getFlashcardStats(card._id)
-      }));
+      // Usar estatísticas do backend (card.stats) com fallback para localStorage
+      const flashcardsWithStats = response.data.map(card => {
+        // Priorizar estatísticas do backend, senão usar localStorage
+        const backendStats = card.stats || {};
+        const localStats = getFlashcardStats(card._id);
+        
+        return {
+          ...card,
+          stats: {
+            accuracy: backendStats.accuracy || localStats.accuracy || 0,
+            attempts: backendStats.attempts || localStats.attempts || 0,
+            correct: backendStats.correct || localStats.correct || 0,
+            incorrect: backendStats.incorrect || localStats.incorrect || 0,
+            streak: backendStats.streak || localStats.streak || 0,
+            lastReviewed: backendStats.lastReviewed || localStats.lastReviewed || null
+          }
+        };
+      });
       setFlashcards(flashcardsWithStats || []);
     } catch (error) {
       setAlert({ message: 'Erro ao carregar flashcards: ' + error.message, type: 'error' });
@@ -624,6 +730,31 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
+  // Função para carregar sessão ativa
+  const loadActiveSession = async () => {
+    try {
+      const response = await pomodoroAPI.getActiveSession();
+      if (response.data) {
+        setActiveSession(response.data);
+        // Atualizar o tempo restante com base na sessão ativa
+        const now = new Date();
+        const startedAt = new Date(response.data.timing.started_at);
+        const elapsed = Math.floor((now - startedAt) / 1000); // tempo decorrido em segundos
+        const plannedDurationSec = response.data.settings.planned_duration * 60; // duração planejada em segundos
+        const remaining = Math.max(0, plannedDurationSec - elapsed);
+        setTime(remaining);
+        setIsActive(response.data.status === 'running');
+        // Atualizar o tipo da sessão
+        setSessionType(response.data.type);
+      }
+    } catch (error) {
+      // Se não houver sessão ativa, é normal - não faz nada
+      if (!error.message.includes('Nenhuma sessão ativa') && !error.message.includes('404')) {
+        console.error('Erro ao carregar sessão ativa:', error);
+      }
+    }
+  };
+
   // Função para carregar sessões recentes
   const loadRecentSessions = async () => {
     try {
@@ -717,16 +848,48 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       const minutes = focusTime % 60;
       const focusTimeFormatted = `${hours}h ${minutes}m`;
 
-      // Carregar e calcular aproveitamento de flashcards
-      const flashcardAcc = getOverallAccuracy();
+      // Carregar e calcular aproveitamento de flashcards DO BACKEND
+      let flashcardAcc = 0;
+      try {
+        const flashcardStatsResponse = await flashcardAPI.getAggregateFlashcardStats();
+        if (flashcardStatsResponse.data && flashcardStatsResponse.data.overallAccuracy !== undefined) {
+          flashcardAcc = flashcardStatsResponse.data.overallAccuracy;
+          console.log('Aproveitamento de flashcards (backend):', flashcardAcc + '%');
+        }
+      } catch (flashcardError) {
+        console.error('Erro ao carregar estatísticas de flashcard do backend:', flashcardError);
+        // Fallback para estatísticas locais
+        flashcardAcc = getOverallAccuracy();
+        console.log('Aproveitamento de flashcards (local):', flashcardAcc + '%');
+      }
+
+      // Filtrar tarefas concluídas e ordenar por data de conclusão (mais recentes primeiro)
+      const completedTasksList = userTasksWithAssignments
+        .filter(task => task.currentAssignment?.status === 'completed')
+        .sort((a, b) => {
+          const dateA = a.currentAssignment?.completed_at ? new Date(a.currentAssignment.completed_at) : new Date(0);
+          const dateB = b.currentAssignment?.completed_at ? new Date(b.currentAssignment.completed_at) : new Date(0);
+          return dateB - dateA; // Mais recentes primeiro
+        });
+
+      // Filtrar tarefas pendentes (não concluídas) ordenadas por prazo
+      const pendingTasksList = userTasksWithAssignments
+        .filter(task => task.currentAssignment?.status !== 'completed')
+        .sort((a, b) => {
+          const dateA = a.due_date ? new Date(a.due_date) : new Date('9999-12-31');
+          const dateB = b.due_date ? new Date(b.due_date) : new Date('9999-12-31');
+          return dateA - dateB; // Prazos mais próximos primeiro
+        });
 
       setStats({
         focusTime: focusTimeFormatted,
         completedTasks,
         totalTasks,
         flashcardAccuracy: flashcardAcc,
-        // Obter tarefas não concluídas para a dashboard (tarefas restantes)
-        upcomingTasks: userTasksWithAssignments.filter(task => task.currentAssignment?.status !== 'completed'),
+        // Últimas tarefas concluídas (para estatísticas)
+        recentCompletedTasks: completedTasksList.slice(0, 5),
+        // Tarefas pendentes (para dashboard)
+        pendingTasks: pendingTasksList.slice(0, 5),
         // Adicionar dados de desempenho do professor
         teacherPerformance: teacherPerf
       });
@@ -752,18 +915,18 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
         return;
       }
 
-
-      // Filtrar tarefas atribuídas ao usuário logado com verificação robusta de IDs
-      const filteredTasks = tasksResponse.data.filter(task => {
-
+      // Filtrar tarefas atribuídas ao usuário logado E incluir currentAssignment
+      const userTasks = [];
+      
+      tasksResponse.data.forEach(task => {
         if (!task.assigned_to || !Array.isArray(task.assigned_to)) {
-          return false;
+          return;
         }
 
-        // Procurar por tarefa atribuída ao usuário atual com verificação robusta
-        const isUserAssigned = task.assigned_to.some(assignment => {
+        // Encontrar o assignment específico do usuário atual
+        const userAssignment = task.assigned_to.find(assignment => {
           if (!assignment || !assignment.user) {
-              return false;
+            return false;
           }
 
           // Obter o ID do usuário - pode ser um objeto com _id, id ou uma string diretamente
@@ -781,35 +944,40 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
           // Obter o ID do usuário logado (pode estar em user._id ou user.id)
           const currentUserId = user ? (user._id || user.id) : null;
 
-
           // Comparar IDs convertendo ambos para string
           const match = assignmentUserId && currentUserId &&
                  assignmentUserId.toString() === currentUserId.toString();
 
-          if (match) { /* empty */ }
-
           return match;
         });
 
-        return isUserAssigned;
+        // Se encontrou o assignment do usuário, adicionar a tarefa com currentAssignment
+        if (userAssignment) {
+          userTasks.push({
+            ...task,
+            currentAssignment: userAssignment // Incluir o assignment específico do usuário
+          });
+        }
       });
 
+      console.log('Dashboard - Tarefas carregadas:', userTasks.length, userTasks.map(t => ({
+        title: t.title,
+        status: t.currentAssignment?.status
+      })));
 
       // Atualizar o estado com as tarefas filtradas
-      setTasks(filteredTasks);
-
-      // Caso as tarefas estiverem vazias
-      if (filteredTasks.length === 0) { /* empty */ }
+      setTasks(userTasks);
 
     } catch (error) {
       console.error('Erro completo ao carregar tarefas:', error);
       setAlert({ message: 'Erro ao carregar tarefas: ' + error.message, type: 'error' });
       setTasks([]); // Garantir que o estado seja limpo em caso de erro
     }
-  }, [user, taskAPI, setTasks, setAlert, getFlashcardStats]);
+  }, [user, setTasks, setAlert]);
 
   useEffect(() => {
     // Carregar dados iniciais quando o componente montar
+    loadActiveSession(); // Carregar sessão ativa de Pomodoro (se houver)
     loadRecentSessions();
     loadStats();
     loadFlashcards();
@@ -829,18 +997,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
     // Sempre recarregar tarefas quando a tela mudar para 'tasks'
     if (activeScreen === 'tasks') {
       loadTasksForScreen();
-    } else {
-      loadStats();
     }
-  }, [activeScreen, user, loadStats, loadTasksForScreen]); // Adicionando user como dependência para garantir atualização completa
-
-  // Efeito para garantir que tarefas sejam carregadas imediatamente ao inicializar
-  useEffect(() => {
-    // Se estiver na tela de tarefas e o usuário estiver definido, carregar tarefas imediatamente
-    if (activeScreen === 'tasks' && user && user._id) {
-      loadTasksForScreen();
-    }
-  }, [activeScreen, user, loadTasksForScreen]); // Carregar quando a tela ou o usuário mudar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScreen]); // Apenas recarregar quando a tela mudar
 
   const pageTitles = {
     'dashboard': 'Dashboard',
@@ -869,6 +1028,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="logo">
+          <img src="/src/assets/logoVe.png" alt="PomoDash Logo" style={{ height: '50px', marginRight: '10px', borderRadius: '12px' }} />
           <h1>Pomo<span>dash</span></h1>
         </div>
         <div className="menu">
@@ -957,35 +1117,35 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             </div>
           </div>
           <div className="card">
-            <h3 className="card-title">Suas últimas 5 tarefas restantes</h3>
-            {stats.upcomingTasks && stats.upcomingTasks.length > 0 ? (
+            <h3 className="card-title">
+              <i className="fas fa-clock" style={{ color: '#ffc107', marginRight: '8px' }}></i>
+              Suas próximas 5 tarefas pendentes
+            </h3>
+            {stats.pendingTasks && stats.pendingTasks.length > 0 ? (
               <div className="task-list">
-                {stats.upcomingTasks.slice(0, 5).map(task => {  // Apenas as 5 primeiras tarefas
-                  const assignment = task.assigned_to?.find(a => {
-                    const assignmentUserId = a.user?._id || a.user;
-                    const currentUserId = user._id;
-                    return assignmentUserId && currentUserId &&
-                           assignmentUserId.toString() === currentUserId.toString();
-                  });
-                  const status = assignment ? assignment.status : 'pending';
-
-                  return (
-                    <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : ''}`}>
-                      <div className="task-content">
-                        <div className="task-title">{task.title}</div>
-                        <div className="task-details">
-                          Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
-                        </div>
+                {stats.pendingTasks.map(task => (
+                  <div key={task._id} className="task-item">
+                    <div className="task-content">
+                      <div className="task-title">
+                        {task.title}
                       </div>
-                      <span className={`task-status ${status}`}>
-                        {status === 'pending' ? 'Pendente' : status === 'in_progress' ? 'Em andamento' : 'Concluída'}
-                      </span>
+                      <div className="task-details">
+                        Disciplina: {task.subject || 'N/A'} • 
+                        Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • 
+                        Prioridade: {task.priority}
+                      </div>
                     </div>
-                  )
-                })}
+                    <span className="task-status pending" style={{ background: '#ffc107', color: '#856404', padding: '4px 12px', borderRadius: '20px' }}>
+                      <i className="fas fa-clock"></i> Pendente
+                    </span>
+                  </div>
+                ))}
               </div>
             ) : (
-              <p>Você não tem tarefas restantes no momento.</p>
+              <p style={{ textAlign: 'center', color: '#6c757d' }}>
+                <i className="fas fa-check-double" style={{ marginRight: '8px', color: '#28a745' }}></i>
+                Parabéns! Você não tem tarefas pendentes.
+              </p>
             )}
           </div>
 
@@ -1071,7 +1231,9 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                       />
 
                       <div className="attachments-section">
-                        <label htmlFor="attachment-input" className="btn btn-outline">Anexar Arquivos</label>
+                        <label htmlFor="attachment-input" className="btn btn-outline">
+                          <i className="fas fa-paperclip"></i> Anexar Arquivos
+                        </label>
                         <input
                           id="attachment-input"
                           type="file"
@@ -1084,7 +1246,7 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                           <div className="attachments-list">
                             {newTask.attachments.map((file, index) => (
                               <div key={index} className="attachment-item">
-                                <span>{file.name}</span>
+                                <span><i className="fas fa-file"></i> {file.name}</span>
                                 <button type="button" onClick={() => removeAttachment(index)} className="btn-remove-attachment">
                                   ×
                                 </button>
@@ -1113,64 +1275,132 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                     </form>
                   )}
                 </div>
-                <div className="task-list">
-                  {tasks && tasks.length > 0 ? (
-                    tasks.map(task => {
-                      const assignment = task.assigned_to?.find(a => {
-                        const assignmentUserId = a.user?._id || a.user;
-                        const currentUserId = user._id;
-                        return assignmentUserId && currentUserId &&
-                               assignmentUserId.toString() === currentUserId.toString();
-                      });
-                      const status = assignment ? assignment.status : 'pending';
+                {/* Função auxiliar para renderizar item de tarefa */}
+                {(() => {
+                  // Função para obter status da tarefa - usa currentAssignment se disponível
+                  const getTaskStatus = (task) => {
+                    // Se a tarefa já tem currentAssignment (adicionado em loadTasksForScreen), usar ele
+                    if (task.currentAssignment) {
+                      return task.currentAssignment.status || 'pending';
+                    }
+                    
+                    // Fallback: procurar no array assigned_to
+                    const assignment = task.assigned_to?.find(a => {
+                      const assignmentUserId = a.user?._id || a.user;
+                      const currentUserId = user._id || user.id;
+                      const assignmentIdStr = assignmentUserId ? assignmentUserId.toString() : null;
+                      const userIdStr = currentUserId ? currentUserId.toString() : null;
+                      return assignmentIdStr && userIdStr && assignmentIdStr === userIdStr;
+                    });
+                    return assignment ? assignment.status : 'pending';
+                  };
 
-                      return (
-                        <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : ''}`}>
-                          <input
-                            type="checkbox"
-                            className="task-checkbox"
-                            checked={status === 'completed'}
-                            onChange={() => toggleTaskCompletion(task._id, status)}
-                          />
-                          <div className="task-content">
-                            <div className="task-title">{task.title}</div>
-                            <div className="task-description">{task.description}</div>
-                            <div className="task-details">
-                              Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
-                            </div>
-                            {task.attachments && task.attachments.length > 0 && (
-                              <div className="task-attachments">
-                                {task.attachments.map((attachment, index) => (
-                                  <div key={index} className="attachment-tag">
-                                    <i className="fas fa-paperclip"></i> {attachment.name || attachment.filename}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="task-actions">
-                            <button
-                              onClick={() => showEditTaskModal(task)}
-                              className="btn-edit-task"
-                              title="Editar Tarefa"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => handleArchiveTask(task._id)}
-                              className="btn-archive-task"
-                              title="Arquivar Tarefa"
-                            >
-                              Arquivar
-                            </button>
-                          </div>
+                  const pendingTasks = tasks?.filter(task => getTaskStatus(task) !== 'completed') || [];
+                  const completedTasks = tasks?.filter(task => getTaskStatus(task) === 'completed') || [];
+                  
+                  console.log('Dashboard - Separação: Pendentes:', pendingTasks.length, 'Concluídas:', completedTasks.length);
+
+                  const renderTaskItem = (task, status) => (
+                    <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : status === 'in_progress' ? 'in_progress' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="task-checkbox"
+                        checked={status === 'completed'}
+                        onChange={() => toggleTaskCompletion(task._id, status)}
+                      />
+                      <div className="task-content">
+                        <div className="task-title">{task.title}</div>
+                        <div className="task-description">{task.description}</div>
+                        <div className="task-details">
+                          Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
                         </div>
-                      )
-                    })
-                  ) : (
-                    <p>Você não tem tarefas no momento.</p>
-                  )}
-                </div>
+                        {task.attachments && task.attachments.length > 0 && (
+                          <div className="task-attachments">
+                            {task.attachments.map((attachment, index) => (
+                              <a 
+                                key={index} 
+                                className="attachment-tag" 
+                                href={attachment.url || '#'} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                download={attachment.name || attachment.filename}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!attachment.url) {
+                                    e.preventDefault();
+                                    setAlert({ message: 'Download não disponível - arquivo não foi enviado ao servidor', type: 'warning' });
+                                  }
+                                }}
+                                title={attachment.url ? "Clique para baixar" : "Download não disponível"}
+                              >
+                                <i className="fas fa-download"></i> {attachment.name || attachment.filename}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* Badge de status da tarefa */}
+                      <span className="task-completed-badge">
+                        <i className="fas fa-check-circle"></i> Concluída
+                      </span>
+                      <span className="task-pending-badge">
+                        <i className="fas fa-clock"></i> {status === 'in_progress' ? 'Em andamento' : 'Pendente'}
+                      </span>
+                      <div className="task-actions">
+                        <button
+                          onClick={() => showEditTaskModal(task)}
+                          className="btn-edit-task"
+                          title="Editar Tarefa"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleArchiveTask(task._id)}
+                          className="btn-archive-task"
+                          title="Arquivar Tarefa"
+                        >
+                          Arquivar
+                        </button>
+                      </div>
+                    </div>
+                  );
+
+                  return (
+                    <>
+                      {/* Seção de Tarefas Pendentes */}
+                      <div className="tasks-section">
+                        <h3 className="tasks-section-title">
+                          <i className="fas fa-clock"></i> Tarefas Pendentes ({pendingTasks.length})
+                        </h3>
+                        <div className="task-list">
+                          {pendingTasks.length > 0 ? (
+                            pendingTasks.map(task => renderTaskItem(task, getTaskStatus(task)))
+                          ) : (
+                            <p className="no-tasks-message">
+                              <i className="fas fa-check-double"></i> Parabéns! Você não tem tarefas pendentes.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Seção de Tarefas Concluídas */}
+                      <div className="tasks-section completed-section">
+                        <h3 className="tasks-section-title completed-title">
+                          <i className="fas fa-check-circle"></i> Tarefas Concluídas ({completedTasks.length})
+                        </h3>
+                        <div className="task-list">
+                          {completedTasks.length > 0 ? (
+                            completedTasks.map(task => renderTaskItem(task, 'completed'))
+                          ) : (
+                            <p className="no-tasks-message">
+                              <i className="fas fa-tasks"></i> Nenhuma tarefa concluída ainda.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
             </div>
         </div>
 
@@ -1294,19 +1524,56 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                   <div key={card._id} className={`flashcard ${selectedCard === card._id ? 'flipped' : ''}`} onClick={() => flipCard(card._id)}>
                     <div className="flashcard-content">
                       <div className="flashcard-inner">
-                        <div className="flashcard-front">
+                        <div className="flashcard-front" style={{ 
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          alignItems: 'center',
+                          textAlign: 'center',
+                          padding: '20px'
+                        }}>
                           {card.question}
                         </div>
-                        <div className="flashcard-back">
+                        <div className="flashcard-back" style={{ 
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          alignItems: 'center',
+                          textAlign: 'center',
+                          padding: '20px'
+                        }}>
                           {card.answer}
                         </div>
                       </div>
                     </div>
-                    <div className="flashcard-stats">
-                      <span className="accuracy-badge" title={`Aproveitamento: ${card.stats?.accuracy || 0}%`}>
+                    <div className="flashcard-stats" style={{ 
+                      display: 'flex', 
+                      gap: '8px', 
+                      position: 'absolute', 
+                      bottom: '10px', 
+                      left: '10px',
+                      zIndex: 5
+                    }}>
+                      <span style={{
+                        background: (card.stats?.accuracy || 0) >= 70 ? '#28a745' : (card.stats?.accuracy || 0) >= 40 ? '#ffc107' : '#dc3545',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                      }} title={`Aproveitamento: ${card.stats?.accuracy || 0}%`}>
+                        <i className="fas fa-chart-line" style={{ marginRight: '4px' }}></i>
                         {card.stats?.accuracy || 0}%
                       </span>
-                      <span className="attempts-badge" title={`Tentativas: ${card.stats?.attempts || 0}`}>
+                      <span style={{
+                        background: '#6c757d',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                      }} title={`Tentativas: ${card.stats?.attempts || 0}`}>
+                        <i className="fas fa-redo" style={{ marginRight: '4px' }}></i>
                         {card.stats?.attempts || 0}
                       </span>
                     </div>
@@ -1380,37 +1647,30 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                     )}
                 </div>
 
-                {/* Tarefas Recentes */}
+                {/* Tarefas Concluídas Recentes */}
                 <div className="recent-activity">
-                    <h4>Últimas 5 tarefas restantes</h4>
-                    {stats.upcomingTasks && stats.upcomingTasks.length > 0 ? (
+                    <h4><i className="fas fa-check-circle" style={{ color: '#6b7280', marginRight: '8px' }}></i>Últimas 5 tarefas concluídas</h4>
+                    {stats.recentCompletedTasks && stats.recentCompletedTasks.length > 0 ? (
                         <div className="task-list">
-                            {stats.upcomingTasks.slice(0, 5).map(task => {  // Apenas as 5 primeiras tarefas
-                                const assignment = task.assigned_to?.find(a => {
-                                  const assignmentUserId = a.user?._id || a.user;
-                                  const currentUserId = user._id;
-                                  return assignmentUserId && currentUserId &&
-                                         assignmentUserId.toString() === currentUserId.toString();
-                                });
-                                const status = assignment ? assignment.status : 'pending';
-
-                                return (
-                                    <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : ''}`}>
-                                        <div className="task-content">
-                                            <div className="task-title">{task.title}</div>
-                                            <div className="task-details">
-                                                Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
-                                            </div>
+                            {stats.recentCompletedTasks.map(task => (
+                                <div key={task._id} className="task-item completed">
+                                    <div className="task-content">
+                                        <div className="task-title" style={{ textDecoration: 'line-through', color: '#9ca3af' }}>{task.title}</div>
+                                        <div className="task-details" style={{ color: '#9ca3af' }}>
+                                            Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
                                         </div>
-                                        <span className={`task-status ${status}`}>
-                                            {status === 'pending' ? 'Pendente' : status === 'in_progress' ? 'Em andamento' : 'Concluída'}
-                                        </span>
                                     </div>
-                                )
-                            })}
+                                    <span className="task-status completed" style={{ background: '#28a745', color: 'white', padding: '4px 12px', borderRadius: '20px' }}>
+                                        <i className="fas fa-check"></i> Concluída
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     ) : (
-                        <p>Você não tem tarefas restantes.</p>
+                        <p style={{ textAlign: 'center', color: '#6c757d' }}>
+                            <i className="fas fa-tasks" style={{ marginRight: '8px' }}></i>
+                            Você ainda não concluiu nenhuma tarefa.
+                        </p>
                     )}
                 </div>
             </div>
@@ -2158,12 +2418,32 @@ styles.innerHTML = `
   .attachment-tag {
     background: rgba(229, 83, 69, 0.1);
     color: #e55345;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-size: 0.8rem;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+  
+  .attachment-tag:hover {
+    background: rgba(229, 83, 69, 0.2);
+    border-color: #e55345;
+    transform: translateY(-1px);
+  }
+  
+  .dark-theme .attachment-tag {
+    background: rgba(229, 83, 69, 0.15);
+    color: #ff7b6b;
+  }
+  
+  .dark-theme .attachment-tag:hover {
+    background: rgba(229, 83, 69, 0.3);
+    border-color: #ff7b6b;
   }
 
   .task-actions {
@@ -2227,24 +2507,41 @@ styles.innerHTML = `
     align-items: center;
     justify-content: center;
     z-index: 10000;
+    padding: 20px;
+    box-sizing: border-box;
   }
 
   .task-edit-modal-content {
     background: var(--card-background);
-    border-radius: 8px;
-    padding: 20px;
-    width: 90%;
-    max-width: 500px;
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 450px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  
+  .task-edit-modal-content h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.25rem;
+    color: var(--text-color);
   }
 
   .task-edit-input {
     width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
+    padding: 12px;
+    margin-bottom: 12px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 8px;
     background: var(--input-background);
+    box-sizing: border-box;
+    font-size: 0.95rem;
+  }
+  
+  textarea.task-edit-input {
+    resize: none;
     color: var(--text-color);
   }
 

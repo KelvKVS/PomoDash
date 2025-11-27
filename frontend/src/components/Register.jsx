@@ -95,6 +95,9 @@ function Register({ onRegister, onLogin }) {
   return (
     <div className="register-container">
       <form className="register-form" onSubmit={handleSubmit}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <img src="/src/assets/logoVe.png" alt="PomoDash Logo" style={{ height: '80px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
+        </div>
         <h2 className="register-title">Crie sua conta</h2>
         <p className="register-subtitle">Preencha os dados abaixo para se registrar</p>
         

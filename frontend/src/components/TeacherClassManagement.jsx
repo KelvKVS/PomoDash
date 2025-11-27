@@ -9,9 +9,7 @@ const TeacherClassManagement = ({ user, darkMode }) => {
     name: '',
     description: '',
     subject: '',
-    start_date: '',
-    end_date: '',
-    max_students: 20
+    academic_year: new Date().getFullYear().toString() // Padrão para o ano atual
   });
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showAddStudent, setShowAddStudent] = useState(false);
@@ -47,20 +45,20 @@ const TeacherClassManagement = ({ user, darkMode }) => {
     e.preventDefault();
     try {
       const classData = {
-        ...newClass,
+        name: newClass.name,
+        description: newClass.description,
+        subject: newClass.subject,
+        academic_year: newClass.academic_year,
         teacher_id: user._id,
-        students: [] // Inicialmente sem alunos
       };
-      
+
       const response = await classAPI.createClass(classData);
       setClasses([...classes, response.data]);
       setNewClass({
         name: '',
         description: '',
         subject: '',
-        start_date: '',
-        end_date: '',
-        max_students: 20
+        academic_year: new Date().getFullYear().toString()
       });
       setShowCreateClass(false);
       setAlert({ message: 'Turma criada com sucesso!', type: 'success' });
@@ -156,8 +154,8 @@ const TeacherClassManagement = ({ user, darkMode }) => {
             <div className="class-info">
               <p>{cls.description}</p>
               <div className="class-stats">
-                <span>Alunos: {cls.students?.length || 0}</span>
-                <span>Período: {cls.start_date} a {cls.end_date}</span>
+                <span>Alunos: {cls.studentCount || 0}</span>
+                <span>Ano: {cls.academic_year || 'N/A'}</span>
               </div>
             </div>
             <div className="class-actions">
@@ -216,23 +214,14 @@ const TeacherClassManagement = ({ user, darkMode }) => {
               
               <div className="form-row">
                 <div className="form-group">
-                  <label>Data de Início</label>
+                  <label>Ano Acadêmico</label>
                   <input
-                    type="date"
-                    value={newClass.start_date}
-                    onChange={(e) => handleInputChange('start_date', e.target.value)}
+                    type="text"
+                    value={newClass.academic_year}
+                    onChange={(e) => handleInputChange('academic_year', e.target.value)}
                     required
                   />
-                </div>
-                
-                <div className="form-group">
-                  <label>Data de Término</label>
-                  <input
-                    type="date"
-                    value={newClass.end_date}
-                    onChange={(e) => handleInputChange('end_date', e.target.value)}
-                    required
-                  />
+                  <small className="help-text">Ex: 2025 ou 2025-26</small>
                 </div>
               </div>
               

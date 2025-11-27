@@ -151,12 +151,12 @@ classSchema.index({ teacher_id: 1, status: 1 });
 classSchema.index({ academic_year: 1, school_id: 1 });
 classSchema.index({ 'students.user_id': 1 });
 
-// Middleware para gerar código único da turma antes de salvar
-classSchema.pre('save', async function(next) {
+// Middleware para gerar código único da turma ANTES da validação
+classSchema.pre('validate', async function(next) {
   if (this.isNew && !this.code) {
     // Gerar código único baseado no nome da turma e ano acadêmico
-    const namePart = this.name.substring(0, 3).toUpperCase().replace(/\s/g, '');
-    const yearPart = this.academic_year.substring(2, 4); // últimos 2 dígitos do ano
+    const namePart = (this.name || 'CLS').substring(0, 3).toUpperCase().replace(/\s/g, '');
+    const yearPart = (this.academic_year || new Date().getFullYear().toString()).substring(2, 4);
     const randomPart = Math.floor(1000 + Math.random() * 9000).toString(); // 4 dígitos aleatórios
     
     this.code = `${namePart}${yearPart}${randomPart}`;

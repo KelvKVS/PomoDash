@@ -3,6 +3,7 @@ require('dotenv').config({ path: '../../.env' });
 
 const User = require('../models/User');
 const School = require('../models/School');
+const Class = require('../models/Class'); // Adicionando a importação do modelo de turma
 
 const connectDB = async () => {
   try {
@@ -12,7 +13,7 @@ const connectDB = async () => {
       console.error('❌ MONGODB_URI não está definida nas variáveis de ambiente');
       process.exit(1);
     }
-    
+
     const conn = await mongoose.connect(mongoURI, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
@@ -31,18 +32,19 @@ const seedDatabase = async () => {
     // Limpar coleções existentes
     await User.deleteMany({});
     await School.deleteMany({});
-    
+    await Class.deleteMany({}); // Adicionando limpeza da coleção de turmas
+
     console.log('Coleções limpas...');
 
-    // Criar a instituição AESA
+    // Criar a instituição de exemplo
     const school = new School({
-      name: 'AESA',
-      slug: 'aesa',
-      email: 'contato@aesa.edu.br',
+      name: 'Escola de Teste',
+      slug: 'escola-teste',
+      email: 'contato@escolateste.com.br',
       phone: '(83) 99999-8888',
       address: {
-        street: 'Av. Universitária',
-        number: '1000',
+        street: 'Av. Exemplo',
+        number: '500',
         city: 'João Pessoa',
         state: 'PB',
         neighborhood: 'Centro',
@@ -109,12 +111,49 @@ const seedDatabase = async () => {
     await student.save();
     console.log('Usuário aluno criado...');
 
-    console.log('\nUsuários de exemplo criados com sucesso!');
+    // Criar turmas de exemplo
+    const class1 = new Class({
+      name: 'Turma de Exatas',
+      subject: 'Matemática',
+      description: 'Turma de matemática aplicada',
+      academic_year: '2025',
+      teacher_id: teacher._id,
+      school_id: school._id,
+      status: 'active'
+    });
+
+    await class1.save();
+    console.log('Turma de Exatas criada...');
+
+    const class2 = new Class({
+      name: 'Turma de Humanas',
+      subject: 'História',
+      description: 'Turma de história geral',
+      academic_year: '2025',
+      teacher_id: teacher._id,
+      school_id: school._id,
+      status: 'active'
+    });
+
+    await class2.save();
+    console.log('Turma de Humanas criada...');
+
+    // Adicionar aluno às turmas
+    await class1.addStudent(student._id);
+    console.log('Aluno adicionado à turma de Exatas...');
+
+    await class2.addStudent(student._id);
+    console.log('Aluno adicionado à turma de Humanas...');
+
+    console.log('\nUsuários e turmas de exemplo criados com sucesso!');
     console.log('Credenciais de exemplo:');
     console.log('Global Admin: admin@pomodash.com - senha: 123456');
     console.log('School Admin: admin@escolateste.com.br - senha: 123456');
     console.log('Professor: professor@escolateste.com.br - senha: 123456');
     console.log('Aluno: aluno@escolateste.com.br - senha: 123456');
+    console.log('\nTurmas criadas:');
+    console.log('Turma de Exatas - Professor: Professor Teste');
+    console.log('Turma de Humanas - Professor: Professor Teste');
 
     process.exit(0);
   } catch (error) {

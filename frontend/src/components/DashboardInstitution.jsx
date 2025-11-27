@@ -208,6 +208,12 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   const loadSchoolStats = async () => {
+    // Verificar se school_id está definido
+    if (!user?.school_id) {
+      console.warn('School ID não definido, pulando carregamento de estatísticas');
+      return;
+    }
+    
     setLoading(prev => ({ ...prev, school: true }));
     setErrors(prev => ({ ...prev, school: null }));
     
@@ -220,7 +226,6 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     } catch (error) {
       console.error('Erro ao carregar estatísticas da escola:', error);
       setErrors(prev => ({ ...prev, school: error.message || 'Erro ao carregar estatísticas da escola' }));
-      setAlert({ message: 'Erro ao carregar estatísticas da escola: ' + (error.message || 'Erro de conexão'), type: 'error' });
     } finally {
       setLoading(prev => ({ ...prev, school: false }));
     }
@@ -783,23 +788,19 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
 
   useEffect(() => {
     // Carregar dados iniciais
-    loadTeachers();
-    loadStudents();
-    loadReports();
-    loadSchoolStats();
-    loadAllUsers();
-    
-    // Font Awesome for icons
-    const script = document.createElement('script');
-    script.src = 'https://kit.fontawesome.com/a076d05399.js';
-    script.crossOrigin = 'anonymous';
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
+    if (user) {
+      loadTeachers();
+      loadStudents();
+      loadReports();
+      loadAllUsers();
+      
+      // Carregar estatísticas da escola apenas se school_id estiver definido
+      if (user.school_id) {
+        loadSchoolStats();
+      }
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.school_id]);
+  }, [user]);
 
   const pageTitles = {
     'dashboard': 'Dashboard Escola',
@@ -814,6 +815,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="logo">
+          <img src="/src/assets/logoVe.png" alt="PomoDash Logo" style={{ height: '50px', marginRight: '10px', borderRadius: '12px' }} />
           <h1>Pomo<span>dash</span></h1>
         </div>
         <div className="menu">
@@ -1581,12 +1583,12 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
             <button className="close-modal" onClick={closeProfileModal}>&times;</button>
             <div className="profile-modal-header">
               <div className="profile-modal-img-container">
-                <img src={profileImage} alt="Instituição" className="profile-modal-img" />
+                <img src={profileImage} alt="Admin" className="profile-modal-img" />
                 <button 
                   className="profile-img-upload-btn" 
                   title="Alterar foto"
                   onClick={triggerImageUpload}
-                  style={{ display: editProfile ? 'block' : 'none' }}
+                  style={{ display: editProfile ? 'flex' : 'none' }}
                 >
                   <i className="fas fa-camera"></i>
                 </button>
@@ -1599,18 +1601,20 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
                 />
               </div>
               <div className="profile-modal-info">
-                {editProfile ? (
-                  <input
-                    type="text"
-                    name="name"
-                    value={profileData.name}
-                    onChange={handleInputChange}
-                    className="profile-name-input"
-                  />
-                ) : (
-                  <h3>{user?.name || 'Instituição'}</h3>
-                )}
-                <p>{user?.roleDescription || 'Instituição'}</p>
+                <div className="profile-name-container">
+                  {editProfile ? (
+                    <input
+                      type="text"
+                      name="name"
+                      value={profileData.name}
+                      onChange={handleInputChange}
+                      className="profile-name-input"
+                    />
+                  ) : (
+                    <h3>{user?.name || 'Administrador'}</h3>
+                  )}
+                </div>
+                <p>{user?.roleDescription || 'Administrador da Escola'}</p>
                 <p>{user?.email || 'email@exemplo.com'}</p>
               </div>
             </div>
@@ -1626,7 +1630,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
                     className="profile-input"
                   />
                 ) : (
-                  <span>{user?.name || 'Instituição'}</span>
+                  <span>{user?.name || 'Administrador'}</span>
                 )}
               </div>
               <div>
@@ -1635,7 +1639,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
               </div>
               <div>
                 <label>Tipo de Usuário</label>
-                <span>{user?.roleDescription || 'Instituição'}</span>
+                <span>{user?.roleDescription || 'Administrador da Escola'}</span>
               </div>
               <div>
                 <label>Instituição</label>
@@ -1643,16 +1647,19 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
               </div>
             </div>
             <div className="profile-modal-actions">
-              <button 
-                onClick={toggleDarkMode} 
-                className="theme-toggle-btn" 
+              <button
+                onClick={toggleDarkMode}
+                className="theme-toggle-btn"
                 aria-label={darkMode ? "Alternar para modo claro" : "Alternar para modo escuro"}
               >
-                {darkMode ? (
-                  <><i className="fas fa-sun"></i> Modo Claro</>
-                ) : (
-                  <><i className="fas fa-moon"></i> Modo Escuro</>
-                )}
+                <div className="theme-toggle-switch">
+                  <div className={`theme-toggle-slider ${darkMode ? 'dark' : 'light'}`}>
+                    <i className={`theme-toggle-icon ${darkMode ? 'fas fa-sun' : 'fas fa-moon'}`}></i>
+                  </div>
+                </div>
+                <span className="theme-toggle-label">
+                  {darkMode ? "Modo Claro" : "Modo Escuro"}
+                </span>
               </button>
               {editProfile ? (
                 <>
@@ -2971,6 +2978,93 @@ styles.innerHTML = `
     .form-section {
       padding: 15px;
     }
+  }
+
+  /* Theme Toggle Button - Switch Visual */
+  .theme-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color, #ddd);
+    background: var(--card-background, white);
+    color: var(--text-color, #333);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-family: inherit;
+  }
+
+  .theme-toggle-btn:hover {
+    background: linear-gradient(135deg, var(--primary-color, #d9534f) 0%, #c9302c 100%);
+    color: white;
+    border-color: var(--primary-color, #d9534f);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(217, 83, 79, 0.3);
+  }
+
+  .theme-toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background: var(--border-color, #ddd);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .theme-toggle-slider {
+    position: absolute;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .theme-toggle-slider.light {
+    left: 2px;
+    background: linear-gradient(135deg, #FFC107, #FF9800);
+  }
+
+  .theme-toggle-slider.dark {
+    left: 22px;
+    background: linear-gradient(135deg, #d9534f, #c9302c);
+  }
+
+  .theme-toggle-icon {
+    font-size: 8px;
+    color: white;
+  }
+
+  .theme-toggle-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .theme-toggle-btn:hover .theme-toggle-slider.light {
+    transform: scale(1.1);
+  }
+
+  .theme-toggle-btn:hover .theme-toggle-slider.dark {
+    transform: scale(1.1) rotate(15deg);
+  }
+
+  /* Dark Theme - Theme Toggle */
+  .dark-theme .theme-toggle-btn {
+    background: #2d2d2d;
+    border-color: #444;
+    color: #e0e0e0;
+  }
+
+  .dark-theme .theme-toggle-btn:hover {
+    background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+    border-color: #d9534f;
+    color: white;
   }
 
 `;

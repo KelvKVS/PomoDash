@@ -29,6 +29,8 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
   const [newTask, setNewTask] = useState({
     title: '',
     subject: '',
+    description: '',
+    attachments: [],
     due_date: '',
     priority: 'medium'
   });
@@ -126,7 +128,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       };
 
       await taskAPI.createTask(taskData);
-      setNewTask({ title: '', subject: '', due_date: '', priority: 'medium' });
+      setNewTask({ title: '', subject: '', description: '', attachments: [], due_date: '', priority: 'medium' });
       // Recarregar as tarefas
       loadTasks(); // Atualiza as tarefas
     } catch (error) {
@@ -614,19 +616,38 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       const response = await taskAPI.getTasks();
 
       if (response.data && Array.isArray(response.data)) {
-        // Filtrar tarefas atribuídas ao usuário logado
-        const userTasks = response.data.filter(task => {
+        // Filtrar tarefas atribuídas ao usuário logado e incluir currentAssignment
+        const userTasks = [];
+        
+        response.data.forEach(task => {
           if (task.assigned_to && Array.isArray(task.assigned_to)) {
-            return task.assigned_to.some(assignment => {
+            // Encontrar o assignment específico do usuário atual
+            const userAssignment = task.assigned_to.find(assignment => {
               const assignmentUserId = assignment.user?._id || assignment.user;
-              const currentUserId = user._id;
+              const currentUserId = user._id || user.id;
 
-              return assignmentUserId && currentUserId &&
-                     assignmentUserId.toString() === currentUserId.toString();
+              // Garantir que ambos sejam strings para comparação
+              const assignmentIdStr = assignmentUserId ? assignmentUserId.toString() : null;
+              const userIdStr = currentUserId ? currentUserId.toString() : null;
+
+              return assignmentIdStr && userIdStr && assignmentIdStr === userIdStr;
             });
+
+            // Se encontrou o assignment do usuário, adicionar a tarefa com o currentAssignment
+            if (userAssignment) {
+              userTasks.push({
+                ...task,
+                currentAssignment: userAssignment // Incluir o assignment específico do usuário
+              });
+            }
           }
-          return false;
         });
+        
+        console.log('Tarefas carregadas:', userTasks.length, userTasks.map(t => ({
+          title: t.title,
+          status: t.currentAssignment?.status
+        })));
+        
         setTasks(userTasks);
       } else {
         setTasks([]);
@@ -793,6 +814,7 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="logo">
+          <img src="/src/assets/logoVe.png" alt="PomoDash Logo" style={{ height: '50px', marginRight: '10px', borderRadius: '12px' }} />
           <h1>Pomo<span>dash</span></h1>
         </div>
         <div className="menu">
@@ -909,49 +931,109 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
                     <button type="submit" className="btn btn-primary">Adicionar Tarefa</button>
                   </div>
                 </form>
-                <div className="task-list">
-                  {tasks && tasks.length > 0 ? (
-                    tasks.map(task => {
-                      const assignment = task.assigned_to?.find(a => a.user.toString() === user._id.toString());
-                      const status = assignment ? assignment.status : 'pending';
+                {/* Separação de tarefas por status */}
+                {(() => {
+                  // Função para obter status da tarefa - usa currentAssignment se disponível
+                  const getTaskStatus = (task) => {
+                    // Se a tarefa já tem currentAssignment (adicionado em loadTasks), usar ele
+                    if (task.currentAssignment) {
+                      return task.currentAssignment.status || 'pending';
+                    }
+                    
+                    // Fallback: procurar no array assigned_to
+                    const assignment = task.assigned_to?.find(a => {
+                      const assignmentUserId = a.user?._id || a.user;
+                      const currentUserId = user._id || user.id;
+                      const assignmentIdStr = assignmentUserId ? assignmentUserId.toString() : null;
+                      const userIdStr = currentUserId ? currentUserId.toString() : null;
+                      return assignmentIdStr && userIdStr && assignmentIdStr === userIdStr;
+                    });
+                    return assignment ? assignment.status : 'pending';
+                  };
 
-                      return (
-                        <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : ''}`}>
-                          <input
-                            type="checkbox"
-                            className="task-checkbox"
-                            checked={status === 'completed'}
-                            onChange={() => toggleTaskCompletion(task._id, status)}
-                          />
-                          <div className="task-content">
-                            <div className="task-title">{task.title}</div>
-                            <div className="task-details">
-                              Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
-                            </div>
-                          </div>
-                          <div className="task-actions">
-                            <button
-                              onClick={() => showEditTaskModal(task)}
-                              className="btn-edit-task"
-                              title="Editar Tarefa"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => handleArchiveTask(task._id)}
-                              className="btn-archive-task"
-                              title="Arquivar Tarefa"
-                            >
-                              Arquivar
-                            </button>
-                          </div>
+                  // Separar tarefas
+                  const pendingTasks = tasks?.filter(task => getTaskStatus(task) !== 'completed') || [];
+                  const completedTasks = tasks?.filter(task => getTaskStatus(task) === 'completed') || [];
+                  
+                  console.log('Separação de tarefas - Pendentes:', pendingTasks.length, 'Concluídas:', completedTasks.length);
+
+                  // Função para renderizar item de tarefa
+                  const renderTaskItem = (task, status) => (
+                    <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : status === 'in_progress' ? 'in_progress' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="task-checkbox"
+                        checked={status === 'completed'}
+                        onChange={() => toggleTaskCompletion(task._id, status)}
+                      />
+                      <div className="task-content">
+                        <div className="task-title">{task.title}</div>
+                        <div className="task-details">
+                          Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
                         </div>
-                      )
-                    })
-                  ) : (
-                    <p>Você não tem tarefas no momento.</p>
-                  )}
-                </div>
+                      </div>
+                      {/* Badge de status */}
+                      <span className="task-completed-badge">
+                        <i className="fas fa-check-circle"></i> Concluída
+                      </span>
+                      <span className="task-pending-badge">
+                        <i className="fas fa-clock"></i> {status === 'in_progress' ? 'Em andamento' : 'Pendente'}
+                      </span>
+                      <div className="task-actions">
+                        <button
+                          onClick={() => showEditTaskModal(task)}
+                          className="btn-edit-task"
+                          title="Editar Tarefa"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleArchiveTask(task._id)}
+                          className="btn-archive-task"
+                          title="Arquivar Tarefa"
+                        >
+                          Arquivar
+                        </button>
+                      </div>
+                    </div>
+                  );
+
+                  return (
+                    <>
+                      {/* Seção de Tarefas Pendentes */}
+                      <div className="tasks-section">
+                        <h3 className="tasks-section-title">
+                          <i className="fas fa-clock"></i> Tarefas Pendentes ({pendingTasks.length})
+                        </h3>
+                        <div className="task-list">
+                          {pendingTasks.length > 0 ? (
+                            pendingTasks.map(task => renderTaskItem(task, getTaskStatus(task)))
+                          ) : (
+                            <p className="no-tasks-message">
+                              <i className="fas fa-check-double"></i> Parabéns! Você não tem tarefas pendentes.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Seção de Tarefas Concluídas */}
+                      <div className="tasks-section completed-section">
+                        <h3 className="tasks-section-title completed-title">
+                          <i className="fas fa-check-circle"></i> Tarefas Concluídas ({completedTasks.length})
+                        </h3>
+                        <div className="task-list">
+                          {completedTasks.length > 0 ? (
+                            completedTasks.map(task => renderTaskItem(task, 'completed'))
+                          ) : (
+                            <p className="no-tasks-message">
+                              <i className="fas fa-tasks"></i> Nenhuma tarefa concluída ainda.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
             </div>
         </div>
 
@@ -1050,33 +1132,35 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
 
           <div className="card">
             <h3 className="card-title">Seus Flashcards</h3>
+            <p className="card-subtitle">Clique no card para ver a resposta. Clique novamente para informar se acertou!</p>
             {flashcards && flashcards.length > 0 ? (
-              <div className="flashcard-grid">
+              <div className="flashcard-grid-student">
                 {flashcards.map(card => (
-                  <div key={card._id} className={`flashcard ${selectedCard === card._id ? 'flipped' : ''}`} onClick={() => flipCard(card._id)}>
-                    <div className="flashcard-content">
-                      <div className="flashcard-inner">
-                        <div className="flashcard-front">
-                          {card.question}
-                        </div>
-                        <div className="flashcard-back">
-                          {card.answer}
-                        </div>
+                  <div key={card._id} className={`flashcard-student ${selectedCard === card._id ? 'flipped' : ''}`} onClick={() => flipCard(card._id)}>
+                    <div className="flashcard-inner-student">
+                      <div className="flashcard-front-student">
+                        <div className="flashcard-question-text">{card.question}</div>
+                        <div className="flashcard-hint">Clique para ver a resposta</div>
+                      </div>
+                      <div className="flashcard-back-student">
+                        <div className="flashcard-answer-text">{card.answer}</div>
+                        <div className="flashcard-hint-back">Clique novamente para avaliar</div>
                       </div>
                     </div>
-                    <div className="flashcard-stats">
-                      <span className="accuracy-badge" title={`Aproveitamento: ${card.stats?.accuracy || 0}%`}>
-                        {card.stats?.accuracy || 0}%
+                    <div className="flashcard-stats-student">
+                      <span className="accuracy-badge-student" title={`Aproveitamento: ${card.stats?.accuracy || 0}%`}>
+                        ✓ {card.stats?.accuracy || 0}%
                       </span>
-                      <span className="attempts-badge" title={`Tentativas: ${card.stats?.attempts || 0}`}>
-                        {card.stats?.attempts || 0}
+                      <span className="attempts-badge-student" title={`Tentativas: ${card.stats?.attempts || 0}`}>
+                        📝 {card.stats?.attempts || 0}
                       </span>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteFlashcard(card._id); }}
-                      className="btn-delete-flashcard"
+                      className="btn-delete-flashcard-student"
+                      title="Deletar flashcard"
                     >
-                      <i className="fas fa-trash-alt"></i>
+                      ✕
                     </button>
                   </div>
                 ))}
@@ -1836,6 +1920,119 @@ styles.innerHTML = `
     color: white;
   }
 
+  /* Estilos para tarefas concluídas - visual neutro */
+  .task-item.completed {
+    background: var(--card-background);
+    border-color: var(--border-color);
+    border-left: 4px solid var(--border-color);
+    position: relative;
+    opacity: 0.8;
+  }
+
+  .task-item.completed .task-title {
+    text-decoration: line-through;
+    color: #9ca3af;
+  }
+
+  .task-item.completed .task-details {
+    color: #9ca3af;
+  }
+
+  /* Badges de status */
+  .task-completed-badge {
+    display: none;
+  }
+
+  .task-item.completed .task-completed-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #28a745;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 12px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+  }
+
+  .task-pending-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffc107;
+    color: #856404;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 12px;
+  }
+
+  .task-item.completed .task-pending-badge {
+    display: none;
+  }
+
+  .task-item.in_progress .task-pending-badge {
+    background: #17a2b8;
+    color: white;
+  }
+
+  /* Seções de Tarefas Separadas */
+  .tasks-section {
+    margin-bottom: 32px;
+  }
+
+  .tasks-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #ffc107;
+  }
+
+  .tasks-section-title i {
+    color: #ffc107;
+    font-size: 20px;
+  }
+
+  .tasks-section-title.completed-title {
+    border-bottom-color: #6b7280;
+  }
+
+  .tasks-section-title.completed-title i {
+    color: #6b7280;
+  }
+
+  .completed-section {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border-color);
+  }
+
+  .no-tasks-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    color: #6c757d;
+    font-size: 15px;
+    text-align: center;
+  }
+
+  .no-tasks-message i {
+    font-size: 20px;
+    color: #6b7280;
+  }
+
   .flashcard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2029,12 +2226,32 @@ styles.innerHTML = `
   .attachment-tag {
     background: rgba(229, 83, 69, 0.1);
     color: #e55345;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-size: 0.8rem;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+  
+  .attachment-tag:hover {
+    background: rgba(229, 83, 69, 0.2);
+    border-color: #e55345;
+    transform: translateY(-1px);
+  }
+  
+  .dark-theme .attachment-tag {
+    background: rgba(229, 83, 69, 0.15);
+    color: #ff7b6b;
+  }
+  
+  .dark-theme .attachment-tag:hover {
+    background: rgba(229, 83, 69, 0.3);
+    border-color: #ff7b6b;
   }
 
   .task-actions {
@@ -2098,24 +2315,41 @@ styles.innerHTML = `
     align-items: center;
     justify-content: center;
     z-index: 10000;
+    padding: 20px;
+    box-sizing: border-box;
   }
 
   .task-edit-modal-content {
     background: var(--card-background);
-    border-radius: 8px;
-    padding: 20px;
-    width: 90%;
-    max-width: 500px;
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 450px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  
+  .task-edit-modal-content h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.25rem;
+    color: var(--text-color);
   }
 
   .task-edit-input {
     width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
+    padding: 12px;
+    margin-bottom: 12px;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 8px;
     background: var(--input-background);
+    box-sizing: border-box;
+    font-size: 0.95rem;
+  }
+  
+  textarea.task-edit-input {
+    resize: none;
     color: var(--text-color);
   }
 
@@ -2134,6 +2368,364 @@ styles.innerHTML = `
 
   .dark-theme .task-edit-modal-content {
     background: var(--card-background);
+  }
+
+  /* Dark theme - Tarefas concluídas - visual neutro */
+  .dark-theme .task-item.completed {
+    background: var(--card-background);
+    border-color: var(--border-color);
+    border-left: 4px solid var(--border-color);
+    opacity: 0.8;
+  }
+
+  .dark-theme .task-item.completed .task-title {
+    text-decoration: line-through;
+    color: #6b7280;
+  }
+
+  .dark-theme .task-item.completed .task-details {
+    color: #6b7280;
+  }
+
+  .dark-theme .task-item.completed .task-completed-badge {
+    background: #28a745;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+  }
+
+  .dark-theme .task-pending-badge {
+    background: #ecc94b;
+    color: #744210;
+  }
+
+  .dark-theme .task-item.in_progress .task-pending-badge {
+    background: #4299e1;
+    color: white;
+  }
+
+  /* Dark theme - Seções de Tarefas */
+  .dark-theme .tasks-section-title {
+    color: #e2e8f0;
+    border-bottom-color: #ecc94b;
+  }
+
+  .dark-theme .tasks-section-title i {
+    color: #ecc94b;
+  }
+
+  .dark-theme .tasks-section-title.completed-title {
+    border-bottom-color: #6b7280;
+  }
+
+  .dark-theme .tasks-section-title.completed-title i {
+    color: #6b7280;
+  }
+
+  .dark-theme .completed-section {
+    border-top-color: #4a5568;
+  }
+
+  .dark-theme .no-tasks-message {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    color: #a0aec0;
+  }
+
+  .dark-theme .no-tasks-message i {
+    color: #6b7280;
+  }
+
+  /* ========== ESTILOS BONITOS PARA FLASHCARDS DO ALUNO ========== */
+  .card-subtitle {
+    color: var(--text-light-color);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    font-style: italic;
+  }
+
+  .flashcard-grid-student {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 20px;
+  }
+
+  .flashcard-student {
+    position: relative;
+    height: 260px;
+    perspective: 1000px;
+    cursor: pointer;
+  }
+
+  .flashcard-inner-student {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-style: preserve-3d;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+  }
+
+  .flashcard-student:hover .flashcard-inner-student {
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+    transform: translateY(-5px);
+  }
+
+  .flashcard-student.flipped .flashcard-inner-student {
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-student.flipped:hover .flashcard-inner-student {
+    transform: rotateY(180deg) translateY(-5px);
+  }
+
+  .flashcard-front-student,
+  .flashcard-back-student {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  .flashcard-front-student {
+    background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  .flashcard-back-student {
+    background: linear-gradient(145deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-question-text,
+  .flashcard-answer-text {
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 15px;
+  }
+
+  .flashcard-hint,
+  .flashcard-hint-back {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.2);
+    padding: 5px 15px;
+    border-radius: 20px;
+  }
+
+  .flashcard-stats-student {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 5;
+  }
+
+  .accuracy-badge-student,
+  .attempts-badge-student {
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  }
+
+  .accuracy-badge-student {
+    background: linear-gradient(135deg, #00c853, #00e676);
+    color: white;
+  }
+
+  .attempts-badge-student {
+    background: linear-gradient(135deg, #2196f3, #03a9f4);
+    color: white;
+  }
+
+  .btn-delete-flashcard-student {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+    font-size: 1rem;
+    color: #666;
+  }
+
+  .btn-delete-flashcard-student:hover {
+    background: #ff5252;
+    color: white;
+    transform: scale(1.1) rotate(90deg);
+  }
+
+  /* ========== MODAL DE FEEDBACK MELHORADO ========== */
+  .flashcard-feedback-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+
+  .flashcard-feedback-content {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    width: 90%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.8) translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .flashcard-feedback-content h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .flashcard-feedback-content p {
+    margin: 0 0 25px 0;
+    color: #666;
+    font-size: 1rem;
+  }
+
+  .flashcard-feedback-buttons {
+    display: flex;
+    gap: 16px;
+  }
+
+  .btn-flashcard-incorrect,
+  .btn-flashcard-correct {
+    flex: 1;
+    padding: 16px 24px;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-flashcard-incorrect {
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
+    color: white;
+    box-shadow: 0 8px 25px rgba(255, 65, 108, 0.4);
+  }
+
+  .btn-flashcard-incorrect:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(255, 65, 108, 0.5);
+  }
+
+  .btn-flashcard-correct {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    color: white;
+    box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+  }
+
+  .btn-flashcard-correct:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(17, 153, 142, 0.5);
+  }
+
+  /* ========== TEMA ESCURO PARA FLASHCARDS ========== */
+  .dark-theme .flashcard-front-student {
+    background: linear-gradient(145deg, #4a5568 0%, #2d3748 100%);
+  }
+
+  .dark-theme .flashcard-back-student {
+    background: linear-gradient(145deg, #065f46 0%, #047857 100%);
+  }
+
+  .dark-theme .flashcard-feedback-content {
+    background: #1e1e1e;
+  }
+
+  .dark-theme .flashcard-feedback-content h3 {
+    color: #e0e0e0;
+  }
+
+  .dark-theme .flashcard-feedback-content p {
+    color: #b0b0b0;
+  }
+
+  .dark-theme .card-subtitle {
+    color: #b0b0b0;
+  }
+
+  /* ========== RESPONSIVO ========== */
+  @media (max-width: 768px) {
+    .flashcard-grid-student {
+      grid-template-columns: 1fr;
+    }
+
+    .flashcard-student {
+      height: 220px;
+    }
+
+    .flashcard-question-text,
+    .flashcard-answer-text {
+      font-size: 1rem;
+    }
+
+    .flashcard-feedback-content {
+      padding: 25px;
+      margin: 20px;
+    }
+
+    .flashcard-feedback-buttons {
+      flex-direction: column;
+    }
   }
 `;
 

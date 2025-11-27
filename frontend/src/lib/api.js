@@ -24,6 +24,12 @@ const request = async (endpoint, options = {}) => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error('API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+        data,
+      });
       throw new Error(data.message || `Erro ${response.status}: ${response.statusText}`);
     }
 
@@ -593,6 +599,62 @@ export const performanceAPI = {
   getStudentPerformance: async (studentId) => {
     return request(`/performance/student/${studentId}`, {
       method: 'GET',
+    });
+  },
+};
+
+// Funções para Upload de arquivos
+export const uploadAPI = {
+  // Upload de arquivo único
+  uploadFile: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Erro ao fazer upload');
+    }
+    
+    return response.json();
+  },
+
+  // Upload de múltiplos arquivos
+  uploadFiles: async (files) => {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/upload/multiple`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Erro ao fazer upload');
+    }
+    
+    return response.json();
+  },
+
+  // Deletar arquivo
+  deleteFile: async (filename) => {
+    return request(`/upload/${filename}`, {
+      method: 'DELETE',
     });
   },
 };

@@ -181,44 +181,44 @@ router.delete('/:id', auth, [param('id').isMongoId()], validateRequest, async (r
   }
 });
 
+// @route   GET /api/tasks/teacher/:teacherId
+// @desc    Obter tarefas criadas por um professor espec√≠fico
+// @access  Private (professor ou admin da mesma escola)
+router.get('/teacher/:teacherId', auth, [
+  param('teacherId').isMongoId().withMessage('ID do professor inv√°lido')
+], validateRequest, async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    // Verificar permiss√µes
+    if (req.user.role === 'teacher' && req.user._id.toString() !== teacherId) {
+      return res.status(403).json({ status: 'error', message: 'Permiss√£o negada: s√≥ pode acessar suas pr√≥prias tarefas' });
+    }
 
+    if (req.user.role === 'school_admin') {
+      const teacher = await User.findById(teacherId);
+      if (!teacher || teacher.school_id.toString() !== req.user.school_id.toString() || teacher.role !== 'teacher') {
+        return res.status(404).json({ status: 'error', message: 'Professor n√£o encontrado ou n√£o pertence √† sua escola' });
+      }
+    }
+
+    const tasks = await Task.find({
+      created_by: teacherId,
+      school_id: req.user.school_id,
+      status: { $ne: 'archived' } // N√£o mostrar tarefas arquivadas
+    })
+    .populate('created_by', 'name email')
+    .populate('assigned_to.user', 'name email')
+    .sort({ createdAt: -1 });
+    
+    res.json({
+      status: 'success',
+      data: tasks
+    });
+
+  } catch (error) {
+    console.error('Erro ao buscar tarefas do professor:', error);
+    res.status(500).json({ status: 'error', message: 'Erro interno do servidor' });
+  }
+});
 
 module.exports = router;
- 
-"// @route   GET /api/tasks/teacher/:teacherId"  
-"// @desc    Obter tarefas criadas por um professor espec°fico"  
-"// @access  Private (professor ou admin da mesma escola)"  
-"router.get('/teacher/:teacherId', auth, ["  
-"  param('teacherId').isMongoId().withMessage('ID do professor inv†lido')"  
-"], validateRequest, async (req, res) => {"  
-"  try {"  
-"    const { teacherId } = req.params;" 
-"    // Verificar permiss‰es"  
-"    if (req.user.role === 'teacher' && req.user._id.toString() !== teacherId) {"  
-"      return res.status(403).json({ status: 'error', message: 'Permiss∆o negada: s¢ pode acessar suas pr¢prias tarefas' });"  
-"    }"  
-""  
-"    if (req.user.role === 'school_admin') {"  
-"      const teacher = await User.findById(teacherId);"  
-"      if (!teacher || teacher.school_id.toString() !== req.user.school_id.toString() || teacher.role !== 'teacher') {"  
-"        return res.status(404).json({ status: 'error', message: 'Professor n∆o encontrado ou n∆o pertence Ö sua escola' });"  
-"      }" 
-"    }"  
-""  
-"    const tasks = await Task.find({"  
-"      created_by: teacherId,"  
-"      school_id: req.user.school_id"  
-"    })"  
-"    .populate('created_by', 'name email')"  
-"    .populate('assigned_to.user', 'name email')"  
-"    .sort({ createdAt: -1 });" 
-"    res.json({"  
-"      status: 'success',"  
-"      data: tasks"  
-"    });"  
-""  
-"  } catch (error) {"  
-"    console.error('Erro ao buscar tarefas do professor:', error);"  
-"    res.status(500).json({ status: 'error', message: 'Erro interno do servidor' });"  
-"  }"  
-"});" 

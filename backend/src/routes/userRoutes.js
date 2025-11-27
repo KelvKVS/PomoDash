@@ -22,9 +22,10 @@ router.get('/', auth, [
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
     query('role').optional().isIn(['school_admin', 'teacher', 'student']),
     query('search').optional().trim(),
+    query('email').optional().isEmail().normalizeEmail(),
 ], validateRequest, async (req, res) => {
   try {
-    const { page = 1, limit = 10, role, search } = req.query;
+    const { page = 1, limit = 10, role, search, email } = req.query;
     const skip = (page - 1) * limit;
 
     let filter = { school_id: req.user.school_id };
@@ -34,8 +35,17 @@ router.get('/', auth, [
       filter.role = role;
     }
 
+    // Busca por email exato
+    if (email) {
+      filter.email = email;
+    }
+
+    // Busca por nome (parcial)
     if (search) {
-      filter.name = { $regex: search, $options: 'i' };
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
     }
 
     const users = await User.find(filter).sort({ name: 1 }).skip(skip).limit(limit);

@@ -539,8 +539,7 @@ router.get('/:id/students', auth, async (req, res) => {
     const classObj = await Class.findOne(query)
       .populate({
         path: 'students.user_id',
-        select: 'name email profile.avatar academic.grade academic.studentId',
-        match: { 'students.status': 'active' }
+        select: 'name email profile.avatar academic.grade academic.studentId'
       });
 
     if (!classObj) {
@@ -550,15 +549,15 @@ router.get('/:id/students', auth, async (req, res) => {
       });
     }
 
+    // Filtrar apenas alunos ativos e com user_id populado
+    const activeStudents = classObj.students.filter(s => 
+      s.status === 'active' && s.user_id != null
+    );
+
     res.json({
       status: 'success',
       data: { 
-        class: {
-          id: classObj._id,
-          name: classObj.name,
-          subject: classObj.subject,
-          students: classObj.students
-        }
+        students: activeStudents
       }
     });
 

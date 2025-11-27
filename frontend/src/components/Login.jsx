@@ -37,8 +37,11 @@ function Login({ onLogin, onRegister }) {
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <img src="/src/assets/logoVe.png" alt="PomoDash Logo" style={{ height: '80px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
+        </div>
         <h2 className="login-title">Bem-vindo ao PomoDash</h2>
-        <p className="login-subtitle">Faça login para continuar no PomoDash da instituição AESA</p>
+        <p className="login-subtitle">Faça login para continuar no PomoDash</p>
         
         {error && (
           <div className="error-message">
@@ -76,7 +79,7 @@ function Login({ onLogin, onRegister }) {
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
         <div className="login-footer">
-          <span>Não tem uma conta na AESA? <button type="button" onClick={onRegister} className="register-link">Registre-se</button></span>
+          <span>Crie uma conta de teste aqui: <button type="button" onClick={onRegister} className="register-link">Registre-se</button></span>
         </div>
       </form>
     </div>

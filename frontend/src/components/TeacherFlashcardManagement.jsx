@@ -8,16 +8,13 @@ const TeacherFlashcardManagement = ({ user, darkMode }) => {
   const [newFlashcard, setNewFlashcard] = useState({
     question: '',
     answer: '',
-    tags: [],
-    class_id: '',
-    subject: ''
+    tags: []
   });
   const [showCreateFlashcard, setShowCreateFlashcard] = useState(false);
   const [showEditFlashcard, setShowEditFlashcard] = useState(false);
   const [editingFlashcard, setEditingFlashcard] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [alert, setAlert] = useState(null);
-  const [selectedClass, setSelectedClass] = useState('');
 
   // Carregar flashcards e turmas do professor
   useEffect(() => {
@@ -48,9 +45,9 @@ const TeacherFlashcardManagement = ({ user, darkMode }) => {
     e.preventDefault();
     try {
       const flashcardData = {
-        ...newFlashcard,
-        created_by: user._id,
-        class_id: selectedClass || null // Atribuir à turma selecionada ou deixar sem turma
+        question: newFlashcard.question,
+        answer: newFlashcard.answer,
+        tags: newFlashcard.tags
       };
 
       const response = await flashcardAPI.createFlashcard(flashcardData);
@@ -58,9 +55,7 @@ const TeacherFlashcardManagement = ({ user, darkMode }) => {
       setNewFlashcard({
         question: '',
         answer: '',
-        tags: [],
-        class_id: '',
-        subject: ''
+        tags: []
       });
       setShowCreateFlashcard(false);
       setAlert({ message: 'Flashcard criado com sucesso!', type: 'success' });
@@ -227,30 +222,6 @@ const TeacherFlashcardManagement = ({ user, darkMode }) => {
                 />
               </div>
               
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Matéria</label>
-                  <input
-                    type="text"
-                    value={newFlashcard.subject}
-                    onChange={(e) => handleInputChange('subject', e.target.value)}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Turma (opcional)</label>
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                  >
-                    <option value="">Nenhuma turma específica</option>
-                    {classes.map(cls => (
-                      <option key={cls._id} value={cls._id}>{cls.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
               <div className="form-group">
                 <label>Tags (separadas por vírgula)</label>
                 <input
@@ -303,29 +274,6 @@ const TeacherFlashcardManagement = ({ user, darkMode }) => {
                 />
               </div>
               
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Matéria</label>
-                  <input
-                    type="text"
-                    value={editingFlashcard.subject}
-                    onChange={(e) => handleInputChange('subject', e.target.value)}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Turma (opcional)</label>
-                  <select
-                    value={editingFlashcard.class_id || ''}
-                    onChange={(e) => handleInputChange('class_id', e.target.value)}
-                  >
-                    <option value="">Nenhuma turma específica</option>
-                    {classes.map(cls => (
-                      <option key={cls._id} value={cls._id}>{cls.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
               
               <div className="form-group">
                 <label>Tags (separadas por vírgula)</label>
