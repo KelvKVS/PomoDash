@@ -1100,38 +1100,48 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
         {/* Flashcards Screen */}
         <div className={`screen ${activeScreen === 'flashcards' ? 'active' : ''}`} id="flashcards">
           <div className="card">
-            <h3 className="card-title">Criar Novo Flashcard</h3>
-            <form onSubmit={handleCreateFlashcard} className="add-flashcard-form">
-              <div className="input-group">
-                <input
-                  type="text"
+            <h3 className="card-title">
+              <i className="fas fa-plus-circle" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
+              Criar Novo Flashcard
+            </h3>
+            <form onSubmit={handleCreateFlashcard} className="beautiful-form">
+              <div className="form-group">
+                <label className="form-label">Pergunta *</label>
+                <textarea
                   value={newFlashcard.question}
                   onChange={(e) => setNewFlashcard({...newFlashcard, question: e.target.value})}
-                  placeholder="Pergunta"
-                  className="add-flashcard-input"
+                  placeholder="Digite a pergunta do flashcard..."
+                  className="input textarea-fixed"
+                  rows="3"
                   required
                 />
               </div>
-              <div className="input-group">
-                <input
-                  type="text"
+              <div className="form-group">
+                <label className="form-label">Resposta *</label>
+                <textarea
                   value={newFlashcard.answer}
                   onChange={(e) => setNewFlashcard({...newFlashcard, answer: e.target.value})}
-                  placeholder="Resposta"
-                  className="add-flashcard-input"
+                  placeholder="Digite a resposta do flashcard..."
+                  className="input textarea-fixed"
+                  rows="3"
                   required
                 />
               </div>
-              <div className="input-group">
+              <div className="form-group">
+                <label className="form-label">Tags</label>
                 <input
                   type="text"
                   value={newFlashcard.tags.join(', ')}
                   onChange={(e) => setNewFlashcard({...newFlashcard, tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)})}
-                  placeholder="Tags (separadas por vírgula)"
-                  className="add-flashcard-input"
+                  placeholder="Ex: matemática, física, química (separadas por vírgula)"
+                  className="input"
                 />
               </div>
-              <button type="submit" className="btn btn-primary">Adicionar Flashcard</button>
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary btn-submit">
+                  <i className="fas fa-plus"></i> Criar Flashcard
+                </button>
+              </div>
             </form>
           </div>
 
@@ -1434,6 +1444,23 @@ function DashboardUser({ user, darkMode, toggleDarkMode, onLogout }) {
 // Estilos para os novos componentes de flashcard e tarefa e layout aprimorado
 const styles = document.createElement('style');
 styles.innerHTML = `
+  /* CSS Variables for Dark Mode Support */
+  body.dark-theme {
+    --card-bg: linear-gradient(135deg, rgba(40,40,50,0.95) 0%, rgba(30,30,40,0.98) 100%);
+    --border-color: rgba(255,255,255,0.12);
+    --text-color: #f5f5f5;
+    --input-bg: rgba(0,0,0,0.4);
+    --input-placeholder: #888;
+  }
+
+  body:not(.dark-theme) {
+    --card-bg: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,249,250,0.95) 100%);
+    --border-color: rgba(0,0,0,0.08);
+    --text-color: #333;
+    --input-bg: rgba(255,255,255,0.95);
+    --input-placeholder: #999;
+  }
+
   .container-app {
     display: flex;
     height: 100vh;
@@ -2100,7 +2127,9 @@ styles.innerHTML = `
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2315,7 +2344,9 @@ styles.innerHTML = `
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2444,6 +2475,86 @@ styles.innerHTML = `
     font-size: 0.9rem;
     margin-bottom: 20px;
     font-style: italic;
+  }
+
+  /* Beautiful Form Styles */
+  .beautiful-form {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    backdrop-filter: blur(10px);
+  }
+
+  .beautiful-form .form-group {
+    margin-bottom: 20px;
+  }
+
+  .beautiful-form .form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+
+  .beautiful-form .input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: var(--input-bg);
+    color: var(--text-color);
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  .beautiful-form .input::placeholder {
+    color: var(--input-placeholder);
+  }
+
+  .beautiful-form .input:focus {
+    outline: none;
+    border-color: #d9534f;
+    box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.15);
+  }
+
+  .beautiful-form .textarea-fixed {
+    resize: none;
+    min-height: 90px;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .btn-submit {
+    flex: 1;
+    padding: 14px 24px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(217, 83, 79, 0.3);
+    background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%) !important;
+    color: white !important;
+    border: none !important;
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(217, 83, 79, 0.4);
   }
 
   .flashcard-grid-student {
@@ -2597,8 +2708,9 @@ styles.innerHTML = `
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;

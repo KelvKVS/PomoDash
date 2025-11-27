@@ -1299,88 +1299,108 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                 {/* Botão para criar tarefa */}
                 <div className="create-task-section">
                   <button
-                    className="btn btn-primary"
+                    className="btn btn-primary btn-toggle-form"
                     onClick={() => setShowTaskForm(!showTaskForm)}
                   >
-                    {showTaskForm ? 'Cancelar' : '+ Criar Nova Tarefa'}
+                    <i className={showTaskForm ? 'fas fa-times' : 'fas fa-plus'}></i>
+                    {showTaskForm ? ' Cancelar' : ' Criar Nova Tarefa'}
                   </button>
                   {showTaskForm && (
-                    <form onSubmit={handleAddTask} className="add-task-form" style={{marginTop: '20px'}}>
-                      <div className="input-group">
+                    <form onSubmit={handleAddTask} className="beautiful-form" style={{marginTop: '20px'}}>
+                      <div className="form-group">
+                        <label className="form-label">Título da Tarefa *</label>
                         <input
                           type="text"
                           value={newTask.title}
                           onChange={(e) => handleNewTaskChange('title', e.target.value)}
-                          placeholder="Título da tarefa"
-                          className="add-task-input"
+                          placeholder="Ex: Estudar para a prova de matemática"
+                          className="input"
                           required
                         />
                       </div>
-                      <div className="input-row">
-                        <input
-                          type="text"
-                          value={newTask.subject}
-                          onChange={(e) => handleNewTaskChange('subject', e.target.value)}
-                          placeholder="Disciplina"
-                          className="add-task-input"
-                        />
-                        <input
-                          type="date"
-                          value={newTask.due_date}
-                          onChange={(e) => handleNewTaskChange('due_date', e.target.value)}
-                          className="add-task-input"
-                        />
-                      </div>
-                      <textarea
-                        value={newTask.description}
-                        onChange={(e) => handleNewTaskChange('description', e.target.value)}
-                        placeholder="Descrição da tarefa"
-                        className="add-task-input"
-                        rows="3"
-                        style={{marginBottom: '10px'}}
-                      />
-
-                      <div className="attachments-section">
-                        <label htmlFor="attachment-input" className="btn btn-outline">
-                          <i className="fas fa-paperclip"></i> Anexar Arquivos
-                        </label>
-                        <input
-                          id="attachment-input"
-                          type="file"
-                          multiple
-                          onChange={handleAttachmentChange}
-                          style={{display: 'none'}}
-                        />
-
-                        {newTask.attachments && newTask.attachments.length > 0 && (
-                          <div className="attachments-list">
-                            {newTask.attachments.map((file, index) => (
-                              <div key={index} className="attachment-item">
-                                <span><i className="fas fa-file"></i> {file.name}</span>
-                                <button type="button" onClick={() => removeAttachment(index)} className="btn-remove-attachment">
-                                  ×
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="input-row">
-                        <select
-                          value={newTask.priority}
-                          onChange={(e) => handleNewTaskChange('priority', e.target.value)}
-                          className="add-task-input"
-                        >
-                          <option value="low">Baixa</option>
-                          <option value="medium">Média</option>
-                          <option value="high">Alta</option>
-                          <option value="urgent">Urgente</option>
-                        </select>
-                        <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
-                          <button type="submit" className="btn btn-primary">Adicionar Tarefa</button>
-                          <button type="button" className="btn btn-secondary" onClick={() => setShowTaskForm(false)}>Cancelar</button>
+                      
+                      <div className="form-row-2">
+                        <div className="form-group">
+                          <label className="form-label">Disciplina</label>
+                          <input
+                            type="text"
+                            value={newTask.subject}
+                            onChange={(e) => handleNewTaskChange('subject', e.target.value)}
+                            placeholder="Ex: Matemática"
+                            className="input"
+                          />
                         </div>
+                        <div className="form-group">
+                          <label className="form-label">Data de Entrega</label>
+                          <input
+                            type="date"
+                            value={newTask.due_date}
+                            onChange={(e) => handleNewTaskChange('due_date', e.target.value)}
+                            className="input"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Prioridade</label>
+                          <select
+                            value={newTask.priority}
+                            onChange={(e) => handleNewTaskChange('priority', e.target.value)}
+                            className="input"
+                          >
+                            <option value="low">🟢 Baixa</option>
+                            <option value="medium">🟡 Média</option>
+                            <option value="high">🔴 Alta</option>
+                            <option value="urgent">🟣 Urgente</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="form-group">
+                        <label className="form-label">Descrição</label>
+                        <textarea
+                          value={newTask.description}
+                          onChange={(e) => handleNewTaskChange('description', e.target.value)}
+                          placeholder="Descreva os detalhes da tarefa..."
+                          className="input textarea-fixed"
+                          rows="4"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Anexos</label>
+                        <div className="attachments-upload-section">
+                          <label htmlFor="attachment-input" className="attachment-upload-btn">
+                            <i className="fas fa-paperclip"></i>
+                            <span>Adicionar arquivo</span>
+                          </label>
+                          <input
+                            id="attachment-input"
+                            type="file"
+                            multiple
+                            onChange={handleAttachmentChange}
+                            style={{display: 'none'}}
+                          />
+                          {newTask.attachments && newTask.attachments.length > 0 && (
+                            <div className="attachments-list">
+                              {newTask.attachments.map((file, index) => (
+                                <div key={index} className="attachment-item">
+                                  <span><i className="fas fa-file"></i> {file.name}</span>
+                                  <button type="button" onClick={() => removeAttachment(index)} className="btn-remove-attachment">
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="form-actions">
+                        <button type="submit" className="btn btn-primary btn-submit">
+                          <i className="fas fa-plus"></i> Criar Tarefa
+                        </button>
+                        <button type="button" className="btn btn-secondary btn-cancel" onClick={() => setShowTaskForm(false)}>
+                          <i className="fas fa-times"></i> Cancelar
+                        </button>
                       </div>
                     </form>
                   )}
@@ -1405,13 +1425,25 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                     return assignment ? assignment.status : 'pending';
                   };
 
-                  const pendingTasks = tasks?.filter(task => getTaskStatus(task) !== 'completed') || [];
-                  const completedTasks = tasks?.filter(task => getTaskStatus(task) === 'completed') || [];
-                  
-                  console.log('Dashboard - Separação: Pendentes:', pendingTasks.length, 'Concluídas:', completedTasks.length);
+                  // Verificar se a tarefa foi criada pelo próprio usuário
+                  const isMyTask = (task) => {
+                    const creatorId = task.created_by?._id || task.created_by;
+                    const currentUserId = user._id || user.id;
+                    return creatorId?.toString() === currentUserId?.toString();
+                  };
 
-                  const renderTaskItem = (task, status) => (
-                    <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : status === 'in_progress' ? 'in_progress' : ''}`}>
+                  // Separar tarefas pessoais e do professor
+                  const myTasks = tasks?.filter(task => isMyTask(task)) || [];
+                  const teacherTasks = tasks?.filter(task => !isMyTask(task)) || [];
+                  
+                  // Subdividir por status
+                  const myPendingTasks = myTasks.filter(task => getTaskStatus(task) !== 'completed');
+                  const myCompletedTasks = myTasks.filter(task => getTaskStatus(task) === 'completed');
+                  const teacherPendingTasks = teacherTasks.filter(task => getTaskStatus(task) !== 'completed');
+                  const teacherCompletedTasks = teacherTasks.filter(task => getTaskStatus(task) === 'completed');
+
+                  const renderTaskItem = (task, status, isFromTeacher = false) => (
+                    <div key={task._id} className={`task-item ${status === 'completed' ? 'completed' : status === 'in_progress' ? 'in_progress' : ''} ${isFromTeacher ? 'from-teacher' : ''}`}>
                       <input
                         type="checkbox"
                         className="task-checkbox"
@@ -1419,7 +1451,14 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                         onChange={() => toggleTaskCompletion(task._id, status)}
                       />
                       <div className="task-content">
-                        <div className="task-title">{task.title}</div>
+                        <div className="task-title">
+                          {task.title}
+                          {isFromTeacher && (
+                            <span className="teacher-badge" title="Tarefa do Professor">
+                              <i className="fas fa-chalkboard-teacher"></i>
+                            </span>
+                          )}
+                        </div>
                         <div className="task-description">{task.description}</div>
                         <div className="task-details">
                           Disciplina: {task.subject || 'N/A'} • Prazo: {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'} • Prioridade: {task.priority}
@@ -1456,56 +1495,102 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
                       <span className="task-pending-badge">
                         <i className="fas fa-clock"></i> {status === 'in_progress' ? 'Em andamento' : 'Pendente'}
                       </span>
-                      <div className="task-actions">
-                        <button
-                          onClick={() => showEditTaskModal(task)}
-                          className="btn-edit-task"
-                          title="Editar Tarefa"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleArchiveTask(task._id)}
-                          className="btn-archive-task"
-                          title="Arquivar Tarefa"
-                        >
-                          Arquivar
-                        </button>
-                      </div>
+                      {!isFromTeacher && (
+                        <div className="task-actions">
+                          <button
+                            onClick={() => showEditTaskModal(task)}
+                            className="btn-edit-task"
+                            title="Editar Tarefa"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleArchiveTask(task._id)}
+                            className="btn-archive-task"
+                            title="Arquivar Tarefa"
+                          >
+                            Arquivar
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
 
                   return (
                     <>
-                      {/* Seção de Tarefas Pendentes */}
-                      <div className="tasks-section">
-                        <h3 className="tasks-section-title">
-                          <i className="fas fa-clock"></i> Tarefas Pendentes ({pendingTasks.length})
-                        </h3>
-                        <div className="task-list">
-                          {pendingTasks.length > 0 ? (
-                            pendingTasks.map(task => renderTaskItem(task, getTaskStatus(task)))
-                          ) : (
-                            <p className="no-tasks-message">
-                              <i className="fas fa-check-double"></i> Parabéns! Você não tem tarefas pendentes.
-                            </p>
+                      {/* Seção de Tarefas do Professor */}
+                      {teacherTasks.length > 0 && (
+                        <div className="tasks-category teacher-tasks-category">
+                          <div className="category-header">
+                            <i className="fas fa-chalkboard-teacher"></i>
+                            <h3>Tarefas do Professor</h3>
+                            <span className="task-count">{teacherTasks.length} tarefa{teacherTasks.length !== 1 ? 's' : ''}</span>
+                          </div>
+                          
+                          {/* Pendentes do Professor */}
+                          {teacherPendingTasks.length > 0 && (
+                            <div className="tasks-section">
+                              <h4 className="tasks-section-title pending-subtitle">
+                                <i className="fas fa-clock"></i> Pendentes ({teacherPendingTasks.length})
+                              </h4>
+                              <div className="task-list">
+                                {teacherPendingTasks.map(task => renderTaskItem(task, getTaskStatus(task), true))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Concluídas do Professor */}
+                          {teacherCompletedTasks.length > 0 && (
+                            <div className="tasks-section completed-section">
+                              <h4 className="tasks-section-title completed-subtitle">
+                                <i className="fas fa-check-circle"></i> Concluídas ({teacherCompletedTasks.length})
+                              </h4>
+                              <div className="task-list">
+                                {teacherCompletedTasks.map(task => renderTaskItem(task, 'completed', true))}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
+                      )}
 
-                      {/* Seção de Tarefas Concluídas */}
-                      <div className="tasks-section completed-section">
-                        <h3 className="tasks-section-title completed-title">
-                          <i className="fas fa-check-circle"></i> Tarefas Concluídas ({completedTasks.length})
-                        </h3>
-                        <div className="task-list">
-                          {completedTasks.length > 0 ? (
-                            completedTasks.map(task => renderTaskItem(task, 'completed'))
-                          ) : (
-                            <p className="no-tasks-message">
-                              <i className="fas fa-tasks"></i> Nenhuma tarefa concluída ainda.
-                            </p>
-                          )}
+                      {/* Seção de Minhas Tarefas (pessoais) */}
+                      <div className="tasks-category my-tasks-category">
+                        <div className="category-header">
+                          <i className="fas fa-user"></i>
+                          <h3>Minhas Tarefas</h3>
+                          <span className="task-count">{myTasks.length} tarefa{myTasks.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        
+                        {/* Pendentes Pessoais */}
+                        <div className="tasks-section">
+                          <h4 className="tasks-section-title pending-subtitle">
+                            <i className="fas fa-clock"></i> Pendentes ({myPendingTasks.length})
+                          </h4>
+                          <div className="task-list">
+                            {myPendingTasks.length > 0 ? (
+                              myPendingTasks.map(task => renderTaskItem(task, getTaskStatus(task), false))
+                            ) : (
+                              <p className="no-tasks-message">
+                                <i className="fas fa-check-double"></i> Parabéns! Você não tem tarefas pendentes.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Concluídas Pessoais */}
+                        <div className="tasks-section completed-section">
+                          <h4 className="tasks-section-title completed-subtitle">
+                            <i className="fas fa-check-circle"></i> Concluídas ({myCompletedTasks.length})
+                          </h4>
+                          <div className="task-list">
+                            {myCompletedTasks.length > 0 ? (
+                              myCompletedTasks.map(task => renderTaskItem(task, 'completed', false))
+                            ) : (
+                              <p className="no-tasks-message">
+                                <i className="fas fa-tasks"></i> Nenhuma tarefa concluída ainda.
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </>
@@ -1581,48 +1666,56 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
             {/* Botão para criar flashcard */}
             <div className="create-flashcard-section">
               <button
-                className="btn btn-primary"
+                className="btn btn-primary btn-toggle-form"
                 onClick={() => setShowFlashcardForm(!showFlashcardForm)}
               >
-                {showFlashcardForm ? 'Cancelar' : '+ Criar Novo Flashcard'}
+                <i className={showFlashcardForm ? 'fas fa-times' : 'fas fa-plus'}></i>
+                {showFlashcardForm ? ' Cancelar' : ' Criar Novo Flashcard'}
               </button>
               {showFlashcardForm && (
-                <form onSubmit={handleCreateFlashcard} className="add-flashcard-form" style={{marginTop: '20px'}}>
-                  <div className="input-group">
-                    <input
-                      type="text"
+                <form onSubmit={handleCreateFlashcard} className="beautiful-form" style={{marginTop: '20px'}}>
+                  <div className="form-group">
+                    <label className="form-label">Pergunta *</label>
+                    <textarea
                       value={newFlashcard.question}
                       onChange={(e) => setNewFlashcard({...newFlashcard, question: e.target.value})}
-                      placeholder="Pergunta"
-                      className="add-flashcard-input"
+                      placeholder="Digite a pergunta do flashcard..."
+                      className="input textarea-fixed"
+                      rows="3"
                       required
                     />
                   </div>
-                  <div className="input-group">
-                    <input
-                      type="text"
+                  <div className="form-group">
+                    <label className="form-label">Resposta *</label>
+                    <textarea
                       value={newFlashcard.answer}
                       onChange={(e) => setNewFlashcard({...newFlashcard, answer: e.target.value})}
-                      placeholder="Resposta"
-                      className="add-flashcard-input"
+                      placeholder="Digite a resposta do flashcard..."
+                      className="input textarea-fixed"
+                      rows="3"
                       required
                     />
                   </div>
-                  <div className="input-group">
+                  <div className="form-group">
+                    <label className="form-label">Tags</label>
                     <input
                       type="text"
                       value={newFlashcard.tags.join(', ')}
                       onChange={(e) => setNewFlashcard({...newFlashcard, tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)})}
-                      placeholder="Tags (separadas por vírgula)"
-                      className="add-flashcard-input"
+                      placeholder="Ex: matemática, física, química (separadas por vírgula)"
+                      className="input"
                     />
                   </div>
-                  <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
-                    <button type="submit" className="btn btn-primary">Adicionar Flashcard</button>
-                    <button type="button" className="btn btn-secondary" onClick={() => {
+                  <div className="form-actions">
+                    <button type="submit" className="btn btn-primary btn-submit">
+                      <i className="fas fa-plus"></i> Criar Flashcard
+                    </button>
+                    <button type="button" className="btn btn-secondary btn-cancel" onClick={() => {
                       setShowFlashcardForm(false);
                       setNewFlashcard({ question: '', answer: '', tags: [] });
-                    }}>Cancelar</button>
+                    }}>
+                      <i className="fas fa-times"></i> Cancelar
+                    </button>
                   </div>
                 </form>
               )}
@@ -2255,6 +2348,314 @@ function Dashboard({ user, darkMode, toggleDarkMode, onLogout }) {
 // Estilos para os novos componentes de flashcard e tarefa e layout aprimorado
 const styles = document.createElement('style');
 styles.innerHTML = `
+  /* ==================== CSS VARIABLES - DARK THEME ==================== */
+  body.dark-theme {
+    /* Backgrounds */
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-card: #1e1e2f;
+    --bg-card-hover: #252540;
+    --bg-input: rgba(0,0,0,0.4);
+    --bg-sidebar: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    
+    /* Forms */
+    --form-bg: linear-gradient(135deg, rgba(30,30,47,0.98) 0%, rgba(22,33,62,0.95) 100%);
+    --form-border: rgba(255,255,255,0.1);
+    --form-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    --form-label-color: #e0e0e0;
+    --form-input-bg: rgba(0,0,0,0.4);
+    --form-input-color: #fff;
+    --form-input-border: rgba(255,255,255,0.15);
+    --form-input-placeholder: #777;
+    --form-divider: rgba(255,255,255,0.08);
+    
+    /* Text Colors */
+    --text-primary: #f5f5f5;
+    --text-secondary: #b0b0b0;
+    --text-muted: #888;
+    --text-color: #f5f5f5;
+    
+    /* Borders */
+    --border-color: rgba(255,255,255,0.1);
+    --border-light: rgba(255,255,255,0.05);
+    
+    /* Buttons */
+    --btn-cancel-bg: rgba(255,255,255,0.1);
+    --btn-cancel-color: #ccc;
+    --btn-cancel-hover-bg: rgba(255,255,255,0.15);
+    
+    /* Attachments */
+    --attachment-btn-bg: rgba(255,255,255,0.08);
+    --attachment-btn-border: rgba(255,255,255,0.15);
+    --attachment-btn-color: #aaa;
+    --attachment-btn-hover-bg: rgba(255,255,255,0.12);
+    --attachment-item-bg: rgba(2, 117, 216, 0.25);
+    --attachment-item-color: #7bb8eb;
+    --btn-remove-color: #ff6b6b;
+    
+    /* Cards & Components */
+    --card-bg: linear-gradient(135deg, rgba(30,30,47,0.95) 0%, rgba(22,33,62,0.9) 100%);
+    --card-border: rgba(255,255,255,0.08);
+    --card-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    
+    /* Tasks */
+    --task-item-bg: rgba(255,255,255,0.03);
+    --task-item-border: rgba(255,255,255,0.08);
+    --task-item-hover: rgba(255,255,255,0.06);
+  }
+
+  body:not(.dark-theme) {
+    /* Backgrounds */
+    --bg-primary: #f5f7fa;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f8f9fa;
+    --bg-input: rgba(255,255,255,0.95);
+    --bg-sidebar: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+    
+    /* Forms */
+    --form-bg: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,249,250,0.95) 100%);
+    --form-border: rgba(0,0,0,0.08);
+    --form-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    --form-label-color: #333;
+    --form-input-bg: rgba(255,255,255,0.95);
+    --form-input-color: #333;
+    --form-input-border: rgba(0,0,0,0.1);
+    --form-input-placeholder: #999;
+    --form-divider: rgba(0,0,0,0.06);
+    
+    /* Text Colors */
+    --text-primary: #333;
+    --text-secondary: #666;
+    --text-muted: #999;
+    --text-color: #333;
+    
+    /* Borders */
+    --border-color: rgba(0,0,0,0.08);
+    --border-light: rgba(0,0,0,0.04);
+    
+    /* Buttons */
+    --btn-cancel-bg: rgba(0,0,0,0.05);
+    --btn-cancel-color: #666;
+    --btn-cancel-hover-bg: rgba(0,0,0,0.1);
+    
+    /* Attachments */
+    --attachment-btn-bg: rgba(0,0,0,0.03);
+    --attachment-btn-border: rgba(0,0,0,0.1);
+    --attachment-btn-color: #666;
+    --attachment-btn-hover-bg: rgba(0,0,0,0.06);
+    --attachment-item-bg: rgba(2, 117, 216, 0.1);
+    --attachment-item-color: #0275d8;
+    --btn-remove-color: #d9534f;
+    
+    /* Cards & Components */
+    --card-bg: #ffffff;
+    --card-border: rgba(0,0,0,0.08);
+    --card-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    
+    /* Tasks */
+    --task-item-bg: #f8f9fa;
+    --task-item-border: rgba(0,0,0,0.06);
+    --task-item-hover: #f0f0f0;
+  }
+
+  /* ==================== DARK MODE GLOBAL STYLES ==================== */
+  body.dark-theme .container-app {
+    background: var(--bg-primary);
+  }
+
+  body.dark-theme .main-content {
+    background: var(--bg-primary);
+  }
+
+  body.dark-theme .card {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+    box-shadow: var(--card-shadow);
+  }
+
+  body.dark-theme .card-title {
+    color: var(--text-primary);
+  }
+
+  body.dark-theme .task-item {
+    background: var(--task-item-bg);
+    border-color: var(--task-item-border);
+  }
+
+  body.dark-theme .task-item:hover {
+    background: var(--task-item-hover);
+  }
+
+  body.dark-theme .task-title,
+  body.dark-theme .task-content {
+    color: var(--text-primary);
+  }
+
+  body.dark-theme .task-description,
+  body.dark-theme .task-details {
+    color: var(--text-secondary);
+  }
+
+  body.dark-theme .input,
+  body.dark-theme input,
+  body.dark-theme textarea,
+  body.dark-theme select {
+    background: var(--form-input-bg);
+    color: var(--form-input-color);
+    border-color: var(--form-input-border);
+  }
+
+  body.dark-theme .input::placeholder,
+  body.dark-theme input::placeholder,
+  body.dark-theme textarea::placeholder {
+    color: var(--form-input-placeholder);
+  }
+
+  body.dark-theme .btn-secondary {
+    background: var(--btn-cancel-bg);
+    color: var(--btn-cancel-color);
+    border-color: var(--border-color);
+  }
+
+  body.dark-theme .btn-secondary:hover {
+    background: var(--btn-cancel-hover-bg);
+  }
+
+  body.dark-theme .task-edit-modal-content,
+  body.dark-theme .modal-content {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+  }
+
+  body.dark-theme .task-edit-input {
+    background: var(--form-input-bg);
+    color: var(--form-input-color);
+    border-color: var(--form-input-border);
+  }
+
+  body.dark-theme h1, body.dark-theme h2, body.dark-theme h3, body.dark-theme h4 {
+    color: var(--text-primary);
+  }
+
+  body.dark-theme p {
+    color: var(--text-secondary);
+  }
+
+  body.dark-theme .stat-card,
+  body.dark-theme .stat-item {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+  }
+
+  body.dark-theme .stat-value {
+    color: var(--text-primary);
+  }
+
+  body.dark-theme .stat-label {
+    color: var(--text-muted);
+  }
+
+  body.dark-theme .page-title {
+    color: var(--text-primary);
+  }
+
+  /* Timer Dark Mode */
+  body.dark-theme .timer {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+  }
+
+  body.dark-theme .timer-time {
+    color: var(--text-primary);
+  }
+
+  body.dark-theme .timer-label {
+    color: var(--text-muted);
+  }
+
+  /* Flashcards Dark Mode */
+  body.dark-theme .flashcard-front-student {
+    background: linear-gradient(145deg, #2a2a4a 0%, #1e1e3e 100%);
+    color: var(--text-primary);
+  }
+
+  body.dark-theme .flashcard-back-student {
+    background: linear-gradient(145deg, #1e3a5f 0%, #163050 100%);
+    color: var(--text-primary);
+  }
+
+  body.dark-theme .flashcard-hint,
+  body.dark-theme .flashcard-hint-back {
+    color: var(--text-muted);
+  }
+
+  /* Recent Sessions Dark Mode */
+  body.dark-theme .session-item {
+    background: var(--task-item-bg);
+    border-color: var(--border-color);
+  }
+
+  body.dark-theme .session-type,
+  body.dark-theme .session-date {
+    color: var(--text-secondary);
+  }
+
+  /* Class Cards Dark Mode */
+  body.dark-theme .class-card {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+  }
+
+  body.dark-theme .class-card:hover {
+    background: var(--bg-card-hover);
+  }
+
+  body.dark-theme .class-name {
+    color: var(--text-primary);
+  }
+
+  body.dark-theme .class-subject,
+  body.dark-theme .class-info {
+    color: var(--text-secondary);
+  }
+
+  /* Tasks Categories Dark Mode */
+  body.dark-theme .category-header {
+    background: var(--bg-card);
+  }
+
+  body.dark-theme .tasks-section-title,
+  body.dark-theme .pending-subtitle,
+  body.dark-theme .completed-subtitle {
+    background: var(--task-item-bg);
+  }
+
+  body.dark-theme .no-tasks-message {
+    background: var(--task-item-bg);
+    color: var(--text-muted);
+  }
+
+  /* Tables Dark Mode */
+  body.dark-theme table {
+    background: var(--bg-card);
+  }
+
+  body.dark-theme th {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+
+  body.dark-theme td {
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+  }
+
+  body.dark-theme tr:hover {
+    background: var(--task-item-hover);
+  }
+
   .container-app {
     display: flex;
     min-height: 100vh;
@@ -2298,6 +2699,341 @@ styles.innerHTML = `
     padding: 15px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
+  }
+
+  /* Beautiful Form Styles */
+  .beautiful-form {
+    background: var(--form-bg);
+    border: 1px solid var(--form-border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--form-shadow);
+    backdrop-filter: blur(10px);
+  }
+
+  .beautiful-form .form-group {
+    margin-bottom: 20px;
+  }
+
+  .beautiful-form .form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--form-label-color);
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+  }
+
+  .beautiful-form .input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--form-input-border);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: var(--form-input-bg);
+    color: var(--form-input-color);
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  .beautiful-form .input::placeholder {
+    color: var(--form-input-placeholder);
+  }
+
+  .beautiful-form .input:focus {
+    outline: none;
+    border-color: #0275d8;
+    box-shadow: 0 0 0 3px rgba(2, 117, 216, 0.15);
+  }
+
+  .beautiful-form .textarea-fixed {
+    resize: none;
+    min-height: 90px;
+  }
+
+  .beautiful-form .form-row-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .beautiful-form .form-row-2 .form-group {
+    margin-bottom: 0;
+  }
+
+  .beautiful-form select.input {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--form-divider);
+  }
+
+  .btn-submit {
+    flex: 1;
+    padding: 14px 24px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(2, 117, 216, 0.3);
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(2, 117, 216, 0.4);
+  }
+
+  .btn-cancel {
+    padding: 14px 20px !important;
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    border-radius: 10px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--btn-cancel-bg) !important;
+    color: var(--btn-cancel-color) !important;
+    border: none !important;
+  }
+
+  .btn-cancel:hover {
+    background: var(--btn-cancel-hover-bg) !important;
+  }
+
+  .btn-toggle-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+  }
+
+  /* Attachments */
+  .attachments-upload-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .attachment-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--attachment-btn-bg);
+    border: 2px dashed var(--attachment-btn-border);
+    border-radius: 10px;
+    color: var(--attachment-btn-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+  }
+
+  .attachment-upload-btn:hover {
+    background: var(--attachment-btn-hover-bg);
+    border-color: #0275d8;
+    color: #0275d8;
+  }
+
+  .attachments-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--attachment-item-bg);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--attachment-item-color);
+  }
+
+  .btn-remove-attachment {
+    background: none;
+    border: none;
+    color: var(--btn-remove-color);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .btn-remove-attachment:hover {
+    color: #ff4444;
+  }
+
+  /* ==================== CATEGORIAS DE TAREFAS ==================== */
+  .tasks-category {
+    margin-bottom: 30px;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+
+  .category-header i {
+    font-size: 1.3rem;
+  }
+
+  .category-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex: 1;
+  }
+
+  .task-count {
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  /* Categoria: Tarefas do Professor */
+  .teacher-tasks-category .category-header {
+    background: linear-gradient(135deg, rgba(2, 117, 216, 0.15) 0%, rgba(2, 117, 216, 0.08) 100%);
+    color: #0275d8;
+    border: 1px solid rgba(2, 117, 216, 0.2);
+  }
+
+  .teacher-tasks-category .task-count {
+    background: rgba(2, 117, 216, 0.2);
+    color: #0275d8;
+  }
+
+  /* Categoria: Minhas Tarefas */
+  .my-tasks-category .category-header {
+    background: linear-gradient(135deg, rgba(92, 184, 92, 0.15) 0%, rgba(92, 184, 92, 0.08) 100%);
+    color: #5cb85c;
+    border: 1px solid rgba(92, 184, 92, 0.2);
+  }
+
+  .my-tasks-category .task-count {
+    background: rgba(92, 184, 92, 0.2);
+    color: #5cb85c;
+  }
+
+  /* Subtítulos de seção */
+  .tasks-section {
+    margin-bottom: 20px;
+  }
+
+  .tasks-section-title,
+  .pending-subtitle,
+  .completed-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--form-bg, rgba(0,0,0,0.02));
+  }
+
+  .pending-subtitle {
+    color: #f0ad4e;
+  }
+
+  .completed-subtitle {
+    color: #5cb85c;
+  }
+
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .no-tasks-message {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted, #888);
+    font-style: italic;
+    background: var(--form-bg, rgba(0,0,0,0.02));
+    border-radius: 10px;
+  }
+
+  .no-tasks-message i {
+    margin-right: 8px;
+  }
+
+  /* Badge do Professor na Tarefa */
+  .teacher-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    padding: 3px 8px;
+    background: linear-gradient(135deg, #0275d8 0%, #025aa5 100%);
+    color: white;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    vertical-align: middle;
+  }
+
+  .teacher-badge i {
+    font-size: 0.65rem;
+  }
+
+  /* Tarefa do Professor - estilo diferenciado */
+  .task-item.from-teacher {
+    border-left: 4px solid #0275d8;
+    background: linear-gradient(135deg, rgba(2, 117, 216, 0.05) 0%, transparent 100%);
+  }
+
+  .task-item.from-teacher:hover {
+    border-left-color: #025aa5;
+  }
+
+  /* Dark Mode */
+  body.dark-theme .teacher-tasks-category .category-header {
+    background: linear-gradient(135deg, rgba(2, 117, 216, 0.25) 0%, rgba(2, 117, 216, 0.15) 100%);
+    border-color: rgba(2, 117, 216, 0.3);
+  }
+
+  body.dark-theme .my-tasks-category .category-header {
+    background: linear-gradient(135deg, rgba(92, 184, 92, 0.25) 0%, rgba(92, 184, 92, 0.15) 100%);
+    border-color: rgba(92, 184, 92, 0.3);
+  }
+
+  body.dark-theme .tasks-section-title,
+  body.dark-theme .pending-subtitle,
+  body.dark-theme .completed-subtitle {
+    background: rgba(255,255,255,0.05);
+  }
+
+  body.dark-theme .task-item.from-teacher {
+    background: linear-gradient(135deg, rgba(2, 117, 216, 0.1) 0%, transparent 100%);
   }
 
   .input-row {
@@ -2733,7 +3469,9 @@ styles.innerHTML = `
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;

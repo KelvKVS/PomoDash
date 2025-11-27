@@ -842,101 +842,51 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
               
               <div className="card animated" style={{ animationDelay: '0.2s' }}>
                 <h3 className="card-title">
-                  <i className="fas fa-tasks" style={{ marginRight: '8px', color: '#0275d8' }}></i>
-                  Tarefas por Prioridade
-                </h3>
-                {loading.tasks ? (
-                  <p className="chart-placeholder"><i className="fas fa-spinner fa-spin"></i> Carregando...</p>
-                ) : tasks.length > 0 ? (
-                  <BarChartComponent 
-                    data={[
-                      { 
-                        label: 'Urgente', 
-                        value: tasks.filter(t => t.priority === 'urgent').length,
-                        color: 'rgba(128, 0, 128, 0.7)',
-                        borderColor: 'rgba(128, 0, 128, 1)',
-                        hoverColor: 'rgba(128, 0, 128, 0.9)'
-                      },
-                      { 
-                        label: 'Alta', 
-                        value: tasks.filter(t => t.priority === 'high').length,
-                        color: 'rgba(217, 83, 79, 0.7)',
-                        borderColor: 'rgba(217, 83, 79, 1)',
-                        hoverColor: 'rgba(217, 83, 79, 0.9)'
-                      },
-                      { 
-                        label: 'Média', 
-                        value: tasks.filter(t => t.priority === 'medium').length,
-                        color: 'rgba(240, 173, 78, 0.7)',
-                        borderColor: 'rgba(240, 173, 78, 1)',
-                        hoverColor: 'rgba(240, 173, 78, 0.9)'
-                      },
-                      { 
-                        label: 'Baixa', 
-                        value: tasks.filter(t => t.priority === 'low').length,
-                        color: 'rgba(92, 184, 92, 0.7)',
-                        borderColor: 'rgba(92, 184, 92, 1)',
-                        hoverColor: 'rgba(92, 184, 92, 0.9)'
-                      }
-                    ]}
-                  />
-                ) : (
-                  <p className="chart-placeholder">Nenhuma tarefa cadastrada</p>
-                )}
-              </div>
-            </div>
-            
-            {/* Segunda linha de gráficos */}
-            <div className="dashboard-grid" style={{ marginTop: '20px' }}>
-              <div className="card animated" style={{ animationDelay: '0.3s' }}>
-                <h3 className="card-title">
-                  <i className="fas fa-clone" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
+                  <i className="fas fa-clipboard-list" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
                   Resumo de Atividades
                 </h3>
-                {loading.flashcards || loading.classes ? (
+                {loading.flashcards || loading.classes || loading.tasks ? (
                   <p className="chart-placeholder"><i className="fas fa-spinner fa-spin"></i> Carregando...</p>
                 ) : (
-                  <div className="quick-stats">
-                    <div className="quick-stat-item">
-                      <span className="quick-stat-value" style={{ color: '#6f42c1' }}>{flashcards.length}</span>
-                      <span className="quick-stat-label">Flashcards</span>
+                  <div className="quick-stats-vertical">
+                    <div className="quick-stat-row">
+                      <div className="quick-stat-icon" style={{ background: 'linear-gradient(135deg, #5cb85c 0%, #449d44 100%)' }}>
+                        <i className="fas fa-users"></i>
+                      </div>
+                      <div className="quick-stat-info">
+                        <span className="quick-stat-value">{classes.length}</span>
+                        <span className="quick-stat-label">Turmas Ativas</span>
+                      </div>
                     </div>
-                    <div className="quick-stat-item">
-                      <span className="quick-stat-value" style={{ color: '#5cb85c' }}>{classes.length}</span>
-                      <span className="quick-stat-label">Turmas</span>
+                    <div className="quick-stat-row">
+                      <div className="quick-stat-icon" style={{ background: 'linear-gradient(135deg, #0275d8 0%, #025aa5 100%)' }}>
+                        <i className="fas fa-user-graduate"></i>
+                      </div>
+                      <div className="quick-stat-info">
+                        <span className="quick-stat-value">{stats.totalStudents}</span>
+                        <span className="quick-stat-label">Alunos Matriculados</span>
+                      </div>
                     </div>
-                    <div className="quick-stat-item">
-                      <span className="quick-stat-value" style={{ color: '#0275d8' }}>{tasks.length}</span>
-                      <span className="quick-stat-label">Tarefas</span>
+                    <div className="quick-stat-row">
+                      <div className="quick-stat-icon" style={{ background: 'linear-gradient(135deg, #f0ad4e 0%, #ec971f 100%)' }}>
+                        <i className="fas fa-tasks"></i>
+                      </div>
+                      <div className="quick-stat-info">
+                        <span className="quick-stat-value">{tasks.length}</span>
+                        <span className="quick-stat-label">Tarefas Criadas</span>
+                      </div>
+                    </div>
+                    <div className="quick-stat-row">
+                      <div className="quick-stat-icon" style={{ background: 'linear-gradient(135deg, #6f42c1 0%, #563d7c 100%)' }}>
+                        <i className="fas fa-clone"></i>
+                      </div>
+                      <div className="quick-stat-info">
+                        <span className="quick-stat-value">{flashcards.length}</span>
+                        <span className="quick-stat-label">Flashcards</span>
+                      </div>
                     </div>
                   </div>
                 )}
-              </div>
-              
-              <div className="card animated" style={{ animationDelay: '0.4s' }}>
-                <h3 className="card-title">
-                  <i className="fas fa-calendar-alt" style={{ marginRight: '8px', color: '#f0ad4e' }}></i>
-                  Próximas Entregas
-                </h3>
-                <div className="upcoming-tasks">
-                  {tasks
-                    .filter(t => new Date(t.due_date) >= new Date())
-                    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
-                    .slice(0, 3)
-                    .map(task => (
-                      <div key={task._id} className="upcoming-task-item">
-                        <div className="upcoming-task-title">{task.title}</div>
-                        <div className="upcoming-task-date">
-                          <i className="fas fa-clock"></i>
-                          {new Date(task.due_date).toLocaleDateString('pt-BR')}
-                        </div>
-                      </div>
-                    ))
-                  }
-                  {tasks.filter(t => new Date(t.due_date) >= new Date()).length === 0 && (
-                    <p className="no-upcoming">Nenhuma entrega próxima</p>
-                  )}
-                </div>
               </div>
             </div>
           </div>
@@ -947,39 +897,59 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
           <div className="screen active">
             {/* Criar Turma */}
             <div className="card">
-              <h3 className="card-title">Criar Nova Turma</h3>
-              <form onSubmit={handleCreateClass} className="form-grid">
-                <input
-                  type="text"
-                  value={newClass.name}
-                  onChange={e => setNewClass(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Nome da turma"
-                  className="input"
-                  required
-                />
-                <input
-                  type="text"
-                  value={newClass.subject}
-                  onChange={e => setNewClass(prev => ({ ...prev, subject: e.target.value }))}
-                  placeholder="Disciplina"
-                  className="input"
-                  required
-                />
-                <input
-                  type="text"
-                  value={newClass.academic_year}
-                  onChange={e => setNewClass(prev => ({ ...prev, academic_year: e.target.value }))}
-                  placeholder="Ano acadêmico (ex: 2025)"
-                  className="input"
-                />
-                <textarea
-                  value={newClass.description}
-                  onChange={e => setNewClass(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Descrição (opcional)"
-                  className="input"
-                  rows="2"
-                />
-                <button type="submit" className="btn btn-primary">Criar Turma</button>
+              <h3 className="card-title">
+                <i className="fas fa-plus-circle" style={{ marginRight: '8px', color: '#5cb85c' }}></i>
+                Criar Nova Turma
+              </h3>
+              <form onSubmit={handleCreateClass} className="task-form">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Nome da Turma *</label>
+                    <input
+                      type="text"
+                      value={newClass.name}
+                      onChange={e => setNewClass(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Ex: Turma A - Manhã"
+                      className="input"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Disciplina *</label>
+                    <input
+                      type="text"
+                      value={newClass.subject}
+                      onChange={e => setNewClass(prev => ({ ...prev, subject: e.target.value }))}
+                      placeholder="Ex: Matemática"
+                      className="input"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Ano Letivo</label>
+                    <input
+                      type="text"
+                      value={newClass.academic_year}
+                      onChange={e => setNewClass(prev => ({ ...prev, academic_year: e.target.value }))}
+                      placeholder="Ex: 2025"
+                      className="input"
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Descrição</label>
+                  <textarea
+                    value={newClass.description}
+                    onChange={e => setNewClass(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Descreva detalhes sobre a turma, horários, objetivos..."
+                    className="input task-description"
+                    rows="3"
+                    style={{ resize: 'none', minHeight: '80px' }}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary btn-submit">
+                  <i className="fas fa-plus"></i> Criar Turma
+                </button>
               </form>
             </div>
 
@@ -1301,42 +1271,63 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
           <div className="screen active">
             {/* Criar Flashcard */}
             <div className="card">
-              <h3 className="card-title">Criar Flashcard</h3>
-              <form onSubmit={handleCreateFlashcard} className="form-grid">
-                <input
-                  type="text"
-                  value={newFlashcard.question}
-                  onChange={e => setNewFlashcard(prev => ({ ...prev, question: e.target.value }))}
-                  placeholder="Pergunta"
-                  className="input"
-                  required
-                />
-                <input
-                  type="text"
-                  value={newFlashcard.answer}
-                  onChange={e => setNewFlashcard(prev => ({ ...prev, answer: e.target.value }))}
-                  placeholder="Resposta"
-                  className="input"
-                  required
-                />
-                <select
-                  value={newFlashcard.class_id}
-                  onChange={e => setNewFlashcard(prev => ({ ...prev, class_id: e.target.value }))}
-                  className="input"
-                >
-                  <option value="">Flashcard Pessoal (sem turma)</option>
-                  {classes.map(cls => (
-                    <option key={cls._id} value={cls._id}>{cls.name} - {cls.subject}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={newFlashcard.tags.join(', ')}
-                  onChange={e => setNewFlashcard(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) }))}
-                  placeholder="Tags (separadas por vírgula)"
-                  className="input"
-                />
-                <button type="submit" className="btn btn-primary">Criar Flashcard</button>
+              <h3 className="card-title">
+                <i className="fas fa-plus-circle" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
+                Criar Novo Flashcard
+              </h3>
+              <form onSubmit={handleCreateFlashcard} className="task-form">
+                <div className="form-group">
+                  <label className="form-label">Pergunta *</label>
+                  <textarea
+                    value={newFlashcard.question}
+                    onChange={e => setNewFlashcard(prev => ({ ...prev, question: e.target.value }))}
+                    placeholder="Digite a pergunta do flashcard..."
+                    className="input task-description"
+                    rows="3"
+                    style={{ resize: 'none', minHeight: '80px' }}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Resposta *</label>
+                  <textarea
+                    value={newFlashcard.answer}
+                    onChange={e => setNewFlashcard(prev => ({ ...prev, answer: e.target.value }))}
+                    placeholder="Digite a resposta do flashcard..."
+                    className="input task-description"
+                    rows="3"
+                    style={{ resize: 'none', minHeight: '80px' }}
+                    required
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Atribuir à Turma</label>
+                    <select
+                      value={newFlashcard.class_id}
+                      onChange={e => setNewFlashcard(prev => ({ ...prev, class_id: e.target.value }))}
+                      className="input"
+                    >
+                      <option value="">📚 Flashcard Pessoal (sem turma)</option>
+                      {classes.map(cls => (
+                        <option key={cls._id} value={cls._id}>👥 {cls.name} - {cls.subject}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Tags</label>
+                    <input
+                      type="text"
+                      value={newFlashcard.tags.join(', ')}
+                      onChange={e => setNewFlashcard(prev => ({ ...prev, tags: e.target.value.split(',').map(t => t.trim()).filter(t => t) }))}
+                      placeholder="Ex: matemática, equações, fórmulas"
+                      className="input"
+                    />
+                  </div>
+                </div>
+                <button type="submit" className="btn btn-primary btn-submit">
+                  <i className="fas fa-plus"></i> Criar Flashcard
+                </button>
               </form>
             </div>
 
@@ -1511,21 +1502,6 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                       <i className="fas fa-users" style={{ marginRight: '8px', color: '#5cb85c' }}></i>
                       Relatório de Turmas
                     </h3>
-                    <button className="export-button" onClick={() => {
-                      // Exportar para Excel
-                      const data = classes.map(cls => ({
-                        'Nome': cls.name,
-                        'Disciplina': cls.subject,
-                        'Ano Letivo': cls.academic_year,
-                        'Alunos': cls.students?.filter(s => s.status === 'active' || !s.status).length || 0,
-                        'Status': cls.status || 'active'
-                      }));
-                      import('../lib/excelExport').then(({ exportToExcel }) => {
-                        exportToExcel(data, 'relatorio_turmas');
-                      });
-                    }}>
-                      <i className="fas fa-file-excel"></i> Exportar Excel
-                    </button>
                   </div>
                   
                   <div className="chart-container" style={{ marginBottom: '20px' }}>
@@ -1575,20 +1551,6 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                       <i className="fas fa-tasks" style={{ marginRight: '8px', color: '#0275d8' }}></i>
                       Relatório de Tarefas
                     </h3>
-                    <button className="export-button" onClick={() => {
-                      const data = tasks.map(task => ({
-                        'Título': task.title,
-                        'Disciplina': task.subject || '-',
-                        'Prioridade': task.priority,
-                        'Data de Entrega': task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : '-',
-                        'Alunos Atribuídos': task.assigned_to?.length || 0
-                      }));
-                      import('../lib/excelExport').then(({ exportToExcel }) => {
-                        exportToExcel(data, 'relatorio_tarefas');
-                      });
-                    }}>
-                      <i className="fas fa-file-excel"></i> Exportar Excel
-                    </button>
                   </div>
                   
                   <div className="chart-container" style={{ marginBottom: '20px' }}>
@@ -1644,21 +1606,6 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                       <i className="fas fa-clone" style={{ marginRight: '8px', color: '#6f42c1' }}></i>
                       Relatório de Flashcards
                     </h3>
-                    <button className="export-button" onClick={() => {
-                      const data = flashcards.map(card => ({
-                        'Pergunta': card.question,
-                        'Resposta': card.answer,
-                        'Tags': card.tags?.join(', ') || '-',
-                        'Turma': classes.find(c => c._id === card.class_id)?.name || 'Pessoal',
-                        'Tentativas': card.stats?.attempts || 0,
-                        'Acertos': card.stats?.correct || 0
-                      }));
-                      import('../lib/excelExport').then(({ exportToExcel }) => {
-                        exportToExcel(data, 'relatorio_flashcards');
-                      });
-                    }}>
-                      <i className="fas fa-file-excel"></i> Exportar Excel
-                    </button>
                   </div>
                   
                   <div className="quick-stats" style={{ marginBottom: '20px' }}>
@@ -1710,18 +1657,6 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
                       <i className="fas fa-user-graduate" style={{ marginRight: '8px', color: '#f0ad4e' }}></i>
                       Relatório de Alunos
                     </h3>
-                    <button className="export-button" onClick={() => {
-                      const data = allStudents.map(student => ({
-                        'Nome': student.name,
-                        'Email': student.email,
-                        'Turma': student.className || '-'
-                      }));
-                      import('../lib/excelExport').then(({ exportToExcel }) => {
-                        exportToExcel(data, 'relatorio_alunos');
-                      });
-                    }}>
-                      <i className="fas fa-file-excel"></i> Exportar Excel
-                    </button>
                   </div>
                   
                   <div className="quick-stats" style={{ marginBottom: '20px' }}>
@@ -2003,6 +1938,49 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
 // ==================== ESTILOS ====================
 const styles = document.createElement('style');
 styles.innerHTML = `
+  /* CSS Variables for Dark Mode Support */
+  body.dark-theme {
+    --stat-row-bg: rgba(255,255,255,0.05);
+    --stat-row-hover-bg: rgba(255,255,255,0.08);
+    --text-muted: #aaa;
+    --text-color: #f5f5f5;
+    --card-bg: linear-gradient(135deg, rgba(40,40,50,0.9) 0%, rgba(30,30,40,0.95) 100%);
+    --form-bg: linear-gradient(135deg, rgba(40,40,50,0.95) 0%, rgba(30,30,40,0.98) 100%);
+    --form-border: rgba(255,255,255,0.12);
+    --form-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    --input-bg: rgba(0,0,0,0.4);
+    --input-color: #fff;
+    --input-border: rgba(255,255,255,0.15);
+    --input-placeholder: #888;
+    --attachment-btn-bg: rgba(255,255,255,0.08);
+    --attachment-btn-border: rgba(255,255,255,0.15);
+    --attachment-btn-color: #aaa;
+    --attachment-item-bg: rgba(2, 117, 216, 0.2);
+    --attachment-item-color: #7bb8eb;
+    --border-color: rgba(255,255,255,0.1);
+  }
+
+  body:not(.dark-theme) {
+    --stat-row-bg: rgba(0,0,0,0.02);
+    --stat-row-hover-bg: rgba(0,0,0,0.04);
+    --text-muted: #666;
+    --text-color: #333;
+    --card-bg: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,249,250,0.95) 100%);
+    --form-bg: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,249,250,0.95) 100%);
+    --form-border: rgba(0,0,0,0.08);
+    --form-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    --input-bg: rgba(255,255,255,0.95);
+    --input-color: #333;
+    --input-border: rgba(0,0,0,0.1);
+    --input-placeholder: #999;
+    --attachment-btn-bg: rgba(0,0,0,0.02);
+    --attachment-btn-border: rgba(0,0,0,0.1);
+    --attachment-btn-color: #666;
+    --attachment-item-bg: rgba(2, 117, 216, 0.1);
+    --attachment-item-color: #0275d8;
+    --border-color: rgba(0,0,0,0.08);
+  }
+
   /* Container Principal */
   .container {
     display: flex;
@@ -2218,16 +2196,24 @@ styles.innerHTML = `
   }
 
   .input {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 12px 14px;
+    border: 2px solid var(--input-border, #ddd);
+    border-radius: 10px;
     font-size: 14px;
     flex: 1;
+    background: var(--input-bg, #fff);
+    color: var(--input-color, #333);
+    transition: all 0.3s ease;
+  }
+
+  .input::placeholder {
+    color: var(--input-placeholder, #999);
   }
 
   .input:focus {
     outline: none;
-    border-color: #d9534f;
+    border-color: #0275d8;
+    box-shadow: 0 0 0 3px rgba(2, 117, 216, 0.15);
   }
 
   /* Buttons */
@@ -2561,6 +2547,27 @@ styles.innerHTML = `
     display: flex;
     flex-direction: column;
     gap: 20px;
+    background: var(--form-bg);
+    border: 1px solid var(--form-border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--form-shadow);
+    backdrop-filter: blur(10px);
+  }
+
+  .task-form .input {
+    background: var(--input-bg) !important;
+    color: var(--input-color) !important;
+    border: 2px solid var(--input-border) !important;
+  }
+
+  .task-form .input::placeholder {
+    color: var(--input-placeholder);
+  }
+
+  .task-form .input:focus {
+    border-color: #0275d8 !important;
+    box-shadow: 0 0 0 3px rgba(2, 117, 216, 0.2);
   }
 
   .form-group {
@@ -2571,19 +2578,42 @@ styles.innerHTML = `
 
   .form-label {
     font-weight: 600;
-    color: #333;
+    color: var(--text-color);
     font-size: 0.9rem;
+    letter-spacing: 0.3px;
   }
 
   .form-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
   }
 
   .task-description {
     font-family: inherit;
     line-height: 1.5;
+    resize: none;
+    min-height: 100px;
+    background: var(--input-bg) !important;
+    color: var(--input-color) !important;
+  }
+
+  .btn-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 28px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px rgba(2, 117, 216, 0.3);
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(2, 117, 216, 0.4);
   }
 
   .attachments-section {
@@ -2596,13 +2626,13 @@ styles.innerHTML = `
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 2px dashed #ccc;
-    border-radius: 10px;
+    padding: 14px 20px;
+    background: var(--attachment-btn-bg, rgba(0,0,0,0.02));
+    border: 2px dashed var(--attachment-btn-border, rgba(0,0,0,0.1));
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    color: #666;
+    transition: all 0.3s ease;
+    color: var(--attachment-btn-color, #666);
     font-weight: 500;
   }
 
@@ -2610,6 +2640,7 @@ styles.innerHTML = `
     border-color: #0275d8;
     background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
     color: #0275d8;
+    transform: translateY(-2px);
   }
 
   .attachment-btn i {
@@ -2626,15 +2657,20 @@ styles.innerHTML = `
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    background: #e3f2fd;
-    border-radius: 8px;
+    padding: 10px 14px;
+    background: var(--attachment-item-bg, rgba(2, 117, 216, 0.1));
+    border-radius: 10px;
     font-size: 0.85rem;
-    color: #1976d2;
+    color: var(--attachment-item-color, #0275d8);
+    transition: all 0.2s ease;
+  }
+
+  .attachment-item:hover {
+    transform: scale(1.02);
   }
 
   .attachment-item i {
-    color: #1976d2;
+    color: inherit;
   }
 
   .btn-remove-attachment {
@@ -2642,13 +2678,15 @@ styles.innerHTML = `
     border: none;
     color: #d9534f;
     cursor: pointer;
-    padding: 2px 5px;
-    border-radius: 4px;
+    padding: 2px 6px;
+    border-radius: 50%;
     transition: all 0.2s ease;
+    font-size: 1.1rem;
   }
 
   .btn-remove-attachment:hover {
     background: #ffebee;
+    transform: scale(1.1) rotate(90deg);
   }
 
   /* Dark Theme - Turmas e Formulário */
@@ -2866,7 +2904,9 @@ styles.innerHTML = `
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2901,7 +2941,9 @@ styles.innerHTML = `
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3269,6 +3311,68 @@ styles.innerHTML = `
     display: flex;
     justify-content: space-around;
     padding: 20px 0;
+  }
+
+  .quick-stats-vertical {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 10px 0;
+  }
+
+  .quick-stat-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: var(--stat-row-bg, rgba(0,0,0,0.02));
+    border-radius: 14px;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color, rgba(0,0,0,0.05));
+  }
+
+  .quick-stat-row:hover {
+    transform: translateY(-3px);
+    background: var(--stat-row-hover-bg, rgba(0,0,0,0.04));
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  }
+
+  .quick-stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  }
+
+  .quick-stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  @media (max-width: 500px) {
+    .quick-stats-vertical {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .quick-stat-info .quick-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color, #333);
+    line-height: 1.2;
+  }
+
+  .quick-stat-info .quick-stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted, #666);
+    font-weight: 500;
   }
 
   .quick-stat-item {
