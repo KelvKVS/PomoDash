@@ -145,10 +145,11 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     setErrors(prev => ({ ...prev, teachers: null }));
     
     try {
-      // Carregar professores da escola
+      // Carregar professores da escola (sem limite)
       const response = await userAPI.getUsers({ 
         role: 'teacher', 
-        school_id: user.school_id 
+        school_id: user.school_id,
+        limit: 1000 // Carregar todos os professores
       });
       
       if (response.data) {
@@ -179,10 +180,11 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     setErrors(prev => ({ ...prev, students: null }));
     
     try {
-      // Carregar alunos da escola
+      // Carregar alunos da escola (sem limite)
       const response = await userAPI.getUsers({ 
         role: 'student', 
-        school_id: user.school_id 
+        school_id: user.school_id,
+        limit: 1000 // Carregar todos os alunos
       });
       
       if (response.data) {
@@ -190,7 +192,6 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
           id: s._id,
           name: s.name,
           class: s.academic?.grade || s.academic?.class || 'N/A',
-          avg: s.academic?.avg || 0,
           createdAt: s.createdAt
         }));
         
@@ -296,9 +297,10 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     setErrors(prev => ({ ...prev, users: null }));
     
     try {
-      // Carregar todos os usuários da escola
+      // Carregar todos os usuários da escola (sem limite)
       const response = await userAPI.getUsers({ 
-        school_id: user.school_id 
+        school_id: user.school_id,
+        limit: 1000 // Carregar todos os usuários
       });
       
       if (response.data) {
@@ -309,7 +311,6 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
           role: u.role,
           roleDisplay: u.role === 'student' ? 'Aluno' : u.role === 'teacher' ? 'Professor' : u.role === 'school_admin' ? 'Administrador' : u.role,
           class: u.academic?.grade || u.academic?.class || 'N/A',
-          avg: u.academic?.avg || 0,
           subject: u.teaching?.subjects?.[0] || 'N/A',
           classes: u.teaching?.classes?.length || 0,
           createdAt: u.createdAt
@@ -627,7 +628,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
       'Email': user.email,
       'Tipo': user.roleDisplay,
       'Detalhes': user.role === 'student' 
-        ? `Turma: ${user.class}, Média: ${user.avg.toFixed(1)}` 
+        ? `Turma: ${user.class}` 
         : user.role === 'teacher' 
         ? `Disciplina: ${user.subject}, Turmas: ${user.classes}`
         : 'Administrador',
@@ -815,7 +816,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="logo">
-          <img src="/src/assets/logoVe.png" alt="PomoDash Logo" style={{ height: '50px', marginRight: '10px', borderRadius: '12px' }} />
+          <img src="/logoVe.png" alt="PomoDash Logo" style={{ height: '50px', marginRight: '10px', borderRadius: '12px' }} />
           <h1>Pomo<span>dash</span></h1>
         </div>
         <div className="menu">
@@ -998,7 +999,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
                             </td>
                             <td>
                               {userItem.role === 'student' && (
-                                <span>Turma: {userItem.class} • Média: {userItem.avg.toFixed(1)}</span>
+                                <span>Turma: {userItem.class}</span>
                               )}
                               {userItem.role === 'teacher' && (
                                 <span>Disciplina: {userItem.subject} • Turmas: {userItem.classes}</span>
@@ -1432,7 +1433,7 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
                           </td>
                           <td>
                             {user.role === 'student' && (
-                              <span>Turma: {user.class} • Média: {user.avg.toFixed(1)}</span>
+                              <span>Turma: {user.class}</span>
                             )}
                             {user.role === 'teacher' && (
                               <span>Disciplina: {user.subject} • Turmas: {user.classes}</span>

@@ -705,7 +705,7 @@ function DashboardProfessor({ user, darkMode, toggleDarkMode, onLogout }) {
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="logo">
-          <img src="/src/assets/logoVe.png" alt="PomoDash Logo" style={{ height: '50px', marginRight: '10px', borderRadius: '12px' }} />
+          <img src="/logoVe.png" alt="PomoDash Logo" style={{ height: '50px', marginRight: '10px', borderRadius: '12px' }} />
           <h1>Pomo<span>dash</span></h1>
         </div>
         <div className="menu">

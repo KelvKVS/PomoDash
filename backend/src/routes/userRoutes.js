@@ -19,13 +19,13 @@ const validateRequest = (req, res, next) => {
 // @access  Private
 router.get('/', auth, [
     query('page').optional().isInt({ min: 1 }).toInt(),
-    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+    query('limit').optional().isInt({ min: 1, max: 10000 }).toInt(),
     query('role').optional().isIn(['school_admin', 'teacher', 'student']),
     query('search').optional().trim(),
     query('email').optional().isEmail().normalizeEmail(),
 ], validateRequest, async (req, res) => {
   try {
-    const { page = 1, limit = 10, role, search, email } = req.query;
+    const { page = 1, limit = 1000, role, search, email } = req.query;
     const skip = (page - 1) * limit;
 
     let filter = { school_id: req.user.school_id };

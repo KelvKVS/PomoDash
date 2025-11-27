@@ -38,7 +38,7 @@ function Login({ onLogin, onRegister }) {
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <img src="/src/assets/logoVe.png" alt="PomoDash Logo" style={{ height: '80px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
+          <img src="/logoVe.png" alt="PomoDash Logo" style={{ height: '80px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }} />
         </div>
         <h2 className="login-title">Bem-vindo ao PomoDash</h2>
         <p className="login-subtitle">Faça login para continuar no PomoDash</p>
