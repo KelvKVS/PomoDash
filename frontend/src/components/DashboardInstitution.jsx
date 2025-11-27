@@ -91,21 +91,20 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [availableStudents, setAvailableStudents] = useState([]);
   
-  // Novos estados para criação
-  const [] = useState({
-    name: '',
-    subject: '',
-    email: '',
-    role: 'teacher'
-  });
-
   
 
   // estados para alertas e confirmações
   const [alert, setAlert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmCallback] = useState(null);
-  const [confirmMessage] = useState('');
+  const [confirmCallback, setConfirmCallback] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  
+  // Estado para modal de exclusão com confirmação de senha
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTargetUser, setDeleteTargetUser] = useState(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   
   // estados para o formulário de registro
   const [registerFormData, setRegisterFormData] = useState({
@@ -127,6 +126,11 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
   };
 
   // Função para mostrar confirmação
+  const showConfirmation = (message, callback, type = 'warning') => {
+    setConfirmMessage(message);
+    setConfirmCallback(() => callback);
+    setShowConfirmModal(true);
+  };
 
   const handleConfirm = () => {
     if (confirmCallback) {
@@ -137,6 +141,59 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
 
   const handleCancel = () => {
     setShowConfirmModal(false);
+  };
+  
+  // Funções para modal de exclusão com senha
+  const openDeleteModal = (userToDelete) => {
+    setDeleteTargetUser(userToDelete);
+    setDeletePassword('');
+    setDeleteError('');
+    setShowDeleteModal(true);
+  };
+  
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeleteTargetUser(null);
+    setDeletePassword('');
+    setDeleteError('');
+    setDeleteLoading(false);
+  };
+  
+  const handleDeleteWithPassword = async () => {
+    if (!deletePassword) {
+      setDeleteError('Por favor, digite sua senha para confirmar.');
+      return;
+    }
+    
+    setDeleteLoading(true);
+    setDeleteError('');
+    
+    try {
+      // Verificar a senha do administrador logado fazendo uma requisição de verificação
+      const verifyResponse = await authAPI.login(user.email, deletePassword);
+      
+      if (verifyResponse.status === 'success') {
+        // Senha verificada, agora excluir o usuário
+        await userAPI.deleteUser(deleteTargetUser.id);
+        
+        // Recarregar a lista de usuários
+        await loadAllUsers();
+        await loadStudents();
+        await loadTeachers();
+        
+        setAlert({ message: `Usuário "${deleteTargetUser.name}" excluído com sucesso!`, type: 'success' });
+        closeDeleteModal();
+      }
+    } catch (error) {
+      console.error('Erro ao verificar senha ou excluir usuário:', error);
+      if (error.message.includes('Credenciais') || error.message.includes('inválid')) {
+        setDeleteError('Senha incorreta. Por favor, tente novamente.');
+      } else {
+        setDeleteError('Erro ao excluir usuário: ' + (error.message || 'Erro de conexão'));
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   // Funções para carregar dados iniciais
@@ -465,28 +522,9 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
     }
   };
 
-  // Função para excluir usuário com confirmação
-  const deleteUser = async (userId, userName) => {
-    showConfirmation(
-      `Tem certeza que deseja excluir o usuário "${userName}"? Esta ação não pode ser desfeita.`,
-      async () => {
-        try {
-          // Chama API para inativar o usuário
-          await userAPI.deleteUser(userId);
-          
-          // Recarregar a lista de usuários
-          await loadAllUsers();
-          await loadStudents();
-          await loadTeachers();
-          
-          setAlert({ message: `Usuário "${userName}" excluído com sucesso!`, type: 'success' });
-        } catch (error) {
-          console.error('Erro ao excluir usuário:', error);
-          setAlert({ message: 'Erro ao excluir usuário: ' + (error.message || 'Erro de conexão'), type: 'error' });
-        }
-      },
-      'warning'
-    );
+  // Função para excluir usuário com confirmação por senha
+  const deleteUser = (userId, userName) => {
+    openDeleteModal({ id: userId, name: userName });
   };
 
   const handleRegisterChange = (e) => {
@@ -1689,6 +1727,81 @@ function DashboardInstitution({ user, darkMode, toggleDarkMode, onLogout }) {
           onCancel={handleCancel} 
           type="warning" 
         />
+      )}
+      
+      {/* Delete User Modal with Password Confirmation */}
+      {showDeleteModal && deleteTargetUser && (
+        <div className="delete-modal-overlay" onClick={closeDeleteModal}>
+          <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-header">
+              <div className="delete-modal-icon">
+                <i className="fas fa-exclamation-triangle"></i>
+              </div>
+              <h3>Confirmar Exclusão</h3>
+            </div>
+            
+            <div className="delete-modal-content">
+              <p className="delete-modal-warning">
+                Você está prestes a excluir o usuário <strong>"{deleteTargetUser.name}"</strong>.
+              </p>
+              <p className="delete-modal-info">
+                Esta ação não pode ser desfeita. Para confirmar, digite sua senha de administrador abaixo:
+              </p>
+              
+              {deleteError && (
+                <div className="delete-modal-error">
+                  <i className="fas fa-times-circle"></i>
+                  {deleteError}
+                </div>
+              )}
+              
+              <div className="delete-modal-input-group">
+                <label htmlFor="delete-password">Sua Senha</label>
+                <input
+                  type="password"
+                  id="delete-password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Digite sua senha para confirmar"
+                  disabled={deleteLoading}
+                  autoFocus
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !deleteLoading) {
+                      handleDeleteWithPassword();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            
+            <div className="delete-modal-actions">
+              <button 
+                className="delete-modal-btn-cancel" 
+                onClick={closeDeleteModal}
+                disabled={deleteLoading}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="delete-modal-btn-confirm" 
+                onClick={handleDeleteWithPassword}
+                disabled={deleteLoading || !deletePassword}
+              >
+                {deleteLoading ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-trash-alt"></i>
+                    Excluir Usuário
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -3066,6 +3179,248 @@ styles.innerHTML = `
     background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
     border-color: #d9534f;
     color: white;
+  }
+
+  /* Delete Modal with Password Confirmation */
+  .delete-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10001;
+    backdrop-filter: blur(4px);
+  }
+
+  .delete-modal {
+    background: var(--card-background, white);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 450px;
+    overflow: hidden;
+    animation: deleteModalSlideIn 0.3s ease;
+  }
+
+  @keyframes deleteModalSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9) translateY(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .delete-modal-header {
+    background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+    color: white;
+    padding: 25px;
+    text-align: center;
+  }
+
+  .delete-modal-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    animation: deleteIconPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes deleteIconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .delete-modal-header h3 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+  }
+
+  .delete-modal-content {
+    padding: 25px;
+  }
+
+  .delete-modal-warning {
+    font-size: 1.1rem;
+    color: var(--text-color, #333);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .delete-modal-warning strong {
+    color: #d9534f;
+  }
+
+  .delete-modal-info {
+    font-size: 0.95rem;
+    color: var(--text-light-color, #666);
+    margin-bottom: 20px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .delete-modal-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    border: 1px solid #f5c6cb;
+  }
+
+  .delete-modal-error i {
+    font-size: 1.1rem;
+  }
+
+  .delete-modal-input-group {
+    margin-top: 15px;
+  }
+
+  .delete-modal-input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color, #333);
+    font-size: 0.95rem;
+  }
+
+  .delete-modal-input-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--border-color, #ddd);
+    border-radius: 10px;
+    font-size: 1rem;
+    background: var(--input-background, #f9f9f9);
+    color: var(--text-color, #333);
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+  }
+
+  .delete-modal-input-group input:focus {
+    outline: none;
+    border-color: #d9534f;
+    box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.15);
+  }
+
+  .delete-modal-input-group input:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+  }
+
+  .delete-modal-actions {
+    display: flex;
+    gap: 12px;
+    padding: 20px 25px;
+    border-top: 1px solid var(--border-color, #eee);
+    background-color: var(--card-background-light, rgba(0,0,0,0.02));
+  }
+
+  .delete-modal-btn-cancel,
+  .delete-modal-btn-confirm {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.95rem;
+  }
+
+  .delete-modal-btn-cancel {
+    background-color: var(--border-color, #e2e6ea);
+    color: var(--text-color, #333);
+  }
+
+  .delete-modal-btn-cancel:hover:not(:disabled) {
+    background-color: #c8ccd0;
+  }
+
+  .delete-modal-btn-confirm {
+    background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+    color: white;
+  }
+
+  .delete-modal-btn-confirm:hover:not(:disabled) {
+    background: linear-gradient(135deg, #c9302c 0%, #a52a24 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(217, 83, 79, 0.4);
+  }
+
+  .delete-modal-btn-confirm:disabled,
+  .delete-modal-btn-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .delete-modal-btn-confirm i.fa-spinner {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Dark Theme - Delete Modal */
+  .dark-theme .delete-modal {
+    background: var(--card-background, #1e1e1e);
+  }
+
+  .dark-theme .delete-modal-content {
+    background: var(--card-background, #1e1e1e);
+  }
+
+  .dark-theme .delete-modal-warning,
+  .dark-theme .delete-modal-input-group label {
+    color: var(--text-color, #e0e0e0);
+  }
+
+  .dark-theme .delete-modal-info {
+    color: var(--text-light-color, #b0b0b0);
+  }
+
+  .dark-theme .delete-modal-error {
+    background-color: rgba(248, 215, 218, 0.1);
+    border-color: rgba(220, 53, 69, 0.3);
+  }
+
+  .dark-theme .delete-modal-input-group input {
+    background: #2d2d2d;
+    border-color: #444;
+    color: #e0e0e0;
+  }
+
+  .dark-theme .delete-modal-input-group input:focus {
+    border-color: #d9534f;
+  }
+
+  .dark-theme .delete-modal-actions {
+    background-color: rgba(255,255,255,0.03);
+    border-top-color: #444;
+  }
+
+  .dark-theme .delete-modal-btn-cancel {
+    background-color: #444;
+    color: #e0e0e0;
+  }
+
+  .dark-theme .delete-modal-btn-cancel:hover:not(:disabled) {
+    background-color: #555;
   }
 
 `;

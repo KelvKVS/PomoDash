@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { classAPI } from '../lib/api';
-import { userAPI } from '../lib/api';
+import { classAPI, userAPI } from '../lib/api';
 
 const TeacherClassManagement = ({ user, darkMode }) => {
   const [classes, setClasses] = useState([]);

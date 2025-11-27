@@ -23,12 +23,17 @@ router.get('/', auth, [
     query('role').optional().isIn(['school_admin', 'teacher', 'student']),
     query('search').optional().trim(),
     query('email').optional().isEmail().normalizeEmail(),
+    query('status').optional().isIn(['active', 'inactive', 'pending']),
 ], validateRequest, async (req, res) => {
   try {
-    const { page = 1, limit = 1000, role, search, email } = req.query;
+    const { page = 1, limit = 1000, role, search, email, status } = req.query;
     const skip = (page - 1) * limit;
 
-    let filter = { school_id: req.user.school_id };
+    // Por padrão, mostrar apenas usuários ativos (exceto se status for especificado)
+    let filter = { 
+      school_id: req.user.school_id,
+      status: status || 'active'  // Filtrar por status ativo por padrão
+    };
     if (req.user.role === 'teacher') {
       filter.role = 'student';
     } else if (role) {

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { taskAPI } from '../lib/api';
-import { classAPI } from '../lib/api';
+import { taskAPI, classAPI } from '../lib/api';
 
 const TeacherTaskManagement = ({ user, darkMode }) => {
   const [tasks, setTasks] = useState([]);
@@ -16,12 +15,6 @@ const TeacherTaskManagement = ({ user, darkMode }) => {
     assigned_to: [] // IDs dos alunos
   });
   const [showCreateTask, setShowCreateTask] = useState(false);
-  // eslint-disable-next-line no-empty-pattern
-  const [] = useState(false);
-  // eslint-disable-next-line no-empty-pattern
-  const [] = useState(null);
-  // eslint-disable-next-line no-empty-pattern
-  const [] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [alert, setAlert] = useState(null);
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { flashcardAPI } from '../lib/api';
-import { classAPI } from '../lib/api';
+import { flashcardAPI, classAPI } from '../lib/api';
 
 const TeacherFlashcardManagement = ({ user, darkMode }) => {
   const [flashcards, setFlashcards] = useState([]);
